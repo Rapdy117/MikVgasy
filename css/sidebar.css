@@ -1,0 +1,178 @@
+/* =========================
+   VARIABLES
+========================= */
+:root {
+    --navbar-height: 60px; /* corrigé */
+    --sidebar-width: 220px;
+
+    --transparent-card-bg-dark: rgba(26, 26, 46, 0.3);
+    --transparent-card-bg: rgba(31, 32, 56, 0.5);
+
+    --text-white: #E0E0E0;
+    --text-muted: #B0B0B0;
+
+    --primary-color: #0F3460;
+    --secondary-color: #17A2B8;
+
+    --border-color: rgba(60, 60, 88, 0.5);
+
+    --cyan-medium: rgba(0,255,255,0.5);
+
+    --transition-ease: all 0.3s ease;
+}
+
+/* =========================
+   GLOBAL
+========================= */
+html, body {
+    height: 100%;
+    margin: 0;
+    overflow-x: hidden;
+}
+
+body {
+    font-family: 'Roboto', sans-serif;
+    color: var(--text-white);
+    padding-top: var(--navbar-height);
+    font-size: 14px;
+}
+body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background: url('../pages/background_wave.png') center / cover no-repeat fixed;
+    z-index: -1;
+}
+/* =========================
+   LAYOUT
+========================= */
+#wrapper {
+    display: flex;
+    min-height: 100vh;
+}
+
+#page-content-wrapper {
+    margin-left: var(--sidebar-width);
+    width: calc(100% - var(--sidebar-width));
+}
+
+/* =========================
+   NAVBAR
+========================= */
+#main-navbar {
+    position: fixed;
+    height: var(--navbar-height);
+    top: 0;
+    left: 0;
+    width: 100%;
+
+    display: flex;
+    align-items: center;
+
+    background-color: var(--transparent-card-bg-dark);
+    border-bottom: 1px solid var(--border-color);
+
+    padding: 0 10px;
+    z-index: 1030;
+}
+
+/* LOGO */
+.navbar-logo {
+    height: 35px;
+}
+
+/* BLOC LOGO */
+.navbar-logo-block {
+    width: 220px;
+    height: var(--navbar-height);
+    border-right: 1px solid var(--border-color);
+}
+
+/* NAVBAR INPUT */
+#main-navbar .form-control,
+#main-navbar .form-select,
+#main-navbar .btn {
+    height: 28px;
+    font-size: 0.75rem;
+}
+
+/* SEARCH */
+.navbar-search {
+    flex: 0 0 400px;
+}
+
+/* =========================
+   SIDEBAR
+========================= */
+#sidebar-wrapper {
+    width: var(--sidebar-width);
+    position: fixed;
+    top: var(--navbar-height);
+    left: 0;
+
+    height: calc(100vh - var(--navbar-height));
+
+    background-color: var(--transparent-card-bg-dark);
+    border-right: 1px solid var(--border-color);
+
+    overflow-y: auto;
+}
+
+/* =========================
+   MENU ITEMS
+========================= */
+#sidebar-wrapper .list-group-item,
+#sidebar-wrapper .dropdown-btn {
+    height: 40px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+
+    margin: 5px;
+    border-radius: 6px;
+
+    color: var(--text-white);
+
+    transition: 0.3s;
+}
+
+#sidebar-wrapper .list-group-item:hover,
+#sidebar-wrapper .dropdown-btn:hover {
+    background: rgba(0,255,255,0.1);
+}
+
+/* =========================
+   SUBMENU
+========================= */
+.submenu-group {
+    display: none;
+    margin-bottom: 8px;
+    animation: fadeSlide 0.2s ease;
+}
+
+.submenu-group.open {
+    display: block;
+}
+
+/* =========================
+   LEVELS
+========================= */
+.level-0 { padding-left: 12px; }
+.level-1 { padding-left: 30px; }
+.level-2 { padding-left: 50px; }
+
+/* =========================
+   ACTIVE
+========================= */
+.list-group-item.active {
+    background-color: rgba(0,255,255,0.15);
+    border-left: 3px solid cyan;
+}
+
+/* =========================
+   ANIMATION
+========================= */
+@keyframes fadeSlide {
+    from { opacity: 0; transform: translateY(-5px); }
+    to { opacity: 1; transform: translateY(0); }
+}

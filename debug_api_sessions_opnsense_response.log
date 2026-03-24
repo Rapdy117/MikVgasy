@@ -1,0 +1,1398 @@
+--- Réponse OPNsense pour captiveportal/session/searchSession ---
+Timestamp: 2025-07-26 20:16:17
+HTTP Code: 404
+cURL Error: 
+Response Body: {"errorMessage":"Endpoint not found"}
+--- Fin Réponse OPNsense ---
+--- Réponse OPNsense pour captiveportal/session/searchSession ---
+Timestamp: 2025-07-26 20:19:18
+HTTP Code: 404
+cURL Error: 
+Response Body: {"errorMessage":"Endpoint not found"}
+--- Fin Réponse OPNsense ---
+--- Réponse OPNsense pour captiveportal/session/search ---
+Timestamp: 2025-07-26 20:24:42
+HTTP Code: 400
+cURL Error: 
+Response Body: {"status":400,"message":"Invalid JSON syntax"}
+--- Fin Réponse OPNsense ---
+--- Réponse OPNsense pour captiveportal/session/search ---
+Timestamp: 2025-07-26 20:25:11
+HTTP Code: 400
+cURL Error: 
+Response Body: {"status":400,"message":"Invalid JSON syntax"}
+--- Fin Réponse OPNsense ---
+--- Réponse OPNsense pour captiveportal/session/search ---
+Timestamp: 2025-07-26 20:26:08
+HTTP Code: 400
+cURL Error: 
+Response Body: {"status":400,"message":"Invalid JSON syntax"}
+--- Fin Réponse OPNsense ---
+--- Réponse OPNsense pour captiveportal/session/search ---
+Timestamp: 2025-07-26 20:31:07
+HTTP Code: 400
+cURL Error: 
+Response Body: {"status":400,"message":"Invalid JSON syntax"}
+--- Fin Réponse OPNsense ---
+--- Réponse OPNsense pour captiveportal/session/search ---
+Timestamp: 2025-07-26 20:31:11
+HTTP Code: 400
+cURL Error: 
+Response Body: {"status":400,"message":"Invalid JSON syntax"}
+--- Fin Réponse OPNsense ---
+--- Réponse OPNsense pour captiveportal/session/search ---
+Timestamp: 2025-07-26 20:33:07
+HTTP Code: 400
+cURL Error: 
+Response Body: {"status":400,"message":"Invalid JSON syntax"}
+--- Fin Réponse OPNsense ---
+--- Réponse OPNsense pour captiveportal/session/search ---
+Timestamp: 2025-07-26 20:35:00
+HTTP Code: 400
+cURL Error: 
+Response Body: {"status":400,"message":"Invalid JSON syntax"}
+--- Fin Réponse OPNsense ---
+--- Réponse OPNsense pour captiveportal/session/search ---
+Timestamp: 2025-07-26 20:35:08
+HTTP Code: 400
+cURL Error: 
+Response Body: {"status":400,"message":"Invalid JSON syntax"}
+--- Fin Réponse OPNsense ---
+--- Réponse OPNsense pour captiveportal/session/search ---
+Timestamp: 2025-07-26 20:36:25
+HTTP Code: 400
+cURL Error: 
+Response Body: {"status":400,"message":"Invalid JSON syntax"}
+--- Fin Réponse OPNsense ---
+--- Réponse OPNsense pour captiveportal/session/search ---
+Timestamp: 2025-07-26 20:38:12
+HTTP Code: 400
+cURL Error: 
+Response Body: {"status":400,"message":"Invalid JSON syntax"}
+--- Fin Réponse OPNsense ---
+--- Réponse OPNsense pour captiveportal/session/search ---
+Timestamp: 2025-07-26 20:39:57
+HTTP Code: 400
+cURL Error: 
+Response Body: {"status":400,"message":"Invalid JSON syntax"}
+--- Fin Réponse OPNsense ---
+--- Réponse OPNsense pour captiveportal/session/search ---
+Timestamp: 2025-07-26 20:40:34
+HTTP Code: 400
+cURL Error: 
+Response Body: {"status":400,"message":"Invalid JSON syntax"}
+--- Fin Réponse OPNsense ---
+--- Réponse OPNsense pour captiveportal/session/search ---
+Timestamp: 2025-07-26 20:40:35
+HTTP Code: 400
+cURL Error: 
+Response Body: {"status":400,"message":"Invalid JSON syntax"}
+--- Fin Réponse OPNsense ---
+--- Réponse OPNsense pour captiveportal/session/search ---
+Timestamp: 2025-07-26 20:40:36
+HTTP Code: 400
+cURL Error: 
+Response Body: {"status":400,"message":"Invalid JSON syntax"}
+--- Fin Réponse OPNsense ---
+--- Réponse OPNsense pour captiveportal/session/search ---
+Timestamp: 2025-07-26 20:42:45
+HTTP Code: 400
+cURL Error: 
+Response Body: {"status":400,"message":"Invalid JSON syntax"}
+--- Fin Réponse OPNsense ---
+--- Réponse OPNsense pour captiveportal/session/search ---
+Timestamp: 2025-07-26 20:43:29
+HTTP Code: 400
+cURL Error: 
+Response Body: {"status":400,"message":"Invalid JSON syntax"}
+--- Fin Réponse OPNsense ---
+--- Réponse OPNsense pour captiveportal/session/search ---
+Timestamp: 2025-07-26 20:53:03
+HTTP Code: 200
+cURL Error: 
+Response Body: {"total":2,"rowCount":2,"current":1,"rows":[{"zoneid":0,"sessionId":"aSgADUt\/FxDbptYvbCQGNg==","authenticated_via":"Local Database","userName":"admin","startTime":1753545065.1637368,"ipAddress":"11.11.11.93","macAddress":"7c:b2:7d:5e:05:38","packets_in":233487,"packets_out":880107,"bytes_in":66366243,"bytes_out":976775426,"last_accessed":1753563180,"acc_session_timeout":null},{"zoneid":0,"sessionId":"Nd85Bp6rwN6iiUuXh1cZnA==","authenticated_via":"Local Database","userName":"test","startTime":1753557838.4475996,"ipAddress":"11.11.11.225","macAddress":"9a:cd:b0:9e:02:12","packets_in":9799,"packets_out":18440,"bytes_in":3546401,"bytes_out":17511480,"last_accessed":1753563178,"acc_session_timeout":null}]}
+--- Fin Réponse OPNsense ---
+--- Réponse OPNsense pour captiveportal/session/search ---
+Timestamp: 2025-07-26 20:57:54
+HTTP Code: 200
+cURL Error: 
+Response Body: {"total":2,"rowCount":2,"current":1,"rows":[{"zoneid":0,"sessionId":"aSgADUt\/FxDbptYvbCQGNg==","authenticated_via":"Local Database","userName":"admin","startTime":1753545065.1637368,"ipAddress":"11.11.11.93","macAddress":"7c:b2:7d:5e:05:38","packets_in":235168,"packets_out":883505,"bytes_in":66872526,"bytes_out":979654152,"last_accessed":1753563469,"acc_session_timeout":null},{"zoneid":0,"sessionId":"Nd85Bp6rwN6iiUuXh1cZnA==","authenticated_via":"Local Database","userName":"test","startTime":1753557838.4475996,"ipAddress":"11.11.11.225","macAddress":"9a:cd:b0:9e:02:12","packets_in":9975,"packets_out":18715,"bytes_in":3569777,"bytes_out":17572017,"last_accessed":1753563460,"acc_session_timeout":null}]}
+--- Fin Réponse OPNsense ---
+--- Réponse OPNsense pour captiveportal/session/search ---
+Timestamp: 2025-07-26 21:09:19
+HTTP Code: 200
+cURL Error: 
+Response Body: {"total":2,"rowCount":2,"current":1,"rows":[{"zoneid":0,"sessionId":"aSgADUt\/FxDbptYvbCQGNg==","authenticated_via":"Local Database","userName":"admin","startTime":1753545065.1637368,"ipAddress":"11.11.11.93","macAddress":"7c:b2:7d:5e:05:38","packets_in":241990,"packets_out":932131,"bytes_in":67937477,"bytes_out":1037816193,"last_accessed":1753564154,"acc_session_timeout":null},{"zoneid":0,"sessionId":"Nd85Bp6rwN6iiUuXh1cZnA==","authenticated_via":"Local Database","userName":"test","startTime":1753557838.4475996,"ipAddress":"11.11.11.225","macAddress":"9a:cd:b0:9e:02:12","packets_in":10330,"packets_out":19134,"bytes_in":3635504,"bytes_out":17768176,"last_accessed":1753564149,"acc_session_timeout":null}]}
+--- Fin Réponse OPNsense ---
+--- Réponse OPNsense pour captiveportal/session/search ---
+Timestamp: 2025-07-26 21:09:20
+HTTP Code: 200
+cURL Error: 
+Response Body: {"total":2,"rowCount":2,"current":1,"rows":[{"zoneid":0,"sessionId":"aSgADUt\/FxDbptYvbCQGNg==","authenticated_via":"Local Database","userName":"admin","startTime":1753545065.1637368,"ipAddress":"11.11.11.93","macAddress":"7c:b2:7d:5e:05:38","packets_in":242031,"packets_out":932173,"bytes_in":67950378,"bytes_out":1037832516,"last_accessed":1753564161,"acc_session_timeout":null},{"zoneid":0,"sessionId":"Nd85Bp6rwN6iiUuXh1cZnA==","authenticated_via":"Local Database","userName":"test","startTime":1753557838.4475996,"ipAddress":"11.11.11.225","macAddress":"9a:cd:b0:9e:02:12","packets_in":10330,"packets_out":19134,"bytes_in":3635504,"bytes_out":17768176,"last_accessed":1753564149,"acc_session_timeout":null}]}
+--- Fin Réponse OPNsense ---
+--- Réponse OPNsense pour captiveportal/session/search ---
+Timestamp: 2025-07-26 21:09:22
+HTTP Code: 200
+cURL Error: 
+Response Body: {"total":2,"rowCount":2,"current":1,"rows":[{"zoneid":0,"sessionId":"aSgADUt\/FxDbptYvbCQGNg==","authenticated_via":"Local Database","userName":"admin","startTime":1753545065.1637368,"ipAddress":"11.11.11.93","macAddress":"7c:b2:7d:5e:05:38","packets_in":242031,"packets_out":932173,"bytes_in":67950378,"bytes_out":1037832516,"last_accessed":1753564161,"acc_session_timeout":null},{"zoneid":0,"sessionId":"Nd85Bp6rwN6iiUuXh1cZnA==","authenticated_via":"Local Database","userName":"test","startTime":1753557838.4475996,"ipAddress":"11.11.11.225","macAddress":"9a:cd:b0:9e:02:12","packets_in":10330,"packets_out":19134,"bytes_in":3635504,"bytes_out":17768176,"last_accessed":1753564149,"acc_session_timeout":null}]}
+--- Fin Réponse OPNsense ---
+--- Réponse OPNsense pour captiveportal/session/search ---
+Timestamp: 2025-07-26 21:09:24
+HTTP Code: 200
+cURL Error: 
+Response Body: {"total":2,"rowCount":2,"current":1,"rows":[{"zoneid":0,"sessionId":"aSgADUt\/FxDbptYvbCQGNg==","authenticated_via":"Local Database","userName":"admin","startTime":1753545065.1637368,"ipAddress":"11.11.11.93","macAddress":"7c:b2:7d:5e:05:38","packets_in":242031,"packets_out":932173,"bytes_in":67950378,"bytes_out":1037832516,"last_accessed":1753564161,"acc_session_timeout":null},{"zoneid":0,"sessionId":"Nd85Bp6rwN6iiUuXh1cZnA==","authenticated_via":"Local Database","userName":"test","startTime":1753557838.4475996,"ipAddress":"11.11.11.225","macAddress":"9a:cd:b0:9e:02:12","packets_in":10330,"packets_out":19134,"bytes_in":3635504,"bytes_out":17768176,"last_accessed":1753564149,"acc_session_timeout":null}]}
+--- Fin Réponse OPNsense ---
+--- Réponse OPNsense pour captiveportal/session/search ---
+Timestamp: 2025-07-26 21:09:30
+HTTP Code: 200
+cURL Error: 
+Response Body: {"total":2,"rowCount":2,"current":1,"rows":[{"zoneid":0,"sessionId":"aSgADUt\/FxDbptYvbCQGNg==","authenticated_via":"Local Database","userName":"admin","startTime":1753545065.1637368,"ipAddress":"11.11.11.93","macAddress":"7c:b2:7d:5e:05:38","packets_in":242069,"packets_out":932228,"bytes_in":67955217,"bytes_out":1037848418,"last_accessed":1753564164,"acc_session_timeout":null},{"zoneid":0,"sessionId":"Nd85Bp6rwN6iiUuXh1cZnA==","authenticated_via":"Local Database","userName":"test","startTime":1753557838.4475996,"ipAddress":"11.11.11.225","macAddress":"9a:cd:b0:9e:02:12","packets_in":10332,"packets_out":19135,"bytes_in":3635664,"bytes_out":17768242,"last_accessed":1753564164,"acc_session_timeout":null}]}
+--- Fin Réponse OPNsense ---
+--- Réponse OPNsense pour captiveportal/session/search ---
+Timestamp: 2025-07-26 21:09:39
+HTTP Code: 200
+cURL Error: 
+Response Body: {"total":2,"rowCount":2,"current":1,"rows":[{"zoneid":0,"sessionId":"aSgADUt\/FxDbptYvbCQGNg==","authenticated_via":"Local Database","userName":"admin","startTime":1753545065.1637368,"ipAddress":"11.11.11.93","macAddress":"7c:b2:7d:5e:05:38","packets_in":242124,"packets_out":932293,"bytes_in":67974024,"bytes_out":1037870709,"last_accessed":1753564174,"acc_session_timeout":null},{"zoneid":0,"sessionId":"Nd85Bp6rwN6iiUuXh1cZnA==","authenticated_via":"Local Database","userName":"test","startTime":1753557838.4475996,"ipAddress":"11.11.11.225","macAddress":"9a:cd:b0:9e:02:12","packets_in":10332,"packets_out":19135,"bytes_in":3635664,"bytes_out":17768242,"last_accessed":1753564164,"acc_session_timeout":null}]}
+--- Fin Réponse OPNsense ---
+--- Réponse OPNsense pour captiveportal/session/search ---
+Timestamp: 2025-07-26 21:09:43
+HTTP Code: 200
+cURL Error: 
+Response Body: {"total":2,"rowCount":2,"current":1,"rows":[{"zoneid":0,"sessionId":"aSgADUt\/FxDbptYvbCQGNg==","authenticated_via":"Local Database","userName":"admin","startTime":1753545065.1637368,"ipAddress":"11.11.11.93","macAddress":"7c:b2:7d:5e:05:38","packets_in":242139,"packets_out":932313,"bytes_in":67975949,"bytes_out":1037876123,"last_accessed":1753564180,"acc_session_timeout":null},{"zoneid":0,"sessionId":"Nd85Bp6rwN6iiUuXh1cZnA==","authenticated_via":"Local Database","userName":"test","startTime":1753557838.4475996,"ipAddress":"11.11.11.225","macAddress":"9a:cd:b0:9e:02:12","packets_in":10333,"packets_out":19136,"bytes_in":3635730,"bytes_out":17768308,"last_accessed":1753564179,"acc_session_timeout":null}]}
+--- Fin Réponse OPNsense ---
+--- Réponse OPNsense pour captiveportal/session/search ---
+Timestamp: 2025-07-26 21:09:57
+HTTP Code: 200
+cURL Error: 
+Response Body: {"total":2,"rowCount":2,"current":1,"rows":[{"zoneid":0,"sessionId":"aSgADUt\/FxDbptYvbCQGNg==","authenticated_via":"Local Database","userName":"admin","startTime":1753545065.1637368,"ipAddress":"11.11.11.93","macAddress":"7c:b2:7d:5e:05:38","packets_in":242322,"packets_out":932673,"bytes_in":68028989,"bytes_out":1038214056,"last_accessed":1753564196,"acc_session_timeout":null},{"zoneid":0,"sessionId":"Nd85Bp6rwN6iiUuXh1cZnA==","authenticated_via":"Local Database","userName":"test","startTime":1753557838.4475996,"ipAddress":"11.11.11.225","macAddress":"9a:cd:b0:9e:02:12","packets_in":10348,"packets_out":19154,"bytes_in":3642515,"bytes_out":17779305,"last_accessed":1753564196,"acc_session_timeout":null}]}
+--- Fin Réponse OPNsense ---
+--- Réponse OPNsense pour captiveportal/session/search ---
+Timestamp: 2025-07-26 21:10:30
+HTTP Code: 200
+cURL Error: 
+Response Body: {"total":2,"rowCount":2,"current":1,"rows":[{"zoneid":0,"sessionId":"aSgADUt\/FxDbptYvbCQGNg==","authenticated_via":"Local Database","userName":"admin","startTime":1753545065.1637368,"ipAddress":"11.11.11.93","macAddress":"7c:b2:7d:5e:05:38","packets_in":242548,"packets_out":933183,"bytes_in":68084383,"bytes_out":1038694761,"last_accessed":1753564226,"acc_session_timeout":null},{"zoneid":0,"sessionId":"Nd85Bp6rwN6iiUuXh1cZnA==","authenticated_via":"Local Database","userName":"test","startTime":1753557838.4475996,"ipAddress":"11.11.11.225","macAddress":"9a:cd:b0:9e:02:12","packets_in":10418,"packets_out":19208,"bytes_in":3661345,"bytes_out":17811991,"last_accessed":1753564225,"acc_session_timeout":null}]}
+--- Fin Réponse OPNsense ---
+--- Réponse OPNsense pour captiveportal/session/search ---
+Timestamp: 2025-07-26 21:10:54
+HTTP Code: 200
+cURL Error: 
+Response Body: {"total":2,"rowCount":2,"current":1,"rows":[{"zoneid":0,"sessionId":"aSgADUt\/FxDbptYvbCQGNg==","authenticated_via":"Local Database","userName":"admin","startTime":1753545065.1637368,"ipAddress":"11.11.11.93","macAddress":"7c:b2:7d:5e:05:38","packets_in":242652,"packets_out":933303,"bytes_in":68118419,"bytes_out":1038731199,"last_accessed":1753564251,"acc_session_timeout":null},{"zoneid":0,"sessionId":"Nd85Bp6rwN6iiUuXh1cZnA==","authenticated_via":"Local Database","userName":"test","startTime":1753557838.4475996,"ipAddress":"11.11.11.225","macAddress":"9a:cd:b0:9e:02:12","packets_in":10421,"packets_out":19211,"bytes_in":3661580,"bytes_out":17812226,"last_accessed":1753564251,"acc_session_timeout":null}]}
+--- Fin Réponse OPNsense ---
+--- Réponse OPNsense pour captiveportal/session/search ---
+Timestamp: 2025-07-26 21:13:57
+HTTP Code: 200
+cURL Error: 
+Response Body: {"total":2,"rowCount":2,"current":1,"rows":[{"zoneid":0,"sessionId":"aSgADUt\/FxDbptYvbCQGNg==","authenticated_via":"Local Database","userName":"admin","startTime":1753545065.1637368,"ipAddress":"11.11.11.93","macAddress":"7c:b2:7d:5e:05:38","packets_in":247327,"packets_out":966874,"bytes_in":68769453,"bytes_out":1079032349,"last_accessed":1753564435,"acc_session_timeout":null},{"zoneid":0,"sessionId":"Nd85Bp6rwN6iiUuXh1cZnA==","authenticated_via":"Local Database","userName":"test","startTime":1753557838.4475996,"ipAddress":"11.11.11.225","macAddress":"9a:cd:b0:9e:02:12","packets_in":10637,"packets_out":19788,"bytes_in":3717012,"bytes_out":18355235,"last_accessed":1753564434,"acc_session_timeout":null}]}
+--- Fin Réponse OPNsense ---
+--- Réponse OPNsense pour captiveportal/session/search ---
+Timestamp: 2025-07-26 21:13:58
+HTTP Code: 200
+cURL Error: 
+Response Body: {"total":2,"rowCount":2,"current":1,"rows":[{"zoneid":0,"sessionId":"aSgADUt\/FxDbptYvbCQGNg==","authenticated_via":"Local Database","userName":"admin","startTime":1753545065.1637368,"ipAddress":"11.11.11.93","macAddress":"7c:b2:7d:5e:05:38","packets_in":247327,"packets_out":966874,"bytes_in":68769453,"bytes_out":1079032349,"last_accessed":1753564435,"acc_session_timeout":null},{"zoneid":0,"sessionId":"Nd85Bp6rwN6iiUuXh1cZnA==","authenticated_via":"Local Database","userName":"test","startTime":1753557838.4475996,"ipAddress":"11.11.11.225","macAddress":"9a:cd:b0:9e:02:12","packets_in":10637,"packets_out":19788,"bytes_in":3717012,"bytes_out":18355235,"last_accessed":1753564434,"acc_session_timeout":null}]}
+--- Fin Réponse OPNsense ---
+--- Réponse OPNsense pour captiveportal/session/search ---
+Timestamp: 2025-07-26 21:14:00
+HTTP Code: 200
+cURL Error: 
+Response Body: {"total":2,"rowCount":2,"current":1,"rows":[{"zoneid":0,"sessionId":"aSgADUt\/FxDbptYvbCQGNg==","authenticated_via":"Local Database","userName":"admin","startTime":1753545065.1637368,"ipAddress":"11.11.11.93","macAddress":"7c:b2:7d:5e:05:38","packets_in":247395,"packets_out":966959,"bytes_in":68787153,"bytes_out":1079060149,"last_accessed":1753564439,"acc_session_timeout":null},{"zoneid":0,"sessionId":"Nd85Bp6rwN6iiUuXh1cZnA==","authenticated_via":"Local Database","userName":"test","startTime":1753557838.4475996,"ipAddress":"11.11.11.225","macAddress":"9a:cd:b0:9e:02:12","packets_in":10775,"packets_out":19919,"bytes_in":3744469,"bytes_out":18456207,"last_accessed":1753564440,"acc_session_timeout":null}]}
+--- Fin Réponse OPNsense ---
+--- Réponse OPNsense pour captiveportal/session/search ---
+Timestamp: 2025-07-26 21:14:05
+HTTP Code: 200
+cURL Error: 
+Response Body: {"total":2,"rowCount":2,"current":1,"rows":[{"zoneid":0,"sessionId":"aSgADUt\/FxDbptYvbCQGNg==","authenticated_via":"Local Database","userName":"admin","startTime":1753545065.1637368,"ipAddress":"11.11.11.93","macAddress":"7c:b2:7d:5e:05:38","packets_in":247434,"packets_out":967004,"bytes_in":68797269,"bytes_out":1079072454,"last_accessed":1753564445,"acc_session_timeout":null},{"zoneid":0,"sessionId":"Nd85Bp6rwN6iiUuXh1cZnA==","authenticated_via":"Local Database","userName":"test","startTime":1753557838.4475996,"ipAddress":"11.11.11.225","macAddress":"9a:cd:b0:9e:02:12","packets_in":10829,"packets_out":19971,"bytes_in":3753718,"bytes_out":18481492,"last_accessed":1753564445,"acc_session_timeout":null}]}
+--- Fin Réponse OPNsense ---
+--- Réponse OPNsense pour captiveportal/session/search ---
+Timestamp: 2025-07-26 21:14:43
+HTTP Code: 200
+cURL Error: 
+Response Body: {"total":2,"rowCount":2,"current":1,"rows":[{"zoneid":0,"sessionId":"aSgADUt\/FxDbptYvbCQGNg==","authenticated_via":"Local Database","userName":"admin","startTime":1753545065.1637368,"ipAddress":"11.11.11.93","macAddress":"7c:b2:7d:5e:05:38","packets_in":247561,"packets_out":967135,"bytes_in":68835337,"bytes_out":1079114987,"last_accessed":1753564480,"acc_session_timeout":null},{"zoneid":0,"sessionId":"Nd85Bp6rwN6iiUuXh1cZnA==","authenticated_via":"Local Database","userName":"test","startTime":1753557838.4475996,"ipAddress":"11.11.11.225","macAddress":"9a:cd:b0:9e:02:12","packets_in":10859,"packets_out":19996,"bytes_in":3761167,"bytes_out":18488005,"last_accessed":1753564480,"acc_session_timeout":null}]}
+--- Fin Réponse OPNsense ---
+--- Réponse OPNsense pour captiveportal/session/search ---
+Timestamp: 2025-07-26 21:14:44
+HTTP Code: 200
+cURL Error: 
+Response Body: {"total":2,"rowCount":2,"current":1,"rows":[{"zoneid":0,"sessionId":"aSgADUt\/FxDbptYvbCQGNg==","authenticated_via":"Local Database","userName":"admin","startTime":1753545065.1637368,"ipAddress":"11.11.11.93","macAddress":"7c:b2:7d:5e:05:38","packets_in":247561,"packets_out":967135,"bytes_in":68835337,"bytes_out":1079114987,"last_accessed":1753564480,"acc_session_timeout":null},{"zoneid":0,"sessionId":"Nd85Bp6rwN6iiUuXh1cZnA==","authenticated_via":"Local Database","userName":"test","startTime":1753557838.4475996,"ipAddress":"11.11.11.225","macAddress":"9a:cd:b0:9e:02:12","packets_in":10859,"packets_out":19996,"bytes_in":3761167,"bytes_out":18488005,"last_accessed":1753564480,"acc_session_timeout":null}]}
+--- Fin Réponse OPNsense ---
+--- Réponse OPNsense pour captiveportal/session/search ---
+Timestamp: 2025-07-26 21:16:27
+HTTP Code: 200
+cURL Error: 
+Response Body: {"total":2,"rowCount":2,"current":1,"rows":[{"zoneid":0,"sessionId":"aSgADUt\/FxDbptYvbCQGNg==","authenticated_via":"Local Database","userName":"admin","startTime":1753545065.1637368,"ipAddress":"11.11.11.93","macAddress":"7c:b2:7d:5e:05:38","packets_in":248923,"packets_out":975729,"bytes_in":69080752,"bytes_out":1089450523,"last_accessed":1753564582,"acc_session_timeout":null},{"zoneid":0,"sessionId":"Nd85Bp6rwN6iiUuXh1cZnA==","authenticated_via":"Local Database","userName":"test","startTime":1753557838.4475996,"ipAddress":"11.11.11.225","macAddress":"9a:cd:b0:9e:02:12","packets_in":10930,"packets_out":20063,"bytes_in":3777541,"bytes_out":18503501,"last_accessed":1753564582,"acc_session_timeout":null}]}
+--- Fin Réponse OPNsense ---
+--- Réponse OPNsense pour captiveportal/session/search ---
+Timestamp: 2025-07-26 21:20:26
+HTTP Code: 200
+cURL Error: 
+Response Body: {"total":2,"rowCount":2,"current":1,"rows":[{"zoneid":0,"sessionId":"aSgADUt\/FxDbptYvbCQGNg==","authenticated_via":"Local Database","userName":"admin","startTime":1753545065.1637368,"ipAddress":"11.11.11.93","macAddress":"7c:b2:7d:5e:05:38","packets_in":253160,"packets_out":1007670,"bytes_in":69778054,"bytes_out":1129024468,"last_accessed":1753564826,"acc_session_timeout":null},{"zoneid":0,"sessionId":"Nd85Bp6rwN6iiUuXh1cZnA==","authenticated_via":"Local Database","userName":"test","startTime":1753557838.4475996,"ipAddress":"11.11.11.225","macAddress":"9a:cd:b0:9e:02:12","packets_in":10980,"packets_out":20111,"bytes_in":3781174,"bytes_out":18507424,"last_accessed":1753564825,"acc_session_timeout":null}]}
+--- Fin Réponse OPNsense ---
+--- Réponse OPNsense pour captiveportal/session/search ---
+Timestamp: 2025-07-26 21:20:29
+HTTP Code: 200
+cURL Error: 
+Response Body: {"total":2,"rowCount":2,"current":1,"rows":[{"zoneid":0,"sessionId":"aSgADUt\/FxDbptYvbCQGNg==","authenticated_via":"Local Database","userName":"admin","startTime":1753545065.1637368,"ipAddress":"11.11.11.93","macAddress":"7c:b2:7d:5e:05:38","packets_in":253160,"packets_out":1007670,"bytes_in":69778054,"bytes_out":1129024468,"last_accessed":1753564826,"acc_session_timeout":null},{"zoneid":0,"sessionId":"Nd85Bp6rwN6iiUuXh1cZnA==","authenticated_via":"Local Database","userName":"test","startTime":1753557838.4475996,"ipAddress":"11.11.11.225","macAddress":"9a:cd:b0:9e:02:12","packets_in":10980,"packets_out":20111,"bytes_in":3781174,"bytes_out":18507424,"last_accessed":1753564825,"acc_session_timeout":null}]}
+--- Fin Réponse OPNsense ---
+--- Réponse OPNsense pour captiveportal/session/search ---
+Timestamp: 2025-07-26 21:39:25
+HTTP Code: 200
+cURL Error: 
+Response Body: {"total":2,"rowCount":2,"current":1,"rows":[{"zoneid":0,"sessionId":"aSgADUt\/FxDbptYvbCQGNg==","authenticated_via":"Local Database","userName":"admin","startTime":1753545065.1637368,"ipAddress":"11.11.11.93","macAddress":"7c:b2:7d:5e:05:38","packets_in":263717,"packets_out":1071880,"bytes_in":71789294,"bytes_out":1205235485,"last_accessed":1753565963,"acc_session_timeout":null},{"zoneid":0,"sessionId":"Nd85Bp6rwN6iiUuXh1cZnA==","authenticated_via":"Local Database","userName":"test","startTime":1753557838.4475996,"ipAddress":"11.11.11.225","macAddress":"9a:cd:b0:9e:02:12","packets_in":11484,"packets_out":20561,"bytes_in":3865456,"bytes_out":18604195,"last_accessed":1753565949,"acc_session_timeout":null}]}
+--- Fin Réponse OPNsense ---
+--- Réponse OPNsense pour captiveportal/session/search ---
+Timestamp: 2025-07-26 21:44:54
+HTTP Code: 200
+cURL Error: 
+Response Body: {"total":2,"rowCount":2,"current":1,"rows":[{"zoneid":0,"sessionId":"aSgADUt\/FxDbptYvbCQGNg==","authenticated_via":"Local Database","userName":"admin","startTime":1753545065.1637368,"ipAddress":"11.11.11.93","macAddress":"7c:b2:7d:5e:05:38","packets_in":266807,"packets_out":1095371,"bytes_in":72378424,"bytes_out":1236097698,"last_accessed":1753566292,"acc_session_timeout":null},{"zoneid":0,"sessionId":"Nd85Bp6rwN6iiUuXh1cZnA==","authenticated_via":"Local Database","userName":"test","startTime":1753557838.4475996,"ipAddress":"11.11.11.225","macAddress":"9a:cd:b0:9e:02:12","packets_in":11550,"packets_out":20621,"bytes_in":3875372,"bytes_out":18617830,"last_accessed":1753566284,"acc_session_timeout":null}]}
+--- Fin Réponse OPNsense ---
+--- Réponse OPNsense pour captiveportal/session/search ---
+Timestamp: 2025-07-26 21:47:15
+HTTP Code: 200
+cURL Error: 
+Response Body: {"total":2,"rowCount":2,"current":1,"rows":[{"zoneid":0,"sessionId":"aSgADUt\/FxDbptYvbCQGNg==","authenticated_via":"Local Database","userName":"admin","startTime":1753545065.1637368,"ipAddress":"11.11.11.93","macAddress":"7c:b2:7d:5e:05:38","packets_in":269550,"packets_out":1116347,"bytes_in":72746424,"bytes_out":1261629870,"last_accessed":1753566428,"acc_session_timeout":null},{"zoneid":0,"sessionId":"Nd85Bp6rwN6iiUuXh1cZnA==","authenticated_via":"Local Database","userName":"test","startTime":1753557838.4475996,"ipAddress":"11.11.11.225","macAddress":"9a:cd:b0:9e:02:12","packets_in":11592,"packets_out":20655,"bytes_in":3881500,"bytes_out":18629106,"last_accessed":1753566420,"acc_session_timeout":null}]}
+--- Fin Réponse OPNsense ---
+--- Réponse OPNsense pour captiveportal/session/search ---
+Timestamp: 2025-07-26 21:51:02
+HTTP Code: 200
+cURL Error: 
+Response Body: {"total":2,"rowCount":2,"current":1,"rows":[{"zoneid":0,"sessionId":"aSgADUt\/FxDbptYvbCQGNg==","authenticated_via":"Local Database","userName":"admin","startTime":1753545065.1637368,"ipAddress":"11.11.11.93","macAddress":"7c:b2:7d:5e:05:38","packets_in":273689,"packets_out":1147053,"bytes_in":73321881,"bytes_out":1298335645,"last_accessed":1753566656,"acc_session_timeout":null},{"zoneid":0,"sessionId":"Nd85Bp6rwN6iiUuXh1cZnA==","authenticated_via":"Local Database","userName":"test","startTime":1753557838.4475996,"ipAddress":"11.11.11.225","macAddress":"9a:cd:b0:9e:02:12","packets_in":11822,"packets_out":20854,"bytes_in":3921687,"bytes_out":18695441,"last_accessed":1753566645,"acc_session_timeout":null}]}
+--- Fin Réponse OPNsense ---
+--- Réponse OPNsense pour captiveportal/session/search ---
+Timestamp: 2025-07-26 21:51:45
+HTTP Code: 200
+cURL Error: 
+Response Body: {"total":2,"rowCount":2,"current":1,"rows":[{"zoneid":0,"sessionId":"aSgADUt\/FxDbptYvbCQGNg==","authenticated_via":"Local Database","userName":"admin","startTime":1753545065.1637368,"ipAddress":"11.11.11.93","macAddress":"7c:b2:7d:5e:05:38","packets_in":274024,"packets_out":1147536,"bytes_in":73412794,"bytes_out":1298699972,"last_accessed":1753566703,"acc_session_timeout":null},{"zoneid":0,"sessionId":"Nd85Bp6rwN6iiUuXh1cZnA==","authenticated_via":"Local Database","userName":"test","startTime":1753557838.4475996,"ipAddress":"11.11.11.225","macAddress":"9a:cd:b0:9e:02:12","packets_in":11868,"packets_out":20900,"bytes_in":3928973,"bytes_out":18720228,"last_accessed":1753566691,"acc_session_timeout":null}]}
+--- Fin Réponse OPNsense ---
+--- Réponse OPNsense pour captiveportal/session/search ---
+Timestamp: 2025-07-26 22:01:00
+HTTP Code: 200
+cURL Error: 
+Response Body: {"total":2,"rowCount":2,"current":1,"rows":[{"zoneid":0,"sessionId":"aSgADUt\/FxDbptYvbCQGNg==","authenticated_via":"Local Database","userName":"admin","startTime":1753545065.1637368,"ipAddress":"11.11.11.93","macAddress":"7c:b2:7d:5e:05:38","packets_in":280494,"packets_out":1197094,"bytes_in":74524896,"bytes_out":1360491965,"last_accessed":1753567256,"acc_session_timeout":null},{"zoneid":0,"sessionId":"Nd85Bp6rwN6iiUuXh1cZnA==","authenticated_via":"Local Database","userName":"test","startTime":1753557838.4475996,"ipAddress":"11.11.11.225","macAddress":"9a:cd:b0:9e:02:12","packets_in":12694,"packets_out":21680,"bytes_in":4136830,"bytes_out":19000003,"last_accessed":1753567255,"acc_session_timeout":null}]}
+--- Fin Réponse OPNsense ---
+--- Réponse OPNsense pour captiveportal/session/search ---
+Timestamp: 2025-07-26 22:03:23
+HTTP Code: 200
+cURL Error: 
+Response Body: {"total":2,"rowCount":2,"current":1,"rows":[{"zoneid":0,"sessionId":"aSgADUt\/FxDbptYvbCQGNg==","authenticated_via":"Local Database","userName":"admin","startTime":1753545065.1637368,"ipAddress":"11.11.11.93","macAddress":"7c:b2:7d:5e:05:38","packets_in":286285,"packets_out":1246775,"bytes_in":75150244,"bytes_out":1420598694,"last_accessed":1753567398,"acc_session_timeout":null},{"zoneid":0,"sessionId":"Nd85Bp6rwN6iiUuXh1cZnA==","authenticated_via":"Local Database","userName":"test","startTime":1753557838.4475996,"ipAddress":"11.11.11.225","macAddress":"9a:cd:b0:9e:02:12","packets_in":12741,"packets_out":21725,"bytes_in":4145772,"bytes_out":19008517,"last_accessed":1753567397,"acc_session_timeout":null}]}
+--- Fin Réponse OPNsense ---
+--- Réponse OPNsense pour captiveportal/session/search ---
+Timestamp: 2025-07-26 22:03:56
+HTTP Code: 200
+cURL Error: 
+Response Body: {"total":2,"rowCount":2,"current":1,"rows":[{"zoneid":0,"sessionId":"aSgADUt\/FxDbptYvbCQGNg==","authenticated_via":"Local Database","userName":"admin","startTime":1753545065.1637368,"ipAddress":"11.11.11.93","macAddress":"7c:b2:7d:5e:05:38","packets_in":286493,"packets_out":1247144,"bytes_in":75216200,"bytes_out":1420925304,"last_accessed":1753567434,"acc_session_timeout":null},{"zoneid":0,"sessionId":"Nd85Bp6rwN6iiUuXh1cZnA==","authenticated_via":"Local Database","userName":"test","startTime":1753557838.4475996,"ipAddress":"11.11.11.225","macAddress":"9a:cd:b0:9e:02:12","packets_in":12751,"packets_out":21733,"bytes_in":4146517,"bytes_out":19009178,"last_accessed":1753567432,"acc_session_timeout":null}]}
+--- Fin Réponse OPNsense ---
+--- Réponse OPNsense pour captiveportal/session/search ---
+Timestamp: 2025-07-26 22:09:26
+HTTP Code: 200
+cURL Error: 
+Response Body: {"total":2,"rowCount":2,"current":1,"rows":[{"zoneid":0,"sessionId":"aSgADUt\/FxDbptYvbCQGNg==","authenticated_via":"Local Database","userName":"admin","startTime":1753545065.1637368,"ipAddress":"11.11.11.93","macAddress":"7c:b2:7d:5e:05:38","packets_in":290251,"packets_out":1270527,"bytes_in":75891485,"bytes_out":1448109978,"last_accessed":1753567764,"acc_session_timeout":null},{"zoneid":0,"sessionId":"Nd85Bp6rwN6iiUuXh1cZnA==","authenticated_via":"Local Database","userName":"test","startTime":1753557838.4475996,"ipAddress":"11.11.11.225","macAddress":"9a:cd:b0:9e:02:12","packets_in":13048,"packets_out":22032,"bytes_in":4190304,"bytes_out":19076814,"last_accessed":1753567758,"acc_session_timeout":null}]}
+--- Fin Réponse OPNsense ---
+--- Réponse OPNsense pour captiveportal/session/search ---
+Timestamp: 2025-07-26 22:13:40
+HTTP Code: 200
+cURL Error: 
+Response Body: {"total":2,"rowCount":2,"current":1,"rows":[{"zoneid":0,"sessionId":"aSgADUt\/FxDbptYvbCQGNg==","authenticated_via":"Local Database","userName":"admin","startTime":1753545065.1637368,"ipAddress":"11.11.11.93","macAddress":"7c:b2:7d:5e:05:38","packets_in":294518,"packets_out":1303684,"bytes_in":76439286,"bytes_out":1487923507,"last_accessed":1753568017,"acc_session_timeout":null},{"zoneid":0,"sessionId":"Nd85Bp6rwN6iiUuXh1cZnA==","authenticated_via":"Local Database","userName":"test","startTime":1753557838.4475996,"ipAddress":"11.11.11.225","macAddress":"9a:cd:b0:9e:02:12","packets_in":13175,"packets_out":22173,"bytes_in":4235561,"bytes_out":19119023,"last_accessed":1753568016,"acc_session_timeout":null}]}
+--- Fin Réponse OPNsense ---
+--- Réponse OPNsense pour captiveportal/session/search ---
+Timestamp: 2025-07-26 22:13:43
+HTTP Code: 200
+cURL Error: 
+Response Body: {"total":2,"rowCount":2,"current":1,"rows":[{"zoneid":0,"sessionId":"aSgADUt\/FxDbptYvbCQGNg==","authenticated_via":"Local Database","userName":"admin","startTime":1753545065.1637368,"ipAddress":"11.11.11.93","macAddress":"7c:b2:7d:5e:05:38","packets_in":294538,"packets_out":1303709,"bytes_in":76441522,"bytes_out":1487929237,"last_accessed":1753568022,"acc_session_timeout":null},{"zoneid":0,"sessionId":"Nd85Bp6rwN6iiUuXh1cZnA==","authenticated_via":"Local Database","userName":"test","startTime":1753557838.4475996,"ipAddress":"11.11.11.225","macAddress":"9a:cd:b0:9e:02:12","packets_in":13175,"packets_out":22173,"bytes_in":4235561,"bytes_out":19119023,"last_accessed":1753568016,"acc_session_timeout":null}]}
+--- Fin Réponse OPNsense ---
+--- Réponse OPNsense pour captiveportal/session/search ---
+Timestamp: 2025-07-26 22:13:58
+HTTP Code: 200
+cURL Error: 
+Response Body: {"total":2,"rowCount":2,"current":1,"rows":[{"zoneid":0,"sessionId":"aSgADUt\/FxDbptYvbCQGNg==","authenticated_via":"Local Database","userName":"admin","startTime":1753545065.1637368,"ipAddress":"11.11.11.93","macAddress":"7c:b2:7d:5e:05:38","packets_in":294609,"packets_out":1303787,"bytes_in":76464985,"bytes_out":1487954155,"last_accessed":1753568038,"acc_session_timeout":null},{"zoneid":0,"sessionId":"Nd85Bp6rwN6iiUuXh1cZnA==","authenticated_via":"Local Database","userName":"test","startTime":1753557838.4475996,"ipAddress":"11.11.11.225","macAddress":"9a:cd:b0:9e:02:12","packets_in":13184,"packets_out":22184,"bytes_in":4238609,"bytes_out":19121269,"last_accessed":1753568032,"acc_session_timeout":null}]}
+--- Fin Réponse OPNsense ---
+--- Réponse OPNsense pour captiveportal/session/search ---
+Timestamp: 2025-07-26 22:15:38
+HTTP Code: 200
+cURL Error: 
+Response Body: {"total":2,"rowCount":2,"current":1,"rows":[{"zoneid":0,"sessionId":"aSgADUt\/FxDbptYvbCQGNg==","authenticated_via":"Local Database","userName":"admin","startTime":1753545065.1637368,"ipAddress":"11.11.11.93","macAddress":"7c:b2:7d:5e:05:38","packets_in":298586,"packets_out":1337196,"bytes_in":76954523,"bytes_out":1528142051,"last_accessed":1753568134,"acc_session_timeout":null},{"zoneid":0,"sessionId":"Nd85Bp6rwN6iiUuXh1cZnA==","authenticated_via":"Local Database","userName":"test","startTime":1753557838.4475996,"ipAddress":"11.11.11.225","macAddress":"9a:cd:b0:9e:02:12","packets_in":13195,"packets_out":22196,"bytes_in":4239429,"bytes_out":19122209,"last_accessed":1753568120,"acc_session_timeout":null}]}
+--- Fin Réponse OPNsense ---
+--- Réponse OPNsense pour captiveportal/session/search ---
+Timestamp: 2025-07-26 22:15:49
+HTTP Code: 200
+cURL Error: 
+Response Body: {"total":2,"rowCount":2,"current":1,"rows":[{"zoneid":0,"sessionId":"aSgADUt\/FxDbptYvbCQGNg==","authenticated_via":"Local Database","userName":"admin","startTime":1753545065.1637368,"ipAddress":"11.11.11.93","macAddress":"7c:b2:7d:5e:05:38","packets_in":298657,"packets_out":1337271,"bytes_in":76975791,"bytes_out":1528159531,"last_accessed":1753568149,"acc_session_timeout":null},{"zoneid":0,"sessionId":"Nd85Bp6rwN6iiUuXh1cZnA==","authenticated_via":"Local Database","userName":"test","startTime":1753557838.4475996,"ipAddress":"11.11.11.225","macAddress":"9a:cd:b0:9e:02:12","packets_in":13196,"packets_out":22197,"bytes_in":4239495,"bytes_out":19122275,"last_accessed":1753568135,"acc_session_timeout":null}]}
+--- Fin Réponse OPNsense ---
+--- Réponse OPNsense pour captiveportal/session/search ---
+Timestamp: 2025-07-26 22:16:16
+HTTP Code: 200
+cURL Error: 
+Response Body: {"total":2,"rowCount":2,"current":1,"rows":[{"zoneid":0,"sessionId":"aSgADUt\/FxDbptYvbCQGNg==","authenticated_via":"Local Database","userName":"admin","startTime":1753545065.1637368,"ipAddress":"11.11.11.93","macAddress":"7c:b2:7d:5e:05:38","packets_in":298860,"packets_out":1337634,"bytes_in":77024901,"bytes_out":1528477763,"last_accessed":1753568175,"acc_session_timeout":null},{"zoneid":0,"sessionId":"Nd85Bp6rwN6iiUuXh1cZnA==","authenticated_via":"Local Database","userName":"test","startTime":1753557838.4475996,"ipAddress":"11.11.11.225","macAddress":"9a:cd:b0:9e:02:12","packets_in":13227,"packets_out":22230,"bytes_in":4243909,"bytes_out":19133183,"last_accessed":1753568169,"acc_session_timeout":null}]}
+--- Fin Réponse OPNsense ---
+--- Réponse OPNsense pour captiveportal/session/search ---
+Timestamp: 2025-07-26 22:19:30
+HTTP Code: 200
+cURL Error: 
+Response Body: {"total":2,"rowCount":2,"current":1,"rows":[{"zoneid":0,"sessionId":"aSgADUt\/FxDbptYvbCQGNg==","authenticated_via":"Local Database","userName":"admin","startTime":1753545065.1637368,"ipAddress":"11.11.11.93","macAddress":"7c:b2:7d:5e:05:38","packets_in":307158,"packets_out":1403524,"bytes_in":77946997,"bytes_out":1608707348,"last_accessed":1753568367,"acc_session_timeout":null},{"zoneid":0,"sessionId":"Nd85Bp6rwN6iiUuXh1cZnA==","authenticated_via":"Local Database","userName":"test","startTime":1753557838.4475996,"ipAddress":"11.11.11.225","macAddress":"9a:cd:b0:9e:02:12","packets_in":13435,"packets_out":22427,"bytes_in":4290799,"bytes_out":19190343,"last_accessed":1753568363,"acc_session_timeout":null}]}
+--- Fin Réponse OPNsense ---
+--- Réponse OPNsense pour captiveportal/session/search ---
+Timestamp: 2025-07-26 22:20:06
+HTTP Code: 200
+cURL Error: 
+Response Body: {"total":2,"rowCount":2,"current":1,"rows":[{"zoneid":0,"sessionId":"aSgADUt\/FxDbptYvbCQGNg==","authenticated_via":"Local Database","userName":"admin","startTime":1753545065.1637368,"ipAddress":"11.11.11.93","macAddress":"7c:b2:7d:5e:05:38","packets_in":307327,"packets_out":1403721,"bytes_in":77990540,"bytes_out":1608760899,"last_accessed":1753568403,"acc_session_timeout":null},{"zoneid":0,"sessionId":"Nd85Bp6rwN6iiUuXh1cZnA==","authenticated_via":"Local Database","userName":"test","startTime":1753557838.4475996,"ipAddress":"11.11.11.225","macAddress":"9a:cd:b0:9e:02:12","packets_in":13439,"packets_out":22431,"bytes_in":4291063,"bytes_out":19190631,"last_accessed":1753568392,"acc_session_timeout":null}]}
+--- Fin Réponse OPNsense ---
+--- Réponse OPNsense pour captiveportal/session/search ---
+Timestamp: 2025-07-26 22:20:36
+HTTP Code: 200
+cURL Error: 
+Response Body: {"total":2,"rowCount":2,"current":1,"rows":[{"zoneid":0,"sessionId":"aSgADUt\/FxDbptYvbCQGNg==","authenticated_via":"Local Database","userName":"admin","startTime":1753545065.1637368,"ipAddress":"11.11.11.93","macAddress":"7c:b2:7d:5e:05:38","packets_in":307643,"packets_out":1404222,"bytes_in":78082558,"bytes_out":1609095227,"last_accessed":1753568431,"acc_session_timeout":null},{"zoneid":0,"sessionId":"Nd85Bp6rwN6iiUuXh1cZnA==","authenticated_via":"Local Database","userName":"test","startTime":1753557838.4475996,"ipAddress":"11.11.11.225","macAddress":"9a:cd:b0:9e:02:12","packets_in":13450,"packets_out":22444,"bytes_in":4292525,"bytes_out":19191873,"last_accessed":1753568422,"acc_session_timeout":null}]}
+--- Fin Réponse OPNsense ---
+--- Réponse OPNsense pour captiveportal/session/search ---
+Timestamp: 2025-07-26 23:05:44
+HTTP Code: 200
+cURL Error: 
+Response Body: {"total":2,"rowCount":2,"current":1,"rows":[{"zoneid":0,"sessionId":"aSgADUt\/FxDbptYvbCQGNg==","authenticated_via":"Local Database","userName":"admin","startTime":1753545065.1637368,"ipAddress":"11.11.11.93","macAddress":"7c:b2:7d:5e:05:38","packets_in":345394,"packets_out":1670455,"bytes_in":83429267,"bytes_out":1932220706,"last_accessed":1753571140,"acc_session_timeout":null},{"zoneid":0,"sessionId":"Nd85Bp6rwN6iiUuXh1cZnA==","authenticated_via":"Local Database","userName":"test","startTime":1753557838.4475996,"ipAddress":"11.11.11.225","macAddress":"9a:cd:b0:9e:02:12","packets_in":20133,"packets_out":35667,"bytes_in":6785121,"bytes_out":32067209,"last_accessed":1753571134,"acc_session_timeout":null}]}
+--- Fin Réponse OPNsense ---
+--- Réponse OPNsense pour captiveportal/session/search ---
+Timestamp: 2025-07-26 23:12:46
+HTTP Code: 200
+cURL Error: 
+Response Body: {"total":2,"rowCount":2,"current":1,"rows":[{"zoneid":0,"sessionId":"aSgADUt\/FxDbptYvbCQGNg==","authenticated_via":"Local Database","userName":"admin","startTime":1753545065.1637368,"ipAddress":"11.11.11.93","macAddress":"7c:b2:7d:5e:05:38","packets_in":357800,"packets_out":1774692,"bytes_in":85780723,"bytes_out":2062322699,"last_accessed":1753571565,"acc_session_timeout":null},{"zoneid":0,"sessionId":"Nd85Bp6rwN6iiUuXh1cZnA==","authenticated_via":"Local Database","userName":"test","startTime":1753557838.4475996,"ipAddress":"11.11.11.225","macAddress":"9a:cd:b0:9e:02:12","packets_in":23837,"packets_out":39182,"bytes_in":8984211,"bytes_out":34330936,"last_accessed":1753571565,"acc_session_timeout":null}]}
+--- Fin Réponse OPNsense ---
+--- Réponse OPNsense pour captiveportal/session/search ---
+Timestamp: 2025-07-26 23:13:31
+HTTP Code: 200
+cURL Error: 
+Response Body: {"total":2,"rowCount":2,"current":1,"rows":[{"zoneid":0,"sessionId":"aSgADUt\/FxDbptYvbCQGNg==","authenticated_via":"Local Database","userName":"admin","startTime":1753545065.1637368,"ipAddress":"11.11.11.93","macAddress":"7c:b2:7d:5e:05:38","packets_in":360933,"packets_out":1801322,"bytes_in":86135112,"bytes_out":2095696782,"last_accessed":1753571611,"acc_session_timeout":null},{"zoneid":0,"sessionId":"Nd85Bp6rwN6iiUuXh1cZnA==","authenticated_via":"Local Database","userName":"test","startTime":1753557838.4475996,"ipAddress":"11.11.11.225","macAddress":"9a:cd:b0:9e:02:12","packets_in":24084,"packets_out":39634,"bytes_in":9041732,"bytes_out":34753541,"last_accessed":1753571611,"acc_session_timeout":null}]}
+--- Fin Réponse OPNsense ---
+--- Réponse OPNsense pour captiveportal/session/search ---
+Timestamp: 2025-07-26 23:14:27
+HTTP Code: 200
+cURL Error: 
+Response Body: {"total":2,"rowCount":2,"current":1,"rows":[{"zoneid":0,"sessionId":"aSgADUt\/FxDbptYvbCQGNg==","authenticated_via":"Local Database","userName":"admin","startTime":1753545065.1637368,"ipAddress":"11.11.11.93","macAddress":"7c:b2:7d:5e:05:38","packets_in":362642,"packets_out":1815252,"bytes_in":86333980,"bytes_out":2112936796,"last_accessed":1753571666,"acc_session_timeout":null},{"zoneid":0,"sessionId":"Nd85Bp6rwN6iiUuXh1cZnA==","authenticated_via":"Local Database","userName":"test","startTime":1753557838.4475996,"ipAddress":"11.11.11.225","macAddress":"9a:cd:b0:9e:02:12","packets_in":24381,"packets_out":39899,"bytes_in":9126001,"bytes_out":34843859,"last_accessed":1753571665,"acc_session_timeout":null}]}
+--- Fin Réponse OPNsense ---
+--- Réponse OPNsense pour captiveportal/session/search ---
+Timestamp: 2025-07-26 23:16:44
+HTTP Code: 200
+cURL Error: 
+Response Body: {"total":2,"rowCount":2,"current":1,"rows":[{"zoneid":0,"sessionId":"aSgADUt\/FxDbptYvbCQGNg==","authenticated_via":"Local Database","userName":"admin","startTime":1753545065.1637368,"ipAddress":"11.11.11.93","macAddress":"7c:b2:7d:5e:05:38","packets_in":369518,"packets_out":1871006,"bytes_in":87176058,"bytes_out":2182882856,"last_accessed":1753571803,"acc_session_timeout":null},{"zoneid":0,"sessionId":"Nd85Bp6rwN6iiUuXh1cZnA==","authenticated_via":"Local Database","userName":"test","startTime":1753557838.4475996,"ipAddress":"11.11.11.225","macAddress":"9a:cd:b0:9e:02:12","packets_in":24776,"packets_out":40316,"bytes_in":9207040,"bytes_out":35133634,"last_accessed":1753571802,"acc_session_timeout":null}]}
+--- Fin Réponse OPNsense ---
+--- Réponse OPNsense pour captiveportal/session/search ---
+Timestamp: 2025-07-26 23:16:47
+HTTP Code: 200
+cURL Error: 
+Response Body: {"total":2,"rowCount":2,"current":1,"rows":[{"zoneid":0,"sessionId":"aSgADUt\/FxDbptYvbCQGNg==","authenticated_via":"Local Database","userName":"admin","startTime":1753545065.1637368,"ipAddress":"11.11.11.93","macAddress":"7c:b2:7d:5e:05:38","packets_in":369518,"packets_out":1871006,"bytes_in":87176058,"bytes_out":2182882856,"last_accessed":1753571803,"acc_session_timeout":null},{"zoneid":0,"sessionId":"Nd85Bp6rwN6iiUuXh1cZnA==","authenticated_via":"Local Database","userName":"test","startTime":1753557838.4475996,"ipAddress":"11.11.11.225","macAddress":"9a:cd:b0:9e:02:12","packets_in":24776,"packets_out":40316,"bytes_in":9207040,"bytes_out":35133634,"last_accessed":1753571802,"acc_session_timeout":null}]}
+--- Fin Réponse OPNsense ---
+--- Réponse OPNsense pour captiveportal/session/search ---
+Timestamp: 2025-07-26 23:16:54
+HTTP Code: 200
+cURL Error: 
+Response Body: {"total":2,"rowCount":2,"current":1,"rows":[{"zoneid":0,"sessionId":"aSgADUt\/FxDbptYvbCQGNg==","authenticated_via":"Local Database","userName":"admin","startTime":1753545065.1637368,"ipAddress":"11.11.11.93","macAddress":"7c:b2:7d:5e:05:38","packets_in":369572,"packets_out":1871077,"bytes_in":87182441,"bytes_out":2182899191,"last_accessed":1753571813,"acc_session_timeout":null},{"zoneid":0,"sessionId":"Nd85Bp6rwN6iiUuXh1cZnA==","authenticated_via":"Local Database","userName":"test","startTime":1753557838.4475996,"ipAddress":"11.11.11.225","macAddress":"9a:cd:b0:9e:02:12","packets_in":24787,"packets_out":40326,"bytes_in":9207996,"bytes_out":35134787,"last_accessed":1753571813,"acc_session_timeout":null}]}
+--- Fin Réponse OPNsense ---
+--- Réponse OPNsense pour captiveportal/session/search ---
+Timestamp: 2025-07-26 23:17:00
+HTTP Code: 200
+cURL Error: 
+Response Body: {"total":2,"rowCount":2,"current":1,"rows":[{"zoneid":0,"sessionId":"aSgADUt\/FxDbptYvbCQGNg==","authenticated_via":"Local Database","userName":"admin","startTime":1753545065.1637368,"ipAddress":"11.11.11.93","macAddress":"7c:b2:7d:5e:05:38","packets_in":369614,"packets_out":1871126,"bytes_in":87196669,"bytes_out":2182912275,"last_accessed":1753571818,"acc_session_timeout":null},{"zoneid":0,"sessionId":"Nd85Bp6rwN6iiUuXh1cZnA==","authenticated_via":"Local Database","userName":"test","startTime":1753557838.4475996,"ipAddress":"11.11.11.225","macAddress":"9a:cd:b0:9e:02:12","packets_in":24793,"packets_out":40332,"bytes_in":9209039,"bytes_out":35136728,"last_accessed":1753571817,"acc_session_timeout":null}]}
+--- Fin Réponse OPNsense ---
+--- Réponse OPNsense pour captiveportal/session/search ---
+Timestamp: 2025-07-26 23:17:03
+HTTP Code: 200
+cURL Error: 
+Response Body: {"total":2,"rowCount":2,"current":1,"rows":[{"zoneid":0,"sessionId":"aSgADUt\/FxDbptYvbCQGNg==","authenticated_via":"Local Database","userName":"admin","startTime":1753545065.1637368,"ipAddress":"11.11.11.93","macAddress":"7c:b2:7d:5e:05:38","packets_in":369702,"packets_out":1871233,"bytes_in":87222742,"bytes_out":2182946303,"last_accessed":1753571823,"acc_session_timeout":null},{"zoneid":0,"sessionId":"Nd85Bp6rwN6iiUuXh1cZnA==","authenticated_via":"Local Database","userName":"test","startTime":1753557838.4475996,"ipAddress":"11.11.11.225","macAddress":"9a:cd:b0:9e:02:12","packets_in":24797,"packets_out":40338,"bytes_in":9209367,"bytes_out":35138007,"last_accessed":1753571822,"acc_session_timeout":null}]}
+--- Fin Réponse OPNsense ---
+--- Réponse OPNsense pour captiveportal/session/search ---
+Timestamp: 2025-07-26 23:17:27
+HTTP Code: 200
+cURL Error: 
+Response Body: {"total":2,"rowCount":2,"current":1,"rows":[{"zoneid":0,"sessionId":"aSgADUt\/FxDbptYvbCQGNg==","authenticated_via":"Local Database","userName":"admin","startTime":1753545065.1637368,"ipAddress":"11.11.11.93","macAddress":"7c:b2:7d:5e:05:38","packets_in":369824,"packets_out":1871372,"bytes_in":87244413,"bytes_out":2182998167,"last_accessed":1753571843,"acc_session_timeout":null},{"zoneid":0,"sessionId":"Nd85Bp6rwN6iiUuXh1cZnA==","authenticated_via":"Local Database","userName":"test","startTime":1753557838.4475996,"ipAddress":"11.11.11.225","macAddress":"9a:cd:b0:9e:02:12","packets_in":24801,"packets_out":40342,"bytes_in":9209655,"bytes_out":35138247,"last_accessed":1753571844,"acc_session_timeout":null}]}
+--- Fin Réponse OPNsense ---
+--- Réponse OPNsense pour captiveportal/session/search ---
+Timestamp: 2025-07-26 23:17:58
+HTTP Code: 200
+cURL Error: 
+Response Body: {"total":2,"rowCount":2,"current":1,"rows":[{"zoneid":0,"sessionId":"aSgADUt\/FxDbptYvbCQGNg==","authenticated_via":"Local Database","userName":"admin","startTime":1753545065.1637368,"ipAddress":"11.11.11.93","macAddress":"7c:b2:7d:5e:05:38","packets_in":372796,"packets_out":1883543,"bytes_in":87912333,"bytes_out":2197935584,"last_accessed":1753571874,"acc_session_timeout":null},{"zoneid":0,"sessionId":"Nd85Bp6rwN6iiUuXh1cZnA==","authenticated_via":"Local Database","userName":"test","startTime":1753557838.4475996,"ipAddress":"11.11.11.225","macAddress":"9a:cd:b0:9e:02:12","packets_in":24912,"packets_out":40507,"bytes_in":9219686,"bytes_out":35337265,"last_accessed":1753571864,"acc_session_timeout":null}]}
+--- Fin Réponse OPNsense ---
+--- Réponse OPNsense pour captiveportal/session/search ---
+Timestamp: 2025-07-27 08:58:34
+HTTP Code: 0
+cURL Error: Failed to connect to 11.11.11.1 port 443 after 21069 ms: Couldn't connect to server
+Response Body: 
+--- Fin Réponse OPNsense ---
+--- Réponse OPNsense pour captiveportal/session/search ---
+Timestamp: 2025-07-27 08:58:59
+HTTP Code: 0
+cURL Error: Failed to connect to 11.11.11.1 port 443 after 21033 ms: Couldn't connect to server
+Response Body: 
+--- Fin Réponse OPNsense ---
+--- Réponse OPNsense pour captiveportal/session/search ---
+Timestamp: 2025-07-27 08:59:23
+HTTP Code: 0
+cURL Error: Failed to connect to 11.11.11.1 port 443 after 21049 ms: Couldn't connect to server
+Response Body: 
+--- Fin Réponse OPNsense ---
+--- Réponse OPNsense pour captiveportal/session/search ---
+Timestamp: 2025-07-27 14:27:41
+HTTP Code: 0
+cURL Error: Failed to connect to 11.11.11.1 port 443 after 21056 ms: Couldn't connect to server
+Response Body: 
+--- Fin Réponse OPNsense ---
+--- Réponse OPNsense pour captiveportal/session/search ---
+Timestamp: 2025-07-27 14:30:02
+HTTP Code: 0
+cURL Error: Failed to connect to 11.11.11.1 port 443 after 21043 ms: Couldn't connect to server
+Response Body: 
+--- Fin Réponse OPNsense ---
+--- Réponse OPNsense pour captiveportal/session/search ---
+Timestamp: 2025-07-27 14:33:51
+HTTP Code: 0
+cURL Error: Failed to connect to 11.11.11.1 port 443 after 21037 ms: Couldn't connect to server
+Response Body: 
+--- Fin Réponse OPNsense ---
+--- Réponse OPNsense pour captiveportal/session/search ---
+Timestamp: 2025-07-27 15:08:42
+HTTP Code: 0
+cURL Error: Failed to connect to 11.11.11.1 port 443 after 21092 ms: Couldn't connect to server
+Response Body: 
+--- Fin Réponse OPNsense ---
+--- Réponse OPNsense pour captiveportal/session/search ---
+Timestamp: 2025-07-27 15:09:09
+HTTP Code: 0
+cURL Error: Failed to connect to 11.11.11.1 port 443 after 21034 ms: Couldn't connect to server
+Response Body: 
+--- Fin Réponse OPNsense ---
+--- Réponse OPNsense pour captiveportal/session/search ---
+Timestamp: 2025-07-27 15:19:16
+HTTP Code: 0
+cURL Error: Failed to connect to 11.11.11.1 port 443 after 21050 ms: Couldn't connect to server
+Response Body: 
+--- Fin Réponse OPNsense ---
+--- Réponse OPNsense pour captiveportal/session/search ---
+Timestamp: 2025-07-27 15:26:52
+HTTP Code: 0
+cURL Error: Failed to connect to 11.11.11.1 port 443 after 21042 ms: Couldn't connect to server
+Response Body: 
+--- Fin Réponse OPNsense ---
+--- Réponse OPNsense pour captiveportal/session/search ---
+Timestamp: 2025-07-27 15:29:16
+HTTP Code: 0
+cURL Error: Failed to connect to 11.11.11.1 port 443 after 21025 ms: Couldn't connect to server
+Response Body: 
+--- Fin Réponse OPNsense ---
+--- Réponse OPNsense pour captiveportal/session/search ---
+Timestamp: 2025-07-27 15:30:27
+HTTP Code: 0
+cURL Error: Failed to connect to 11.11.11.1 port 443 after 21052 ms: Couldn't connect to server
+Response Body: 
+--- Fin Réponse OPNsense ---
+--- Réponse OPNsense pour captiveportal/session/search ---
+Timestamp: 2025-07-27 15:43:07
+HTTP Code: 0
+cURL Error: Failed to connect to 11.11.11.1 port 443 after 21037 ms: Couldn't connect to server
+Response Body: 
+--- Fin Réponse OPNsense ---
+--- Réponse OPNsense pour captiveportal/session/search ---
+Timestamp: 2025-07-27 15:47:36
+HTTP Code: 0
+cURL Error: Failed to connect to 11.11.11.1 port 443 after 21036 ms: Couldn't connect to server
+Response Body: 
+--- Fin Réponse OPNsense ---
+--- Réponse OPNsense pour captiveportal/session/search ---
+Timestamp: 2025-07-27 15:50:22
+HTTP Code: 0
+cURL Error: Failed to connect to 11.11.11.1 port 443 after 21029 ms: Couldn't connect to server
+Response Body: 
+--- Fin Réponse OPNsense ---
+--- Réponse OPNsense pour captiveportal/session/search ---
+Timestamp: 2025-07-27 15:59:10
+HTTP Code: 0
+cURL Error: Failed to connect to 11.11.11.1 port 443 after 21396 ms: Couldn't connect to server
+Response Body: 
+--- Fin Réponse OPNsense ---
+--- Réponse OPNsense pour captiveportal/session/search ---
+Timestamp: 2025-07-27 16:04:06
+HTTP Code: 0
+cURL Error: Failed to connect to 11.11.11.1 port 443 after 21035 ms: Couldn't connect to server
+Response Body: 
+--- Fin Réponse OPNsense ---
+--- Réponse OPNsense pour captiveportal/session/search ---
+Timestamp: 2025-07-27 16:11:14
+HTTP Code: 0
+cURL Error: Failed to connect to 11.11.11.1 port 443 after 21048 ms: Couldn't connect to server
+Response Body: 
+--- Fin Réponse OPNsense ---
+--- Réponse OPNsense pour captiveportal/session/search ---
+Timestamp: 2025-07-27 16:11:35
+HTTP Code: 0
+cURL Error: Failed to connect to 11.11.11.1 port 443 after 21027 ms: Couldn't connect to server
+Response Body: 
+--- Fin Réponse OPNsense ---
+--- Réponse OPNsense pour captiveportal/session/search ---
+Timestamp: 2025-07-27 16:11:57
+HTTP Code: 0
+cURL Error: Failed to connect to 11.11.11.1 port 443 after 21034 ms: Couldn't connect to server
+Response Body: 
+--- Fin Réponse OPNsense ---
+--- Réponse OPNsense pour captiveportal/session/search ---
+Timestamp: 2025-07-27 16:12:58
+HTTP Code: 0
+cURL Error: Failed to connect to 11.11.11.1 port 443 after 21037 ms: Couldn't connect to server
+Response Body: 
+--- Fin Réponse OPNsense ---
+--- Réponse OPNsense pour captiveportal/session/search ---
+Timestamp: 2025-07-27 16:21:50
+HTTP Code: 0
+cURL Error: Failed to connect to 11.11.11.1 port 443 after 21045 ms: Couldn't connect to server
+Response Body: 
+--- Fin Réponse OPNsense ---
+--- Réponse OPNsense pour captiveportal/session/search ---
+Timestamp: 2025-07-27 16:32:54
+HTTP Code: 0
+cURL Error: Failed to connect to 11.11.11.1 port 443 after 21039 ms: Couldn't connect to server
+Response Body: 
+--- Fin Réponse OPNsense ---
+--- Réponse OPNsense pour captiveportal/session/search ---
+Timestamp: 2025-07-27 16:33:18
+HTTP Code: 0
+cURL Error: Failed to connect to 11.11.11.1 port 443 after 21038 ms: Couldn't connect to server
+Response Body: 
+--- Fin Réponse OPNsense ---
+--- Réponse OPNsense pour captiveportal/session/search ---
+Timestamp: 2025-07-27 17:57:32
+HTTP Code: 0
+cURL Error: Failed to connect to 11.11.11.1 port 443 after 21051 ms: Couldn't connect to server
+Response Body: 
+--- Fin Réponse OPNsense ---
+--- Réponse OPNsense pour captiveportal/session/search ---
+Timestamp: 2025-07-27 18:17:27
+HTTP Code: 0
+cURL Error: Failed to connect to 11.11.11.1 port 443 after 21045 ms: Couldn't connect to server
+Response Body: 
+--- Fin Réponse OPNsense ---
+--- Réponse OPNsense pour captiveportal/session/search ---
+Timestamp: 2025-07-27 18:27:54
+HTTP Code: 0
+cURL Error: Failed to connect to 11.11.11.1 port 443 after 21026 ms: Couldn't connect to server
+Response Body: 
+--- Fin Réponse OPNsense ---
+--- Réponse OPNsense pour captiveportal/session/search ---
+Timestamp: 2025-07-27 18:34:17
+HTTP Code: 0
+cURL Error: Failed to connect to 11.11.11.1 port 443 after 21032 ms: Couldn't connect to server
+Response Body: 
+--- Fin Réponse OPNsense ---
+--- Réponse OPNsense pour captiveportal/session/search ---
+Timestamp: 2025-07-27 18:35:09
+HTTP Code: 0
+cURL Error: Failed to connect to 11.11.11.1 port 443 after 21031 ms: Couldn't connect to server
+Response Body: 
+--- Fin Réponse OPNsense ---
+--- Réponse OPNsense pour captiveportal/session/search ---
+Timestamp: 2025-07-27 18:39:57
+HTTP Code: 0
+cURL Error: Failed to connect to 11.11.11.1 port 443 after 21002 ms: Couldn't connect to server
+Response Body: 
+--- Fin Réponse OPNsense ---
+--- Réponse OPNsense pour captiveportal/session/search ---
+Timestamp: 2025-07-27 18:43:49
+HTTP Code: 0
+cURL Error: Failed to connect to 11.11.11.1 port 443 after 21017 ms: Couldn't connect to server
+Response Body: 
+--- Fin Réponse OPNsense ---
+--- Réponse OPNsense pour captiveportal/session/search ---
+Timestamp: 2025-07-27 18:44:28
+HTTP Code: 0
+cURL Error: Failed to connect to 11.11.11.1 port 443 after 21007 ms: Couldn't connect to server
+Response Body: 
+--- Fin Réponse OPNsense ---
+--- Réponse OPNsense pour captiveportal/session/search ---
+Timestamp: 2025-07-27 18:46:33
+HTTP Code: 0
+cURL Error: Failed to connect to 11.11.11.1 port 443 after 21018 ms: Couldn't connect to server
+Response Body: 
+--- Fin Réponse OPNsense ---
+--- Réponse OPNsense pour captiveportal/session/search ---
+Timestamp: 2025-07-27 18:54:44
+HTTP Code: 0
+cURL Error: Failed to connect to 11.11.11.1 port 443 after 21042 ms: Couldn't connect to server
+Response Body: 
+--- Fin Réponse OPNsense ---
+--- Réponse OPNsense pour captiveportal/session/search ---
+Timestamp: 2025-07-27 18:55:34
+HTTP Code: 0
+cURL Error: Failed to connect to 11.11.11.1 port 443 after 21015 ms: Couldn't connect to server
+Response Body: 
+--- Fin Réponse OPNsense ---
+--- Réponse OPNsense pour captiveportal/session/search ---
+Timestamp: 2025-07-27 18:56:36
+HTTP Code: 0
+cURL Error: Failed to connect to 11.11.11.1 port 443 after 21017 ms: Couldn't connect to server
+Response Body: 
+--- Fin Réponse OPNsense ---
+--- Réponse OPNsense pour captiveportal/session/search ---
+Timestamp: 2025-07-27 18:56:57
+HTTP Code: 0
+cURL Error: Failed to connect to 11.11.11.1 port 443 after 21026 ms: Couldn't connect to server
+Response Body: 
+--- Fin Réponse OPNsense ---
+--- Réponse OPNsense pour captiveportal/session/search ---
+Timestamp: 2025-07-27 18:57:18
+HTTP Code: 0
+cURL Error: Failed to connect to 11.11.11.1 port 443 after 21031 ms: Couldn't connect to server
+Response Body: 
+--- Fin Réponse OPNsense ---
+--- Réponse OPNsense pour captiveportal/session/search ---
+Timestamp: 2025-07-27 18:57:39
+HTTP Code: 0
+cURL Error: Failed to connect to 11.11.11.1 port 443 after 21023 ms: Couldn't connect to server
+Response Body: 
+--- Fin Réponse OPNsense ---
+--- Réponse OPNsense pour captiveportal/session/search ---
+Timestamp: 2025-07-27 19:00:55
+HTTP Code: 0
+cURL Error: Failed to connect to 11.11.11.1 port 443 after 21015 ms: Couldn't connect to server
+Response Body: 
+--- Fin Réponse OPNsense ---
+--- Réponse OPNsense pour captiveportal/session/search ---
+Timestamp: 2025-07-27 19:01:16
+HTTP Code: 0
+cURL Error: Failed to connect to 11.11.11.1 port 443 after 21025 ms: Couldn't connect to server
+Response Body: 
+--- Fin Réponse OPNsense ---
+--- Réponse OPNsense pour captiveportal/session/search ---
+Timestamp: 2025-07-27 19:05:24
+HTTP Code: 200
+cURL Error: 
+Response Body: {"total":2,"rowCount":2,"current":1,"rows":[{"zoneid":0,"sessionId":"aSgADUt\/FxDbptYvbCQGNg==","authenticated_via":"Local Database","userName":"admin","startTime":1753545065.1637368,"ipAddress":"11.11.11.93","macAddress":"7c:b2:7d:5e:05:38","packets_in":410366,"packets_out":1990920,"bytes_in":98843674,"bytes_out":2307727002,"last_accessed":1753643119,"acc_session_timeout":null},{"zoneid":0,"sessionId":"I1oZn1nwekSfRm7ZJwSwVw==","authenticated_via":"Local Database","userName":"test","startTime":1753590966.3916507,"ipAddress":"11.11.11.225","macAddress":"9a:cd:b0:9e:02:12","packets_in":1438,"packets_out":1968,"bytes_in":363848,"bytes_out":1233525,"last_accessed":1753597602,"acc_session_timeout":null}]}
+--- Fin Réponse OPNsense ---
+--- Réponse OPNsense pour captiveportal/session/search ---
+Timestamp: 2025-07-27 19:05:24
+HTTP Code: 200
+cURL Error: 
+Response Body: {"total":2,"rowCount":2,"current":1,"rows":[{"zoneid":0,"sessionId":"aSgADUt\/FxDbptYvbCQGNg==","authenticated_via":"Local Database","userName":"admin","startTime":1753545065.1637368,"ipAddress":"11.11.11.93","macAddress":"7c:b2:7d:5e:05:38","packets_in":410366,"packets_out":1990920,"bytes_in":98843674,"bytes_out":2307727002,"last_accessed":1753643119,"acc_session_timeout":null},{"zoneid":0,"sessionId":"I1oZn1nwekSfRm7ZJwSwVw==","authenticated_via":"Local Database","userName":"test","startTime":1753590966.3916507,"ipAddress":"11.11.11.225","macAddress":"9a:cd:b0:9e:02:12","packets_in":1438,"packets_out":1968,"bytes_in":363848,"bytes_out":1233525,"last_accessed":1753597602,"acc_session_timeout":null}]}
+--- Fin Réponse OPNsense ---
+--- Réponse OPNsense pour captiveportal/session/search ---
+Timestamp: 2025-07-27 19:07:27
+HTTP Code: 200
+cURL Error: 
+Response Body: {"total":2,"rowCount":2,"current":1,"rows":[{"zoneid":0,"sessionId":"aSgADUt\/FxDbptYvbCQGNg==","authenticated_via":"Local Database","userName":"admin","startTime":1753545065.1637368,"ipAddress":"11.11.11.93","macAddress":"7c:b2:7d:5e:05:38","packets_in":413759,"packets_out":2006265,"bytes_in":99316292,"bytes_out":2326473480,"last_accessed":1753643246,"acc_session_timeout":null},{"zoneid":0,"sessionId":"I1oZn1nwekSfRm7ZJwSwVw==","authenticated_via":"Local Database","userName":"test","startTime":1753590966.3916507,"ipAddress":"11.11.11.225","macAddress":"9a:cd:b0:9e:02:12","packets_in":1438,"packets_out":1968,"bytes_in":363848,"bytes_out":1233525,"last_accessed":1753597602,"acc_session_timeout":null}]}
+--- Fin Réponse OPNsense ---
+--- Réponse OPNsense pour captiveportal/session/search ---
+Timestamp: 2025-07-27 19:07:27
+HTTP Code: 200
+cURL Error: 
+Response Body: {"total":2,"rowCount":2,"current":1,"rows":[{"zoneid":0,"sessionId":"aSgADUt\/FxDbptYvbCQGNg==","authenticated_via":"Local Database","userName":"admin","startTime":1753545065.1637368,"ipAddress":"11.11.11.93","macAddress":"7c:b2:7d:5e:05:38","packets_in":413759,"packets_out":2006265,"bytes_in":99316292,"bytes_out":2326473480,"last_accessed":1753643246,"acc_session_timeout":null},{"zoneid":0,"sessionId":"I1oZn1nwekSfRm7ZJwSwVw==","authenticated_via":"Local Database","userName":"test","startTime":1753590966.3916507,"ipAddress":"11.11.11.225","macAddress":"9a:cd:b0:9e:02:12","packets_in":1438,"packets_out":1968,"bytes_in":363848,"bytes_out":1233525,"last_accessed":1753597602,"acc_session_timeout":null}]}
+--- Fin Réponse OPNsense ---
+--- Réponse OPNsense pour captiveportal/session/search ---
+Timestamp: 2025-07-27 19:08:06
+HTTP Code: 200
+cURL Error: 
+Response Body: {"total":2,"rowCount":2,"current":1,"rows":[{"zoneid":0,"sessionId":"aSgADUt\/FxDbptYvbCQGNg==","authenticated_via":"Local Database","userName":"admin","startTime":1753545065.1637368,"ipAddress":"11.11.11.93","macAddress":"7c:b2:7d:5e:05:38","packets_in":416282,"packets_out":2028580,"bytes_in":99596823,"bytes_out":2354580718,"last_accessed":1753643282,"acc_session_timeout":null},{"zoneid":0,"sessionId":"I1oZn1nwekSfRm7ZJwSwVw==","authenticated_via":"Local Database","userName":"test","startTime":1753590966.3916507,"ipAddress":"11.11.11.225","macAddress":"9a:cd:b0:9e:02:12","packets_in":1438,"packets_out":1968,"bytes_in":363848,"bytes_out":1233525,"last_accessed":1753597602,"acc_session_timeout":null}]}
+--- Fin Réponse OPNsense ---
+--- Réponse OPNsense pour captiveportal/session/search ---
+Timestamp: 2025-07-27 19:08:08
+HTTP Code: 200
+cURL Error: 
+Response Body: {"total":2,"rowCount":2,"current":1,"rows":[{"zoneid":0,"sessionId":"aSgADUt\/FxDbptYvbCQGNg==","authenticated_via":"Local Database","userName":"admin","startTime":1753545065.1637368,"ipAddress":"11.11.11.93","macAddress":"7c:b2:7d:5e:05:38","packets_in":416348,"packets_out":2028792,"bytes_in":99615640,"bytes_out":2354788623,"last_accessed":1753643287,"acc_session_timeout":null},{"zoneid":0,"sessionId":"I1oZn1nwekSfRm7ZJwSwVw==","authenticated_via":"Local Database","userName":"test","startTime":1753590966.3916507,"ipAddress":"11.11.11.225","macAddress":"9a:cd:b0:9e:02:12","packets_in":1438,"packets_out":1968,"bytes_in":363848,"bytes_out":1233525,"last_accessed":1753597602,"acc_session_timeout":null}]}
+--- Fin Réponse OPNsense ---
+--- Réponse OPNsense pour captiveportal/session/search ---
+Timestamp: 2025-07-27 19:08:09
+HTTP Code: 200
+cURL Error: 
+Response Body: {"total":2,"rowCount":2,"current":1,"rows":[{"zoneid":0,"sessionId":"aSgADUt\/FxDbptYvbCQGNg==","authenticated_via":"Local Database","userName":"admin","startTime":1753545065.1637368,"ipAddress":"11.11.11.93","macAddress":"7c:b2:7d:5e:05:38","packets_in":416348,"packets_out":2028792,"bytes_in":99615640,"bytes_out":2354788623,"last_accessed":1753643287,"acc_session_timeout":null},{"zoneid":0,"sessionId":"I1oZn1nwekSfRm7ZJwSwVw==","authenticated_via":"Local Database","userName":"test","startTime":1753590966.3916507,"ipAddress":"11.11.11.225","macAddress":"9a:cd:b0:9e:02:12","packets_in":1438,"packets_out":1968,"bytes_in":363848,"bytes_out":1233525,"last_accessed":1753597602,"acc_session_timeout":null}]}
+--- Fin Réponse OPNsense ---
+--- Réponse OPNsense pour captiveportal/session/search ---
+Timestamp: 2025-07-27 19:08:13
+HTTP Code: 200
+cURL Error: 
+Response Body: {"total":2,"rowCount":2,"current":1,"rows":[{"zoneid":0,"sessionId":"aSgADUt\/FxDbptYvbCQGNg==","authenticated_via":"Local Database","userName":"admin","startTime":1753545065.1637368,"ipAddress":"11.11.11.93","macAddress":"7c:b2:7d:5e:05:38","packets_in":416393,"packets_out":2028849,"bytes_in":99626275,"bytes_out":2354806364,"last_accessed":1753643291,"acc_session_timeout":null},{"zoneid":0,"sessionId":"I1oZn1nwekSfRm7ZJwSwVw==","authenticated_via":"Local Database","userName":"test","startTime":1753590966.3916507,"ipAddress":"11.11.11.225","macAddress":"9a:cd:b0:9e:02:12","packets_in":1438,"packets_out":1968,"bytes_in":363848,"bytes_out":1233525,"last_accessed":1753597602,"acc_session_timeout":null}]}
+--- Fin Réponse OPNsense ---
+--- Réponse OPNsense pour captiveportal/session/search ---
+Timestamp: 2025-07-27 19:08:13
+HTTP Code: 200
+cURL Error: 
+Response Body: {"total":2,"rowCount":2,"current":1,"rows":[{"zoneid":0,"sessionId":"aSgADUt\/FxDbptYvbCQGNg==","authenticated_via":"Local Database","userName":"admin","startTime":1753545065.1637368,"ipAddress":"11.11.11.93","macAddress":"7c:b2:7d:5e:05:38","packets_in":416393,"packets_out":2028849,"bytes_in":99626275,"bytes_out":2354806364,"last_accessed":1753643291,"acc_session_timeout":null},{"zoneid":0,"sessionId":"I1oZn1nwekSfRm7ZJwSwVw==","authenticated_via":"Local Database","userName":"test","startTime":1753590966.3916507,"ipAddress":"11.11.11.225","macAddress":"9a:cd:b0:9e:02:12","packets_in":1438,"packets_out":1968,"bytes_in":363848,"bytes_out":1233525,"last_accessed":1753597602,"acc_session_timeout":null}]}
+--- Fin Réponse OPNsense ---
+--- Réponse OPNsense pour captiveportal/session/search ---
+Timestamp: 2025-07-27 19:08:14
+HTTP Code: 200
+cURL Error: 
+Response Body: {"total":2,"rowCount":2,"current":1,"rows":[{"zoneid":0,"sessionId":"aSgADUt\/FxDbptYvbCQGNg==","authenticated_via":"Local Database","userName":"admin","startTime":1753545065.1637368,"ipAddress":"11.11.11.93","macAddress":"7c:b2:7d:5e:05:38","packets_in":416393,"packets_out":2028849,"bytes_in":99626275,"bytes_out":2354806364,"last_accessed":1753643291,"acc_session_timeout":null},{"zoneid":0,"sessionId":"I1oZn1nwekSfRm7ZJwSwVw==","authenticated_via":"Local Database","userName":"test","startTime":1753590966.3916507,"ipAddress":"11.11.11.225","macAddress":"9a:cd:b0:9e:02:12","packets_in":1438,"packets_out":1968,"bytes_in":363848,"bytes_out":1233525,"last_accessed":1753597602,"acc_session_timeout":null}]}
+--- Fin Réponse OPNsense ---
+--- Réponse OPNsense pour captiveportal/session/search ---
+Timestamp: 2025-07-27 19:08:21
+HTTP Code: 200
+cURL Error: 
+Response Body: {"total":2,"rowCount":2,"current":1,"rows":[{"zoneid":0,"sessionId":"aSgADUt\/FxDbptYvbCQGNg==","authenticated_via":"Local Database","userName":"admin","startTime":1753545065.1637368,"ipAddress":"11.11.11.93","macAddress":"7c:b2:7d:5e:05:38","packets_in":416438,"packets_out":2028911,"bytes_in":99632066,"bytes_out":2354822776,"last_accessed":1753643294,"acc_session_timeout":null},{"zoneid":0,"sessionId":"I1oZn1nwekSfRm7ZJwSwVw==","authenticated_via":"Local Database","userName":"test","startTime":1753590966.3916507,"ipAddress":"11.11.11.225","macAddress":"9a:cd:b0:9e:02:12","packets_in":1438,"packets_out":1968,"bytes_in":363848,"bytes_out":1233525,"last_accessed":1753597602,"acc_session_timeout":null}]}
+--- Fin Réponse OPNsense ---
+--- Réponse OPNsense pour captiveportal/session/search ---
+Timestamp: 2025-07-27 19:08:21
+HTTP Code: 200
+cURL Error: 
+Response Body: {"total":2,"rowCount":2,"current":1,"rows":[{"zoneid":0,"sessionId":"aSgADUt\/FxDbptYvbCQGNg==","authenticated_via":"Local Database","userName":"admin","startTime":1753545065.1637368,"ipAddress":"11.11.11.93","macAddress":"7c:b2:7d:5e:05:38","packets_in":416438,"packets_out":2028911,"bytes_in":99632066,"bytes_out":2354822776,"last_accessed":1753643294,"acc_session_timeout":null},{"zoneid":0,"sessionId":"I1oZn1nwekSfRm7ZJwSwVw==","authenticated_via":"Local Database","userName":"test","startTime":1753590966.3916507,"ipAddress":"11.11.11.225","macAddress":"9a:cd:b0:9e:02:12","packets_in":1438,"packets_out":1968,"bytes_in":363848,"bytes_out":1233525,"last_accessed":1753597602,"acc_session_timeout":null}]}
+--- Fin Réponse OPNsense ---
+--- Réponse OPNsense pour captiveportal/session/search ---
+Timestamp: 2025-07-27 19:08:44
+HTTP Code: 200
+cURL Error: 
+Response Body: {"total":2,"rowCount":2,"current":1,"rows":[{"zoneid":0,"sessionId":"aSgADUt\/FxDbptYvbCQGNg==","authenticated_via":"Local Database","userName":"admin","startTime":1753545065.1637368,"ipAddress":"11.11.11.93","macAddress":"7c:b2:7d:5e:05:38","packets_in":416545,"packets_out":2029051,"bytes_in":99669969,"bytes_out":2354874389,"last_accessed":1753643322,"acc_session_timeout":null},{"zoneid":0,"sessionId":"I1oZn1nwekSfRm7ZJwSwVw==","authenticated_via":"Local Database","userName":"test","startTime":1753590966.3916507,"ipAddress":"11.11.11.225","macAddress":"9a:cd:b0:9e:02:12","packets_in":1438,"packets_out":1968,"bytes_in":363848,"bytes_out":1233525,"last_accessed":1753597602,"acc_session_timeout":null}]}
+--- Fin Réponse OPNsense ---
+--- Réponse OPNsense pour captiveportal/session/search ---
+Timestamp: 2025-07-27 19:08:45
+HTTP Code: 200
+cURL Error: 
+Response Body: {"total":2,"rowCount":2,"current":1,"rows":[{"zoneid":0,"sessionId":"aSgADUt\/FxDbptYvbCQGNg==","authenticated_via":"Local Database","userName":"admin","startTime":1753545065.1637368,"ipAddress":"11.11.11.93","macAddress":"7c:b2:7d:5e:05:38","packets_in":416545,"packets_out":2029051,"bytes_in":99669969,"bytes_out":2354874389,"last_accessed":1753643322,"acc_session_timeout":null},{"zoneid":0,"sessionId":"I1oZn1nwekSfRm7ZJwSwVw==","authenticated_via":"Local Database","userName":"test","startTime":1753590966.3916507,"ipAddress":"11.11.11.225","macAddress":"9a:cd:b0:9e:02:12","packets_in":1438,"packets_out":1968,"bytes_in":363848,"bytes_out":1233525,"last_accessed":1753597602,"acc_session_timeout":null}]}
+--- Fin Réponse OPNsense ---
+--- Réponse OPNsense pour captiveportal/session/search ---
+Timestamp: 2025-07-27 19:10:09
+HTTP Code: 200
+cURL Error: 
+Response Body: {"total":2,"rowCount":2,"current":1,"rows":[{"zoneid":0,"sessionId":"aSgADUt\/FxDbptYvbCQGNg==","authenticated_via":"Local Database","userName":"admin","startTime":1753545065.1637368,"ipAddress":"11.11.11.93","macAddress":"7c:b2:7d:5e:05:38","packets_in":417027,"packets_out":2029738,"bytes_in":99811629,"bytes_out":2355294002,"last_accessed":1753643408,"acc_session_timeout":null},{"zoneid":0,"sessionId":"I1oZn1nwekSfRm7ZJwSwVw==","authenticated_via":"Local Database","userName":"test","startTime":1753590966.3916507,"ipAddress":"11.11.11.225","macAddress":"9a:cd:b0:9e:02:12","packets_in":1438,"packets_out":1968,"bytes_in":363848,"bytes_out":1233525,"last_accessed":1753597602,"acc_session_timeout":null}]}
+--- Fin Réponse OPNsense ---
+--- Réponse OPNsense pour captiveportal/session/search ---
+Timestamp: 2025-07-27 19:10:09
+HTTP Code: 200
+cURL Error: 
+Response Body: {"total":2,"rowCount":2,"current":1,"rows":[{"zoneid":0,"sessionId":"aSgADUt\/FxDbptYvbCQGNg==","authenticated_via":"Local Database","userName":"admin","startTime":1753545065.1637368,"ipAddress":"11.11.11.93","macAddress":"7c:b2:7d:5e:05:38","packets_in":417027,"packets_out":2029738,"bytes_in":99811629,"bytes_out":2355294002,"last_accessed":1753643408,"acc_session_timeout":null},{"zoneid":0,"sessionId":"I1oZn1nwekSfRm7ZJwSwVw==","authenticated_via":"Local Database","userName":"test","startTime":1753590966.3916507,"ipAddress":"11.11.11.225","macAddress":"9a:cd:b0:9e:02:12","packets_in":1438,"packets_out":1968,"bytes_in":363848,"bytes_out":1233525,"last_accessed":1753597602,"acc_session_timeout":null}]}
+--- Fin Réponse OPNsense ---
+--- Réponse OPNsense pour captiveportal/session/search ---
+Timestamp: 2025-07-27 19:13:21
+HTTP Code: 200
+cURL Error: 
+Response Body: {"total":2,"rowCount":2,"current":1,"rows":[{"zoneid":0,"sessionId":"aSgADUt\/FxDbptYvbCQGNg==","authenticated_via":"Local Database","userName":"admin","startTime":1753545065.1637368,"ipAddress":"11.11.11.93","macAddress":"7c:b2:7d:5e:05:38","packets_in":420258,"packets_out":2055313,"bytes_in":100240593,"bytes_out":2387412727,"last_accessed":1753643595,"acc_session_timeout":null},{"zoneid":0,"sessionId":"I1oZn1nwekSfRm7ZJwSwVw==","authenticated_via":"Local Database","userName":"test","startTime":1753590966.3916507,"ipAddress":"11.11.11.225","macAddress":"9a:cd:b0:9e:02:12","packets_in":1438,"packets_out":1968,"bytes_in":363848,"bytes_out":1233525,"last_accessed":1753597602,"acc_session_timeout":null}]}
+--- Fin Réponse OPNsense ---
+--- Réponse OPNsense pour captiveportal/session/search ---
+Timestamp: 2025-07-27 19:13:21
+HTTP Code: 200
+cURL Error: 
+Response Body: {"total":2,"rowCount":2,"current":1,"rows":[{"zoneid":0,"sessionId":"aSgADUt\/FxDbptYvbCQGNg==","authenticated_via":"Local Database","userName":"admin","startTime":1753545065.1637368,"ipAddress":"11.11.11.93","macAddress":"7c:b2:7d:5e:05:38","packets_in":420258,"packets_out":2055313,"bytes_in":100240593,"bytes_out":2387412727,"last_accessed":1753643595,"acc_session_timeout":null},{"zoneid":0,"sessionId":"I1oZn1nwekSfRm7ZJwSwVw==","authenticated_via":"Local Database","userName":"test","startTime":1753590966.3916507,"ipAddress":"11.11.11.225","macAddress":"9a:cd:b0:9e:02:12","packets_in":1438,"packets_out":1968,"bytes_in":363848,"bytes_out":1233525,"last_accessed":1753597602,"acc_session_timeout":null}]}
+--- Fin Réponse OPNsense ---
+--- Réponse OPNsense pour captiveportal/session/search ---
+Timestamp: 2025-07-27 19:13:28
+HTTP Code: 200
+cURL Error: 
+Response Body: {"total":2,"rowCount":2,"current":1,"rows":[{"zoneid":0,"sessionId":"aSgADUt\/FxDbptYvbCQGNg==","authenticated_via":"Local Database","userName":"admin","startTime":1753545065.1637368,"ipAddress":"11.11.11.93","macAddress":"7c:b2:7d:5e:05:38","packets_in":420416,"packets_out":2055566,"bytes_in":100272427,"bytes_out":2387644240,"last_accessed":1753643607,"acc_session_timeout":null},{"zoneid":0,"sessionId":"I1oZn1nwekSfRm7ZJwSwVw==","authenticated_via":"Local Database","userName":"test","startTime":1753590966.3916507,"ipAddress":"11.11.11.225","macAddress":"9a:cd:b0:9e:02:12","packets_in":1438,"packets_out":1968,"bytes_in":363848,"bytes_out":1233525,"last_accessed":1753597602,"acc_session_timeout":null}]}
+--- Fin Réponse OPNsense ---
+--- Réponse OPNsense pour captiveportal/session/search ---
+Timestamp: 2025-07-27 19:13:28
+HTTP Code: 200
+cURL Error: 
+Response Body: {"total":2,"rowCount":2,"current":1,"rows":[{"zoneid":0,"sessionId":"aSgADUt\/FxDbptYvbCQGNg==","authenticated_via":"Local Database","userName":"admin","startTime":1753545065.1637368,"ipAddress":"11.11.11.93","macAddress":"7c:b2:7d:5e:05:38","packets_in":420416,"packets_out":2055566,"bytes_in":100272427,"bytes_out":2387644240,"last_accessed":1753643607,"acc_session_timeout":null},{"zoneid":0,"sessionId":"I1oZn1nwekSfRm7ZJwSwVw==","authenticated_via":"Local Database","userName":"test","startTime":1753590966.3916507,"ipAddress":"11.11.11.225","macAddress":"9a:cd:b0:9e:02:12","packets_in":1438,"packets_out":1968,"bytes_in":363848,"bytes_out":1233525,"last_accessed":1753597602,"acc_session_timeout":null}]}
+--- Fin Réponse OPNsense ---
+--- Réponse OPNsense pour captiveportal/session/search ---
+Timestamp: 2025-07-27 19:13:47
+HTTP Code: 200
+cURL Error: 
+Response Body: {"total":2,"rowCount":2,"current":1,"rows":[{"zoneid":0,"sessionId":"aSgADUt\/FxDbptYvbCQGNg==","authenticated_via":"Local Database","userName":"admin","startTime":1753545065.1637368,"ipAddress":"11.11.11.93","macAddress":"7c:b2:7d:5e:05:38","packets_in":420490,"packets_out":2055651,"bytes_in":100300554,"bytes_out":2387670529,"last_accessed":1753643627,"acc_session_timeout":null},{"zoneid":0,"sessionId":"I1oZn1nwekSfRm7ZJwSwVw==","authenticated_via":"Local Database","userName":"test","startTime":1753590966.3916507,"ipAddress":"11.11.11.225","macAddress":"9a:cd:b0:9e:02:12","packets_in":1438,"packets_out":1968,"bytes_in":363848,"bytes_out":1233525,"last_accessed":1753597602,"acc_session_timeout":null}]}
+--- Fin Réponse OPNsense ---
+--- Réponse OPNsense pour captiveportal/session/search ---
+Timestamp: 2025-07-27 19:13:47
+HTTP Code: 200
+cURL Error: 
+Response Body: {"total":2,"rowCount":2,"current":1,"rows":[{"zoneid":0,"sessionId":"aSgADUt\/FxDbptYvbCQGNg==","authenticated_via":"Local Database","userName":"admin","startTime":1753545065.1637368,"ipAddress":"11.11.11.93","macAddress":"7c:b2:7d:5e:05:38","packets_in":420490,"packets_out":2055651,"bytes_in":100300554,"bytes_out":2387670529,"last_accessed":1753643627,"acc_session_timeout":null},{"zoneid":0,"sessionId":"I1oZn1nwekSfRm7ZJwSwVw==","authenticated_via":"Local Database","userName":"test","startTime":1753590966.3916507,"ipAddress":"11.11.11.225","macAddress":"9a:cd:b0:9e:02:12","packets_in":1438,"packets_out":1968,"bytes_in":363848,"bytes_out":1233525,"last_accessed":1753597602,"acc_session_timeout":null}]}
+--- Fin Réponse OPNsense ---
+--- Réponse OPNsense pour captiveportal/session/search ---
+Timestamp: 2025-07-27 19:14:11
+HTTP Code: 200
+cURL Error: 
+Response Body: {"total":2,"rowCount":2,"current":1,"rows":[{"zoneid":0,"sessionId":"aSgADUt\/FxDbptYvbCQGNg==","authenticated_via":"Local Database","userName":"admin","startTime":1753545065.1637368,"ipAddress":"11.11.11.93","macAddress":"7c:b2:7d:5e:05:38","packets_in":420547,"packets_out":2055720,"bytes_in":100307890,"bytes_out":2387683924,"last_accessed":1753643647,"acc_session_timeout":null},{"zoneid":0,"sessionId":"I1oZn1nwekSfRm7ZJwSwVw==","authenticated_via":"Local Database","userName":"test","startTime":1753590966.3916507,"ipAddress":"11.11.11.225","macAddress":"9a:cd:b0:9e:02:12","packets_in":1438,"packets_out":1968,"bytes_in":363848,"bytes_out":1233525,"last_accessed":1753597602,"acc_session_timeout":null}]}
+--- Fin Réponse OPNsense ---
+--- Réponse OPNsense pour captiveportal/session/search ---
+Timestamp: 2025-07-27 19:14:11
+HTTP Code: 200
+cURL Error: 
+Response Body: {"total":2,"rowCount":2,"current":1,"rows":[{"zoneid":0,"sessionId":"aSgADUt\/FxDbptYvbCQGNg==","authenticated_via":"Local Database","userName":"admin","startTime":1753545065.1637368,"ipAddress":"11.11.11.93","macAddress":"7c:b2:7d:5e:05:38","packets_in":420547,"packets_out":2055720,"bytes_in":100307890,"bytes_out":2387683924,"last_accessed":1753643647,"acc_session_timeout":null},{"zoneid":0,"sessionId":"I1oZn1nwekSfRm7ZJwSwVw==","authenticated_via":"Local Database","userName":"test","startTime":1753590966.3916507,"ipAddress":"11.11.11.225","macAddress":"9a:cd:b0:9e:02:12","packets_in":1438,"packets_out":1968,"bytes_in":363848,"bytes_out":1233525,"last_accessed":1753597602,"acc_session_timeout":null}]}
+--- Fin Réponse OPNsense ---
+--- Réponse OPNsense pour captiveportal/session/search ---
+Timestamp: 2025-07-27 19:14:12
+HTTP Code: 200
+cURL Error: 
+Response Body: {"total":2,"rowCount":2,"current":1,"rows":[{"zoneid":0,"sessionId":"aSgADUt\/FxDbptYvbCQGNg==","authenticated_via":"Local Database","userName":"admin","startTime":1753545065.1637368,"ipAddress":"11.11.11.93","macAddress":"7c:b2:7d:5e:05:38","packets_in":420547,"packets_out":2055720,"bytes_in":100307890,"bytes_out":2387683924,"last_accessed":1753643647,"acc_session_timeout":null},{"zoneid":0,"sessionId":"I1oZn1nwekSfRm7ZJwSwVw==","authenticated_via":"Local Database","userName":"test","startTime":1753590966.3916507,"ipAddress":"11.11.11.225","macAddress":"9a:cd:b0:9e:02:12","packets_in":1438,"packets_out":1968,"bytes_in":363848,"bytes_out":1233525,"last_accessed":1753597602,"acc_session_timeout":null}]}
+--- Fin Réponse OPNsense ---
+--- Réponse OPNsense pour captiveportal/session/search ---
+Timestamp: 2025-07-27 19:14:55
+HTTP Code: 200
+cURL Error: 
+Response Body: {"total":2,"rowCount":2,"current":1,"rows":[{"zoneid":0,"sessionId":"aSgADUt\/FxDbptYvbCQGNg==","authenticated_via":"Local Database","userName":"admin","startTime":1753545065.1637368,"ipAddress":"11.11.11.93","macAddress":"7c:b2:7d:5e:05:38","packets_in":420744,"packets_out":2056066,"bytes_in":100379780,"bytes_out":2387936306,"last_accessed":1753643693,"acc_session_timeout":null},{"zoneid":0,"sessionId":"I1oZn1nwekSfRm7ZJwSwVw==","authenticated_via":"Local Database","userName":"test","startTime":1753590966.3916507,"ipAddress":"11.11.11.225","macAddress":"9a:cd:b0:9e:02:12","packets_in":1438,"packets_out":1968,"bytes_in":363848,"bytes_out":1233525,"last_accessed":1753597602,"acc_session_timeout":null}]}
+--- Fin Réponse OPNsense ---
+--- Réponse OPNsense pour captiveportal/session/search ---
+Timestamp: 2025-07-27 19:14:57
+HTTP Code: 200
+cURL Error: 
+Response Body: {"total":2,"rowCount":2,"current":1,"rows":[{"zoneid":0,"sessionId":"aSgADUt\/FxDbptYvbCQGNg==","authenticated_via":"Local Database","userName":"admin","startTime":1753545065.1637368,"ipAddress":"11.11.11.93","macAddress":"7c:b2:7d:5e:05:38","packets_in":420744,"packets_out":2056066,"bytes_in":100379780,"bytes_out":2387936306,"last_accessed":1753643693,"acc_session_timeout":null},{"zoneid":0,"sessionId":"I1oZn1nwekSfRm7ZJwSwVw==","authenticated_via":"Local Database","userName":"test","startTime":1753590966.3916507,"ipAddress":"11.11.11.225","macAddress":"9a:cd:b0:9e:02:12","packets_in":1438,"packets_out":1968,"bytes_in":363848,"bytes_out":1233525,"last_accessed":1753597602,"acc_session_timeout":null}]}
+--- Fin Réponse OPNsense ---
+--- Réponse OPNsense pour captiveportal/session/search ---
+Timestamp: 2025-07-27 19:14:57
+HTTP Code: 200
+cURL Error: 
+Response Body: {"total":2,"rowCount":2,"current":1,"rows":[{"zoneid":0,"sessionId":"aSgADUt\/FxDbptYvbCQGNg==","authenticated_via":"Local Database","userName":"admin","startTime":1753545065.1637368,"ipAddress":"11.11.11.93","macAddress":"7c:b2:7d:5e:05:38","packets_in":420744,"packets_out":2056066,"bytes_in":100379780,"bytes_out":2387936306,"last_accessed":1753643693,"acc_session_timeout":null},{"zoneid":0,"sessionId":"I1oZn1nwekSfRm7ZJwSwVw==","authenticated_via":"Local Database","userName":"test","startTime":1753590966.3916507,"ipAddress":"11.11.11.225","macAddress":"9a:cd:b0:9e:02:12","packets_in":1438,"packets_out":1968,"bytes_in":363848,"bytes_out":1233525,"last_accessed":1753597602,"acc_session_timeout":null}]}
+--- Fin Réponse OPNsense ---
+--- Réponse OPNsense pour captiveportal/session/search ---
+Timestamp: 2025-07-27 19:22:39
+HTTP Code: 200
+cURL Error: 
+Response Body: {"total":2,"rowCount":2,"current":1,"rows":[{"zoneid":0,"sessionId":"aSgADUt\/FxDbptYvbCQGNg==","authenticated_via":"Local Database","userName":"admin","startTime":1753545065.1637368,"ipAddress":"11.11.11.93","macAddress":"7c:b2:7d:5e:05:38","packets_in":427888,"packets_out":2096274,"bytes_in":101486141,"bytes_out":2437621121,"last_accessed":1753644155,"acc_session_timeout":null},{"zoneid":0,"sessionId":"I1oZn1nwekSfRm7ZJwSwVw==","authenticated_via":"Local Database","userName":"test","startTime":1753590966.3916507,"ipAddress":"11.11.11.225","macAddress":"9a:cd:b0:9e:02:12","packets_in":1438,"packets_out":1968,"bytes_in":363848,"bytes_out":1233525,"last_accessed":1753597602,"acc_session_timeout":null}]}
+--- Fin Réponse OPNsense ---
+--- Réponse OPNsense pour captiveportal/session/search ---
+Timestamp: 2025-07-27 19:23:05
+HTTP Code: 200
+cURL Error: 
+Response Body: {"total":2,"rowCount":2,"current":1,"rows":[{"zoneid":0,"sessionId":"aSgADUt\/FxDbptYvbCQGNg==","authenticated_via":"Local Database","userName":"admin","startTime":1753545065.1637368,"ipAddress":"11.11.11.93","macAddress":"7c:b2:7d:5e:05:38","packets_in":428042,"packets_out":2096460,"bytes_in":101547036,"bytes_out":2437733699,"last_accessed":1753644176,"acc_session_timeout":null},{"zoneid":0,"sessionId":"I1oZn1nwekSfRm7ZJwSwVw==","authenticated_via":"Local Database","userName":"test","startTime":1753590966.3916507,"ipAddress":"11.11.11.225","macAddress":"9a:cd:b0:9e:02:12","packets_in":1438,"packets_out":1968,"bytes_in":363848,"bytes_out":1233525,"last_accessed":1753597602,"acc_session_timeout":null}]}
+--- Fin Réponse OPNsense ---
+--- Réponse OPNsense pour captiveportal/session/search ---
+Timestamp: 2025-07-27 19:23:05
+HTTP Code: 200
+cURL Error: 
+Response Body: {"total":2,"rowCount":2,"current":1,"rows":[{"zoneid":0,"sessionId":"aSgADUt\/FxDbptYvbCQGNg==","authenticated_via":"Local Database","userName":"admin","startTime":1753545065.1637368,"ipAddress":"11.11.11.93","macAddress":"7c:b2:7d:5e:05:38","packets_in":428042,"packets_out":2096460,"bytes_in":101547036,"bytes_out":2437733699,"last_accessed":1753644176,"acc_session_timeout":null},{"zoneid":0,"sessionId":"I1oZn1nwekSfRm7ZJwSwVw==","authenticated_via":"Local Database","userName":"test","startTime":1753590966.3916507,"ipAddress":"11.11.11.225","macAddress":"9a:cd:b0:9e:02:12","packets_in":1438,"packets_out":1968,"bytes_in":363848,"bytes_out":1233525,"last_accessed":1753597602,"acc_session_timeout":null}]}
+--- Fin Réponse OPNsense ---
+--- Réponse OPNsense pour captiveportal/session/search ---
+Timestamp: 2025-07-27 19:23:09
+HTTP Code: 200
+cURL Error: 
+Response Body: {"total":2,"rowCount":2,"current":1,"rows":[{"zoneid":0,"sessionId":"aSgADUt\/FxDbptYvbCQGNg==","authenticated_via":"Local Database","userName":"admin","startTime":1753545065.1637368,"ipAddress":"11.11.11.93","macAddress":"7c:b2:7d:5e:05:38","packets_in":428076,"packets_out":2096504,"bytes_in":101555811,"bytes_out":2437744821,"last_accessed":1753644185,"acc_session_timeout":null},{"zoneid":0,"sessionId":"I1oZn1nwekSfRm7ZJwSwVw==","authenticated_via":"Local Database","userName":"test","startTime":1753590966.3916507,"ipAddress":"11.11.11.225","macAddress":"9a:cd:b0:9e:02:12","packets_in":1438,"packets_out":1968,"bytes_in":363848,"bytes_out":1233525,"last_accessed":1753597602,"acc_session_timeout":null}]}
+--- Fin Réponse OPNsense ---
+--- Réponse OPNsense pour captiveportal/session/search ---
+Timestamp: 2025-07-27 19:23:09
+HTTP Code: 200
+cURL Error: 
+Response Body: {"total":2,"rowCount":2,"current":1,"rows":[{"zoneid":0,"sessionId":"aSgADUt\/FxDbptYvbCQGNg==","authenticated_via":"Local Database","userName":"admin","startTime":1753545065.1637368,"ipAddress":"11.11.11.93","macAddress":"7c:b2:7d:5e:05:38","packets_in":428076,"packets_out":2096504,"bytes_in":101555811,"bytes_out":2437744821,"last_accessed":1753644185,"acc_session_timeout":null},{"zoneid":0,"sessionId":"I1oZn1nwekSfRm7ZJwSwVw==","authenticated_via":"Local Database","userName":"test","startTime":1753590966.3916507,"ipAddress":"11.11.11.225","macAddress":"9a:cd:b0:9e:02:12","packets_in":1438,"packets_out":1968,"bytes_in":363848,"bytes_out":1233525,"last_accessed":1753597602,"acc_session_timeout":null}]}
+--- Fin Réponse OPNsense ---
+--- Réponse OPNsense pour captiveportal/session/search ---
+Timestamp: 2025-07-27 19:23:12
+HTTP Code: 200
+cURL Error: 
+Response Body: {"total":2,"rowCount":2,"current":1,"rows":[{"zoneid":0,"sessionId":"aSgADUt\/FxDbptYvbCQGNg==","authenticated_via":"Local Database","userName":"admin","startTime":1753545065.1637368,"ipAddress":"11.11.11.93","macAddress":"7c:b2:7d:5e:05:38","packets_in":428120,"packets_out":2096561,"bytes_in":101568205,"bytes_out":2437763902,"last_accessed":1753644189,"acc_session_timeout":null},{"zoneid":0,"sessionId":"I1oZn1nwekSfRm7ZJwSwVw==","authenticated_via":"Local Database","userName":"test","startTime":1753590966.3916507,"ipAddress":"11.11.11.225","macAddress":"9a:cd:b0:9e:02:12","packets_in":1438,"packets_out":1968,"bytes_in":363848,"bytes_out":1233525,"last_accessed":1753597602,"acc_session_timeout":null}]}
+--- Fin Réponse OPNsense ---
+--- Réponse OPNsense pour captiveportal/session/search ---
+Timestamp: 2025-07-27 19:23:13
+HTTP Code: 200
+cURL Error: 
+Response Body: {"total":2,"rowCount":2,"current":1,"rows":[{"zoneid":0,"sessionId":"aSgADUt\/FxDbptYvbCQGNg==","authenticated_via":"Local Database","userName":"admin","startTime":1753545065.1637368,"ipAddress":"11.11.11.93","macAddress":"7c:b2:7d:5e:05:38","packets_in":428120,"packets_out":2096561,"bytes_in":101568205,"bytes_out":2437763902,"last_accessed":1753644189,"acc_session_timeout":null},{"zoneid":0,"sessionId":"I1oZn1nwekSfRm7ZJwSwVw==","authenticated_via":"Local Database","userName":"test","startTime":1753590966.3916507,"ipAddress":"11.11.11.225","macAddress":"9a:cd:b0:9e:02:12","packets_in":1438,"packets_out":1968,"bytes_in":363848,"bytes_out":1233525,"last_accessed":1753597602,"acc_session_timeout":null}]}
+--- Fin Réponse OPNsense ---
+--- Réponse OPNsense pour captiveportal/session/search ---
+Timestamp: 2025-07-27 19:23:14
+HTTP Code: 200
+cURL Error: 
+Response Body: {"total":2,"rowCount":2,"current":1,"rows":[{"zoneid":0,"sessionId":"aSgADUt\/FxDbptYvbCQGNg==","authenticated_via":"Local Database","userName":"admin","startTime":1753545065.1637368,"ipAddress":"11.11.11.93","macAddress":"7c:b2:7d:5e:05:38","packets_in":428120,"packets_out":2096561,"bytes_in":101568205,"bytes_out":2437763902,"last_accessed":1753644189,"acc_session_timeout":null},{"zoneid":0,"sessionId":"I1oZn1nwekSfRm7ZJwSwVw==","authenticated_via":"Local Database","userName":"test","startTime":1753590966.3916507,"ipAddress":"11.11.11.225","macAddress":"9a:cd:b0:9e:02:12","packets_in":1438,"packets_out":1968,"bytes_in":363848,"bytes_out":1233525,"last_accessed":1753597602,"acc_session_timeout":null}]}
+--- Fin Réponse OPNsense ---
+--- Réponse OPNsense pour captiveportal/session/search ---
+Timestamp: 2025-07-27 19:23:16
+HTTP Code: 200
+cURL Error: 
+Response Body: {"total":2,"rowCount":2,"current":1,"rows":[{"zoneid":0,"sessionId":"aSgADUt\/FxDbptYvbCQGNg==","authenticated_via":"Local Database","userName":"admin","startTime":1753545065.1637368,"ipAddress":"11.11.11.93","macAddress":"7c:b2:7d:5e:05:38","packets_in":428271,"packets_out":2096816,"bytes_in":101592302,"bytes_out":2437994811,"last_accessed":1753644195,"acc_session_timeout":null},{"zoneid":0,"sessionId":"I1oZn1nwekSfRm7ZJwSwVw==","authenticated_via":"Local Database","userName":"test","startTime":1753590966.3916507,"ipAddress":"11.11.11.225","macAddress":"9a:cd:b0:9e:02:12","packets_in":1438,"packets_out":1968,"bytes_in":363848,"bytes_out":1233525,"last_accessed":1753597602,"acc_session_timeout":null}]}
+--- Fin Réponse OPNsense ---
+--- Réponse OPNsense pour captiveportal/session/search ---
+Timestamp: 2025-07-27 19:23:16
+HTTP Code: 200
+cURL Error: 
+Response Body: {"total":2,"rowCount":2,"current":1,"rows":[{"zoneid":0,"sessionId":"aSgADUt\/FxDbptYvbCQGNg==","authenticated_via":"Local Database","userName":"admin","startTime":1753545065.1637368,"ipAddress":"11.11.11.93","macAddress":"7c:b2:7d:5e:05:38","packets_in":428271,"packets_out":2096816,"bytes_in":101592302,"bytes_out":2437994811,"last_accessed":1753644195,"acc_session_timeout":null},{"zoneid":0,"sessionId":"I1oZn1nwekSfRm7ZJwSwVw==","authenticated_via":"Local Database","userName":"test","startTime":1753590966.3916507,"ipAddress":"11.11.11.225","macAddress":"9a:cd:b0:9e:02:12","packets_in":1438,"packets_out":1968,"bytes_in":363848,"bytes_out":1233525,"last_accessed":1753597602,"acc_session_timeout":null}]}
+--- Fin Réponse OPNsense ---
+--- Réponse OPNsense pour captiveportal/session/search ---
+Timestamp: 2025-07-27 19:23:50
+HTTP Code: 200
+cURL Error: 
+Response Body: {"total":2,"rowCount":2,"current":1,"rows":[{"zoneid":0,"sessionId":"aSgADUt\/FxDbptYvbCQGNg==","authenticated_via":"Local Database","userName":"admin","startTime":1753545065.1637368,"ipAddress":"11.11.11.93","macAddress":"7c:b2:7d:5e:05:38","packets_in":428370,"packets_out":2096927,"bytes_in":101629692,"bytes_out":2438026751,"last_accessed":1753644223,"acc_session_timeout":null},{"zoneid":0,"sessionId":"I1oZn1nwekSfRm7ZJwSwVw==","authenticated_via":"Local Database","userName":"test","startTime":1753590966.3916507,"ipAddress":"11.11.11.225","macAddress":"9a:cd:b0:9e:02:12","packets_in":1438,"packets_out":1968,"bytes_in":363848,"bytes_out":1233525,"last_accessed":1753597602,"acc_session_timeout":null}]}
+--- Fin Réponse OPNsense ---
+--- Réponse OPNsense pour captiveportal/session/search ---
+Timestamp: 2025-07-27 19:23:50
+HTTP Code: 200
+cURL Error: 
+Response Body: {"total":2,"rowCount":2,"current":1,"rows":[{"zoneid":0,"sessionId":"aSgADUt\/FxDbptYvbCQGNg==","authenticated_via":"Local Database","userName":"admin","startTime":1753545065.1637368,"ipAddress":"11.11.11.93","macAddress":"7c:b2:7d:5e:05:38","packets_in":428370,"packets_out":2096927,"bytes_in":101629692,"bytes_out":2438026751,"last_accessed":1753644223,"acc_session_timeout":null},{"zoneid":0,"sessionId":"I1oZn1nwekSfRm7ZJwSwVw==","authenticated_via":"Local Database","userName":"test","startTime":1753590966.3916507,"ipAddress":"11.11.11.225","macAddress":"9a:cd:b0:9e:02:12","packets_in":1438,"packets_out":1968,"bytes_in":363848,"bytes_out":1233525,"last_accessed":1753597602,"acc_session_timeout":null}]}
+--- Fin Réponse OPNsense ---
+--- Réponse OPNsense pour captiveportal/session/search ---
+Timestamp: 2025-07-27 19:23:54
+HTTP Code: 200
+cURL Error: 
+Response Body: {"total":2,"rowCount":2,"current":1,"rows":[{"zoneid":0,"sessionId":"aSgADUt\/FxDbptYvbCQGNg==","authenticated_via":"Local Database","userName":"admin","startTime":1753545065.1637368,"ipAddress":"11.11.11.93","macAddress":"7c:b2:7d:5e:05:38","packets_in":428521,"packets_out":2097175,"bytes_in":101665800,"bytes_out":2438255727,"last_accessed":1753644231,"acc_session_timeout":null},{"zoneid":0,"sessionId":"I1oZn1nwekSfRm7ZJwSwVw==","authenticated_via":"Local Database","userName":"test","startTime":1753590966.3916507,"ipAddress":"11.11.11.225","macAddress":"9a:cd:b0:9e:02:12","packets_in":1438,"packets_out":1968,"bytes_in":363848,"bytes_out":1233525,"last_accessed":1753597602,"acc_session_timeout":null}]}
+--- Fin Réponse OPNsense ---
+--- Réponse OPNsense pour captiveportal/session/search ---
+Timestamp: 2025-07-27 19:23:54
+HTTP Code: 200
+cURL Error: 
+Response Body: {"total":2,"rowCount":2,"current":1,"rows":[{"zoneid":0,"sessionId":"aSgADUt\/FxDbptYvbCQGNg==","authenticated_via":"Local Database","userName":"admin","startTime":1753545065.1637368,"ipAddress":"11.11.11.93","macAddress":"7c:b2:7d:5e:05:38","packets_in":428521,"packets_out":2097175,"bytes_in":101665800,"bytes_out":2438255727,"last_accessed":1753644231,"acc_session_timeout":null},{"zoneid":0,"sessionId":"I1oZn1nwekSfRm7ZJwSwVw==","authenticated_via":"Local Database","userName":"test","startTime":1753590966.3916507,"ipAddress":"11.11.11.225","macAddress":"9a:cd:b0:9e:02:12","packets_in":1438,"packets_out":1968,"bytes_in":363848,"bytes_out":1233525,"last_accessed":1753597602,"acc_session_timeout":null}]}
+--- Fin Réponse OPNsense ---
+--- Réponse OPNsense pour captiveportal/session/search ---
+Timestamp: 2025-07-27 19:23:59
+HTTP Code: 200
+cURL Error: 
+Response Body: {"total":2,"rowCount":2,"current":1,"rows":[{"zoneid":0,"sessionId":"aSgADUt\/FxDbptYvbCQGNg==","authenticated_via":"Local Database","userName":"admin","startTime":1753545065.1637368,"ipAddress":"11.11.11.93","macAddress":"7c:b2:7d:5e:05:38","packets_in":428554,"packets_out":2097220,"bytes_in":101669883,"bytes_out":2438266873,"last_accessed":1753644236,"acc_session_timeout":null},{"zoneid":0,"sessionId":"I1oZn1nwekSfRm7ZJwSwVw==","authenticated_via":"Local Database","userName":"test","startTime":1753590966.3916507,"ipAddress":"11.11.11.225","macAddress":"9a:cd:b0:9e:02:12","packets_in":1438,"packets_out":1968,"bytes_in":363848,"bytes_out":1233525,"last_accessed":1753597602,"acc_session_timeout":null}]}
+--- Fin Réponse OPNsense ---
+--- Réponse OPNsense pour captiveportal/session/search ---
+Timestamp: 2025-07-27 19:23:59
+HTTP Code: 200
+cURL Error: 
+Response Body: {"total":2,"rowCount":2,"current":1,"rows":[{"zoneid":0,"sessionId":"aSgADUt\/FxDbptYvbCQGNg==","authenticated_via":"Local Database","userName":"admin","startTime":1753545065.1637368,"ipAddress":"11.11.11.93","macAddress":"7c:b2:7d:5e:05:38","packets_in":428554,"packets_out":2097220,"bytes_in":101669883,"bytes_out":2438266873,"last_accessed":1753644236,"acc_session_timeout":null},{"zoneid":0,"sessionId":"I1oZn1nwekSfRm7ZJwSwVw==","authenticated_via":"Local Database","userName":"test","startTime":1753590966.3916507,"ipAddress":"11.11.11.225","macAddress":"9a:cd:b0:9e:02:12","packets_in":1438,"packets_out":1968,"bytes_in":363848,"bytes_out":1233525,"last_accessed":1753597602,"acc_session_timeout":null}]}
+--- Fin Réponse OPNsense ---
+--- Réponse OPNsense pour captiveportal/session/search ---
+Timestamp: 2025-07-27 19:24:07
+HTTP Code: 200
+cURL Error: 
+Response Body: {"total":2,"rowCount":2,"current":1,"rows":[{"zoneid":0,"sessionId":"aSgADUt\/FxDbptYvbCQGNg==","authenticated_via":"Local Database","userName":"admin","startTime":1753545065.1637368,"ipAddress":"11.11.11.93","macAddress":"7c:b2:7d:5e:05:38","packets_in":428591,"packets_out":2097267,"bytes_in":101677366,"bytes_out":2438279978,"last_accessed":1753644246,"acc_session_timeout":null},{"zoneid":0,"sessionId":"I1oZn1nwekSfRm7ZJwSwVw==","authenticated_via":"Local Database","userName":"test","startTime":1753590966.3916507,"ipAddress":"11.11.11.225","macAddress":"9a:cd:b0:9e:02:12","packets_in":1438,"packets_out":1968,"bytes_in":363848,"bytes_out":1233525,"last_accessed":1753597602,"acc_session_timeout":null}]}
+--- Fin Réponse OPNsense ---
+--- Réponse OPNsense pour captiveportal/session/search ---
+Timestamp: 2025-07-27 19:24:07
+HTTP Code: 200
+cURL Error: 
+Response Body: {"total":2,"rowCount":2,"current":1,"rows":[{"zoneid":0,"sessionId":"aSgADUt\/FxDbptYvbCQGNg==","authenticated_via":"Local Database","userName":"admin","startTime":1753545065.1637368,"ipAddress":"11.11.11.93","macAddress":"7c:b2:7d:5e:05:38","packets_in":428591,"packets_out":2097267,"bytes_in":101677366,"bytes_out":2438279978,"last_accessed":1753644246,"acc_session_timeout":null},{"zoneid":0,"sessionId":"I1oZn1nwekSfRm7ZJwSwVw==","authenticated_via":"Local Database","userName":"test","startTime":1753590966.3916507,"ipAddress":"11.11.11.225","macAddress":"9a:cd:b0:9e:02:12","packets_in":1438,"packets_out":1968,"bytes_in":363848,"bytes_out":1233525,"last_accessed":1753597602,"acc_session_timeout":null}]}
+--- Fin Réponse OPNsense ---
+--- Réponse OPNsense pour captiveportal/session/search ---
+Timestamp: 2025-07-27 19:24:19
+HTTP Code: 200
+cURL Error: 
+Response Body: {"total":2,"rowCount":2,"current":1,"rows":[{"zoneid":0,"sessionId":"aSgADUt\/FxDbptYvbCQGNg==","authenticated_via":"Local Database","userName":"admin","startTime":1753545065.1637368,"ipAddress":"11.11.11.93","macAddress":"7c:b2:7d:5e:05:38","packets_in":428631,"packets_out":2097321,"bytes_in":101681895,"bytes_out":2438291718,"last_accessed":1753644256,"acc_session_timeout":null},{"zoneid":0,"sessionId":"I1oZn1nwekSfRm7ZJwSwVw==","authenticated_via":"Local Database","userName":"test","startTime":1753590966.3916507,"ipAddress":"11.11.11.225","macAddress":"9a:cd:b0:9e:02:12","packets_in":1438,"packets_out":1968,"bytes_in":363848,"bytes_out":1233525,"last_accessed":1753597602,"acc_session_timeout":null}]}
+--- Fin Réponse OPNsense ---
+--- Réponse OPNsense pour captiveportal/session/search ---
+Timestamp: 2025-07-27 19:24:21
+HTTP Code: 200
+cURL Error: 
+Response Body: {"total":2,"rowCount":2,"current":1,"rows":[{"zoneid":0,"sessionId":"aSgADUt\/FxDbptYvbCQGNg==","authenticated_via":"Local Database","userName":"admin","startTime":1753545065.1637368,"ipAddress":"11.11.11.93","macAddress":"7c:b2:7d:5e:05:38","packets_in":428631,"packets_out":2097321,"bytes_in":101681895,"bytes_out":2438291718,"last_accessed":1753644256,"acc_session_timeout":null},{"zoneid":0,"sessionId":"I1oZn1nwekSfRm7ZJwSwVw==","authenticated_via":"Local Database","userName":"test","startTime":1753590966.3916507,"ipAddress":"11.11.11.225","macAddress":"9a:cd:b0:9e:02:12","packets_in":1438,"packets_out":1968,"bytes_in":363848,"bytes_out":1233525,"last_accessed":1753597602,"acc_session_timeout":null}]}
+--- Fin Réponse OPNsense ---
+--- Réponse OPNsense pour captiveportal/session/search ---
+Timestamp: 2025-07-27 19:24:22
+HTTP Code: 200
+cURL Error: 
+Response Body: {"total":2,"rowCount":2,"current":1,"rows":[{"zoneid":0,"sessionId":"aSgADUt\/FxDbptYvbCQGNg==","authenticated_via":"Local Database","userName":"admin","startTime":1753545065.1637368,"ipAddress":"11.11.11.93","macAddress":"7c:b2:7d:5e:05:38","packets_in":428693,"packets_out":2097407,"bytes_in":101697337,"bytes_out":2438319257,"last_accessed":1753644262,"acc_session_timeout":null},{"zoneid":0,"sessionId":"I1oZn1nwekSfRm7ZJwSwVw==","authenticated_via":"Local Database","userName":"test","startTime":1753590966.3916507,"ipAddress":"11.11.11.225","macAddress":"9a:cd:b0:9e:02:12","packets_in":1438,"packets_out":1968,"bytes_in":363848,"bytes_out":1233525,"last_accessed":1753597602,"acc_session_timeout":null}]}
+--- Fin Réponse OPNsense ---
+--- Réponse OPNsense pour captiveportal/session/search ---
+Timestamp: 2025-07-27 19:24:26
+HTTP Code: 200
+cURL Error: 
+Response Body: {"total":2,"rowCount":2,"current":1,"rows":[{"zoneid":0,"sessionId":"aSgADUt\/FxDbptYvbCQGNg==","authenticated_via":"Local Database","userName":"admin","startTime":1753545065.1637368,"ipAddress":"11.11.11.93","macAddress":"7c:b2:7d:5e:05:38","packets_in":428693,"packets_out":2097407,"bytes_in":101697337,"bytes_out":2438319257,"last_accessed":1753644262,"acc_session_timeout":null},{"zoneid":0,"sessionId":"I1oZn1nwekSfRm7ZJwSwVw==","authenticated_via":"Local Database","userName":"test","startTime":1753590966.3916507,"ipAddress":"11.11.11.225","macAddress":"9a:cd:b0:9e:02:12","packets_in":1438,"packets_out":1968,"bytes_in":363848,"bytes_out":1233525,"last_accessed":1753597602,"acc_session_timeout":null}]}
+--- Fin Réponse OPNsense ---
+--- Réponse OPNsense pour captiveportal/session/search ---
+Timestamp: 2025-07-27 19:24:29
+HTTP Code: 200
+cURL Error: 
+Response Body: {"total":2,"rowCount":2,"current":1,"rows":[{"zoneid":0,"sessionId":"aSgADUt\/FxDbptYvbCQGNg==","authenticated_via":"Local Database","userName":"admin","startTime":1753545065.1637368,"ipAddress":"11.11.11.93","macAddress":"7c:b2:7d:5e:05:38","packets_in":428763,"packets_out":2097613,"bytes_in":101710187,"bytes_out":2438517912,"last_accessed":1753644266,"acc_session_timeout":null},{"zoneid":0,"sessionId":"I1oZn1nwekSfRm7ZJwSwVw==","authenticated_via":"Local Database","userName":"test","startTime":1753590966.3916507,"ipAddress":"11.11.11.225","macAddress":"9a:cd:b0:9e:02:12","packets_in":1438,"packets_out":1968,"bytes_in":363848,"bytes_out":1233525,"last_accessed":1753597602,"acc_session_timeout":null}]}
+--- Fin Réponse OPNsense ---
+--- Réponse OPNsense pour captiveportal/session/search ---
+Timestamp: 2025-07-27 19:24:29
+HTTP Code: 200
+cURL Error: 
+Response Body: {"total":2,"rowCount":2,"current":1,"rows":[{"zoneid":0,"sessionId":"aSgADUt\/FxDbptYvbCQGNg==","authenticated_via":"Local Database","userName":"admin","startTime":1753545065.1637368,"ipAddress":"11.11.11.93","macAddress":"7c:b2:7d:5e:05:38","packets_in":428763,"packets_out":2097613,"bytes_in":101710187,"bytes_out":2438517912,"last_accessed":1753644266,"acc_session_timeout":null},{"zoneid":0,"sessionId":"I1oZn1nwekSfRm7ZJwSwVw==","authenticated_via":"Local Database","userName":"test","startTime":1753590966.3916507,"ipAddress":"11.11.11.225","macAddress":"9a:cd:b0:9e:02:12","packets_in":1438,"packets_out":1968,"bytes_in":363848,"bytes_out":1233525,"last_accessed":1753597602,"acc_session_timeout":null}]}
+--- Fin Réponse OPNsense ---
+--- Réponse OPNsense pour captiveportal/session/search ---
+Timestamp: 2025-07-27 19:25:26
+HTTP Code: 200
+cURL Error: 
+Response Body: {"total":2,"rowCount":2,"current":1,"rows":[{"zoneid":0,"sessionId":"aSgADUt\/FxDbptYvbCQGNg==","authenticated_via":"Local Database","userName":"admin","startTime":1753545065.1637368,"ipAddress":"11.11.11.93","macAddress":"7c:b2:7d:5e:05:38","packets_in":428960,"packets_out":2097817,"bytes_in":101792301,"bytes_out":2438576733,"last_accessed":1753644323,"acc_session_timeout":null},{"zoneid":0,"sessionId":"I1oZn1nwekSfRm7ZJwSwVw==","authenticated_via":"Local Database","userName":"test","startTime":1753590966.3916507,"ipAddress":"11.11.11.225","macAddress":"9a:cd:b0:9e:02:12","packets_in":1438,"packets_out":1968,"bytes_in":363848,"bytes_out":1233525,"last_accessed":1753597602,"acc_session_timeout":null}]}
+--- Fin Réponse OPNsense ---
+--- Réponse OPNsense pour captiveportal/session/search ---
+Timestamp: 2025-07-27 19:25:31
+HTTP Code: 200
+cURL Error: 
+Response Body: {"total":2,"rowCount":2,"current":1,"rows":[{"zoneid":0,"sessionId":"aSgADUt\/FxDbptYvbCQGNg==","authenticated_via":"Local Database","userName":"admin","startTime":1753545065.1637368,"ipAddress":"11.11.11.93","macAddress":"7c:b2:7d:5e:05:38","packets_in":429099,"packets_out":2098054,"bytes_in":101821187,"bytes_out":2438800507,"last_accessed":1753644327,"acc_session_timeout":null},{"zoneid":0,"sessionId":"I1oZn1nwekSfRm7ZJwSwVw==","authenticated_via":"Local Database","userName":"test","startTime":1753590966.3916507,"ipAddress":"11.11.11.225","macAddress":"9a:cd:b0:9e:02:12","packets_in":1438,"packets_out":1968,"bytes_in":363848,"bytes_out":1233525,"last_accessed":1753597602,"acc_session_timeout":null}]}
+--- Fin Réponse OPNsense ---
+--- Réponse OPNsense pour captiveportal/session/search ---
+Timestamp: 2025-07-27 19:25:33
+HTTP Code: 200
+cURL Error: 
+Response Body: {"total":2,"rowCount":2,"current":1,"rows":[{"zoneid":0,"sessionId":"aSgADUt\/FxDbptYvbCQGNg==","authenticated_via":"Local Database","userName":"admin","startTime":1753545065.1637368,"ipAddress":"11.11.11.93","macAddress":"7c:b2:7d:5e:05:38","packets_in":429123,"packets_out":2098083,"bytes_in":101832725,"bytes_out":2438806496,"last_accessed":1753644331,"acc_session_timeout":null},{"zoneid":0,"sessionId":"I1oZn1nwekSfRm7ZJwSwVw==","authenticated_via":"Local Database","userName":"test","startTime":1753590966.3916507,"ipAddress":"11.11.11.225","macAddress":"9a:cd:b0:9e:02:12","packets_in":1438,"packets_out":1968,"bytes_in":363848,"bytes_out":1233525,"last_accessed":1753597602,"acc_session_timeout":null}]}
+--- Fin Réponse OPNsense ---
+--- Réponse OPNsense pour captiveportal/session/search ---
+Timestamp: 2025-07-27 19:25:36
+HTTP Code: 200
+cURL Error: 
+Response Body: {"total":2,"rowCount":2,"current":1,"rows":[{"zoneid":0,"sessionId":"aSgADUt\/FxDbptYvbCQGNg==","authenticated_via":"Local Database","userName":"admin","startTime":1753545065.1637368,"ipAddress":"11.11.11.93","macAddress":"7c:b2:7d:5e:05:38","packets_in":429123,"packets_out":2098083,"bytes_in":101832725,"bytes_out":2438806496,"last_accessed":1753644331,"acc_session_timeout":null},{"zoneid":0,"sessionId":"I1oZn1nwekSfRm7ZJwSwVw==","authenticated_via":"Local Database","userName":"test","startTime":1753590966.3916507,"ipAddress":"11.11.11.225","macAddress":"9a:cd:b0:9e:02:12","packets_in":1438,"packets_out":1968,"bytes_in":363848,"bytes_out":1233525,"last_accessed":1753597602,"acc_session_timeout":null}]}
+--- Fin Réponse OPNsense ---
+--- Réponse OPNsense pour captiveportal/session/search ---
+Timestamp: 2025-07-27 19:25:37
+HTTP Code: 200
+cURL Error: 
+Response Body: {"total":2,"rowCount":2,"current":1,"rows":[{"zoneid":0,"sessionId":"aSgADUt\/FxDbptYvbCQGNg==","authenticated_via":"Local Database","userName":"admin","startTime":1753545065.1637368,"ipAddress":"11.11.11.93","macAddress":"7c:b2:7d:5e:05:38","packets_in":429123,"packets_out":2098083,"bytes_in":101832725,"bytes_out":2438806496,"last_accessed":1753644331,"acc_session_timeout":null},{"zoneid":0,"sessionId":"I1oZn1nwekSfRm7ZJwSwVw==","authenticated_via":"Local Database","userName":"test","startTime":1753590966.3916507,"ipAddress":"11.11.11.225","macAddress":"9a:cd:b0:9e:02:12","packets_in":1438,"packets_out":1968,"bytes_in":363848,"bytes_out":1233525,"last_accessed":1753597602,"acc_session_timeout":null}]}
+--- Fin Réponse OPNsense ---
+--- Réponse OPNsense pour captiveportal/session/search ---
+Timestamp: 2025-07-27 19:25:38
+HTTP Code: 200
+cURL Error: 
+Response Body: {"total":2,"rowCount":2,"current":1,"rows":[{"zoneid":0,"sessionId":"aSgADUt\/FxDbptYvbCQGNg==","authenticated_via":"Local Database","userName":"admin","startTime":1753545065.1637368,"ipAddress":"11.11.11.93","macAddress":"7c:b2:7d:5e:05:38","packets_in":429196,"packets_out":2098169,"bytes_in":101855976,"bytes_out":2438837049,"last_accessed":1753644338,"acc_session_timeout":null},{"zoneid":0,"sessionId":"I1oZn1nwekSfRm7ZJwSwVw==","authenticated_via":"Local Database","userName":"test","startTime":1753590966.3916507,"ipAddress":"11.11.11.225","macAddress":"9a:cd:b0:9e:02:12","packets_in":1438,"packets_out":1968,"bytes_in":363848,"bytes_out":1233525,"last_accessed":1753597602,"acc_session_timeout":null}]}
+--- Fin Réponse OPNsense ---
+--- Réponse OPNsense pour captiveportal/session/search ---
+Timestamp: 2025-07-27 19:25:50
+HTTP Code: 200
+cURL Error: 
+Response Body: {"total":2,"rowCount":2,"current":1,"rows":[{"zoneid":0,"sessionId":"aSgADUt\/FxDbptYvbCQGNg==","authenticated_via":"Local Database","userName":"admin","startTime":1753545065.1637368,"ipAddress":"11.11.11.93","macAddress":"7c:b2:7d:5e:05:38","packets_in":429267,"packets_out":2098262,"bytes_in":101880485,"bytes_out":2438870708,"last_accessed":1753644344,"acc_session_timeout":null},{"zoneid":0,"sessionId":"I1oZn1nwekSfRm7ZJwSwVw==","authenticated_via":"Local Database","userName":"test","startTime":1753590966.3916507,"ipAddress":"11.11.11.225","macAddress":"9a:cd:b0:9e:02:12","packets_in":1438,"packets_out":1968,"bytes_in":363848,"bytes_out":1233525,"last_accessed":1753597602,"acc_session_timeout":null}]}
+--- Fin Réponse OPNsense ---
+--- Réponse OPNsense pour captiveportal/session/search ---
+Timestamp: 2025-07-27 19:26:44
+HTTP Code: 200
+cURL Error: 
+Response Body: {"total":2,"rowCount":2,"current":1,"rows":[{"zoneid":0,"sessionId":"aSgADUt\/FxDbptYvbCQGNg==","authenticated_via":"Local Database","userName":"admin","startTime":1753545065.1637368,"ipAddress":"11.11.11.93","macAddress":"7c:b2:7d:5e:05:38","packets_in":429385,"packets_out":2098392,"bytes_in":101914211,"bytes_out":2438908745,"last_accessed":1753644403,"acc_session_timeout":null},{"zoneid":0,"sessionId":"I1oZn1nwekSfRm7ZJwSwVw==","authenticated_via":"Local Database","userName":"test","startTime":1753590966.3916507,"ipAddress":"11.11.11.225","macAddress":"9a:cd:b0:9e:02:12","packets_in":1438,"packets_out":1968,"bytes_in":363848,"bytes_out":1233525,"last_accessed":1753597602,"acc_session_timeout":null}]}
+--- Fin Réponse OPNsense ---
+--- Réponse OPNsense pour captiveportal/session/search ---
+Timestamp: 2025-07-27 19:28:08
+HTTP Code: 200
+cURL Error: 
+Response Body: {"total":2,"rowCount":2,"current":1,"rows":[{"zoneid":0,"sessionId":"aSgADUt\/FxDbptYvbCQGNg==","authenticated_via":"Local Database","userName":"admin","startTime":1753545065.1637368,"ipAddress":"11.11.11.93","macAddress":"7c:b2:7d:5e:05:38","packets_in":429649,"packets_out":2098865,"bytes_in":102000386,"bytes_out":2439252518,"last_accessed":1753644485,"acc_session_timeout":null},{"zoneid":0,"sessionId":"I1oZn1nwekSfRm7ZJwSwVw==","authenticated_via":"Local Database","userName":"test","startTime":1753590966.3916507,"ipAddress":"11.11.11.225","macAddress":"9a:cd:b0:9e:02:12","packets_in":1438,"packets_out":1968,"bytes_in":363848,"bytes_out":1233525,"last_accessed":1753597602,"acc_session_timeout":null}]}
+--- Fin Réponse OPNsense ---
+--- Réponse OPNsense pour captiveportal/session/search ---
+Timestamp: 2025-07-27 19:28:11
+HTTP Code: 200
+cURL Error: 
+Response Body: {"total":2,"rowCount":2,"current":1,"rows":[{"zoneid":0,"sessionId":"aSgADUt\/FxDbptYvbCQGNg==","authenticated_via":"Local Database","userName":"admin","startTime":1753545065.1637368,"ipAddress":"11.11.11.93","macAddress":"7c:b2:7d:5e:05:38","packets_in":429671,"packets_out":2098894,"bytes_in":102002965,"bytes_out":2439259004,"last_accessed":1753644488,"acc_session_timeout":null},{"zoneid":0,"sessionId":"I1oZn1nwekSfRm7ZJwSwVw==","authenticated_via":"Local Database","userName":"test","startTime":1753590966.3916507,"ipAddress":"11.11.11.225","macAddress":"9a:cd:b0:9e:02:12","packets_in":1438,"packets_out":1968,"bytes_in":363848,"bytes_out":1233525,"last_accessed":1753597602,"acc_session_timeout":null}]}
+--- Fin Réponse OPNsense ---
+--- Réponse OPNsense pour captiveportal/session/search ---
+Timestamp: 2025-07-27 19:28:12
+HTTP Code: 200
+cURL Error: 
+Response Body: {"total":2,"rowCount":2,"current":1,"rows":[{"zoneid":0,"sessionId":"aSgADUt\/FxDbptYvbCQGNg==","authenticated_via":"Local Database","userName":"admin","startTime":1753545065.1637368,"ipAddress":"11.11.11.93","macAddress":"7c:b2:7d:5e:05:38","packets_in":429671,"packets_out":2098894,"bytes_in":102002965,"bytes_out":2439259004,"last_accessed":1753644488,"acc_session_timeout":null},{"zoneid":0,"sessionId":"I1oZn1nwekSfRm7ZJwSwVw==","authenticated_via":"Local Database","userName":"test","startTime":1753590966.3916507,"ipAddress":"11.11.11.225","macAddress":"9a:cd:b0:9e:02:12","packets_in":1438,"packets_out":1968,"bytes_in":363848,"bytes_out":1233525,"last_accessed":1753597602,"acc_session_timeout":null}]}
+--- Fin Réponse OPNsense ---
+--- Réponse OPNsense pour captiveportal/session/search ---
+Timestamp: 2025-07-27 19:28:18
+HTTP Code: 200
+cURL Error: 
+Response Body: {"total":2,"rowCount":2,"current":1,"rows":[{"zoneid":0,"sessionId":"aSgADUt\/FxDbptYvbCQGNg==","authenticated_via":"Local Database","userName":"admin","startTime":1753545065.1637368,"ipAddress":"11.11.11.93","macAddress":"7c:b2:7d:5e:05:38","packets_in":429741,"packets_out":2098976,"bytes_in":102026466,"bytes_out":2439296353,"last_accessed":1753644492,"acc_session_timeout":null},{"zoneid":0,"sessionId":"I1oZn1nwekSfRm7ZJwSwVw==","authenticated_via":"Local Database","userName":"test","startTime":1753590966.3916507,"ipAddress":"11.11.11.225","macAddress":"9a:cd:b0:9e:02:12","packets_in":1438,"packets_out":1968,"bytes_in":363848,"bytes_out":1233525,"last_accessed":1753597602,"acc_session_timeout":null}]}
+--- Fin Réponse OPNsense ---
+--- Réponse OPNsense pour captiveportal/session/search ---
+Timestamp: 2025-07-27 19:28:35
+HTTP Code: 200
+cURL Error: 
+Response Body: {"total":2,"rowCount":2,"current":1,"rows":[{"zoneid":0,"sessionId":"aSgADUt\/FxDbptYvbCQGNg==","authenticated_via":"Local Database","userName":"admin","startTime":1753545065.1637368,"ipAddress":"11.11.11.93","macAddress":"7c:b2:7d:5e:05:38","packets_in":429812,"packets_out":2099059,"bytes_in":102055659,"bytes_out":2439329465,"last_accessed":1753644508,"acc_session_timeout":null},{"zoneid":0,"sessionId":"I1oZn1nwekSfRm7ZJwSwVw==","authenticated_via":"Local Database","userName":"test","startTime":1753590966.3916507,"ipAddress":"11.11.11.225","macAddress":"9a:cd:b0:9e:02:12","packets_in":1438,"packets_out":1968,"bytes_in":363848,"bytes_out":1233525,"last_accessed":1753597602,"acc_session_timeout":null}]}
+--- Fin Réponse OPNsense ---
+--- Réponse OPNsense pour captiveportal/session/search ---
+Timestamp: 2025-07-27 19:30:28
+HTTP Code: 200
+cURL Error: 
+Response Body: {"total":2,"rowCount":2,"current":1,"rows":[{"zoneid":0,"sessionId":"aSgADUt\/FxDbptYvbCQGNg==","authenticated_via":"Local Database","userName":"admin","startTime":1753545065.1637368,"ipAddress":"11.11.11.93","macAddress":"7c:b2:7d:5e:05:38","packets_in":432166,"packets_out":2117487,"bytes_in":102465144,"bytes_out":2462346358,"last_accessed":1753644624,"acc_session_timeout":null},{"zoneid":0,"sessionId":"I1oZn1nwekSfRm7ZJwSwVw==","authenticated_via":"Local Database","userName":"test","startTime":1753590966.3916507,"ipAddress":"11.11.11.225","macAddress":"9a:cd:b0:9e:02:12","packets_in":1438,"packets_out":1968,"bytes_in":363848,"bytes_out":1233525,"last_accessed":1753597602,"acc_session_timeout":null}]}
+--- Fin Réponse OPNsense ---
+--- Réponse OPNsense pour captiveportal/session/search ---
+Timestamp: 2025-07-27 19:30:30
+HTTP Code: 200
+cURL Error: 
+Response Body: {"total":2,"rowCount":2,"current":1,"rows":[{"zoneid":0,"sessionId":"aSgADUt\/FxDbptYvbCQGNg==","authenticated_via":"Local Database","userName":"admin","startTime":1753545065.1637368,"ipAddress":"11.11.11.93","macAddress":"7c:b2:7d:5e:05:38","packets_in":432166,"packets_out":2117487,"bytes_in":102465144,"bytes_out":2462346358,"last_accessed":1753644624,"acc_session_timeout":null},{"zoneid":0,"sessionId":"I1oZn1nwekSfRm7ZJwSwVw==","authenticated_via":"Local Database","userName":"test","startTime":1753590966.3916507,"ipAddress":"11.11.11.225","macAddress":"9a:cd:b0:9e:02:12","packets_in":1438,"packets_out":1968,"bytes_in":363848,"bytes_out":1233525,"last_accessed":1753597602,"acc_session_timeout":null}]}
+--- Fin Réponse OPNsense ---
+--- Réponse OPNsense pour captiveportal/session/search ---
+Timestamp: 2025-07-27 19:30:31
+HTTP Code: 200
+cURL Error: 
+Response Body: {"total":2,"rowCount":2,"current":1,"rows":[{"zoneid":0,"sessionId":"aSgADUt\/FxDbptYvbCQGNg==","authenticated_via":"Local Database","userName":"admin","startTime":1753545065.1637368,"ipAddress":"11.11.11.93","macAddress":"7c:b2:7d:5e:05:38","packets_in":432166,"packets_out":2117487,"bytes_in":102465144,"bytes_out":2462346358,"last_accessed":1753644624,"acc_session_timeout":null},{"zoneid":0,"sessionId":"I1oZn1nwekSfRm7ZJwSwVw==","authenticated_via":"Local Database","userName":"test","startTime":1753590966.3916507,"ipAddress":"11.11.11.225","macAddress":"9a:cd:b0:9e:02:12","packets_in":1438,"packets_out":1968,"bytes_in":363848,"bytes_out":1233525,"last_accessed":1753597602,"acc_session_timeout":null}]}
+--- Fin Réponse OPNsense ---
+--- Réponse OPNsense pour captiveportal/session/search ---
+Timestamp: 2025-07-27 19:30:35
+HTTP Code: 200
+cURL Error: 
+Response Body: {"total":2,"rowCount":2,"current":1,"rows":[{"zoneid":0,"sessionId":"aSgADUt\/FxDbptYvbCQGNg==","authenticated_via":"Local Database","userName":"admin","startTime":1753545065.1637368,"ipAddress":"11.11.11.93","macAddress":"7c:b2:7d:5e:05:38","packets_in":432231,"packets_out":2117572,"bytes_in":102483628,"bytes_out":2462378504,"last_accessed":1753644632,"acc_session_timeout":null},{"zoneid":0,"sessionId":"I1oZn1nwekSfRm7ZJwSwVw==","authenticated_via":"Local Database","userName":"test","startTime":1753590966.3916507,"ipAddress":"11.11.11.225","macAddress":"9a:cd:b0:9e:02:12","packets_in":1438,"packets_out":1968,"bytes_in":363848,"bytes_out":1233525,"last_accessed":1753597602,"acc_session_timeout":null}]}
+--- Fin Réponse OPNsense ---
+--- Réponse OPNsense pour captiveportal/session/search ---
+Timestamp: 2025-07-27 19:40:44
+HTTP Code: 200
+cURL Error: 
+Response Body: {"total":2,"rowCount":2,"current":1,"rows":[{"zoneid":0,"sessionId":"aSgADUt\/FxDbptYvbCQGNg==","authenticated_via":"Local Database","userName":"admin","startTime":1753545065.1637368,"ipAddress":"11.11.11.93","macAddress":"7c:b2:7d:5e:05:38","packets_in":445569,"packets_out":2181901,"bytes_in":104048576,"bytes_out":2542543803,"last_accessed":1753645240,"acc_session_timeout":null},{"zoneid":0,"sessionId":"I1oZn1nwekSfRm7ZJwSwVw==","authenticated_via":"Local Database","userName":"test","startTime":1753590966.3916507,"ipAddress":"11.11.11.225","macAddress":"9a:cd:b0:9e:02:12","packets_in":1438,"packets_out":1968,"bytes_in":363848,"bytes_out":1233525,"last_accessed":1753597602,"acc_session_timeout":null}]}
+--- Fin Réponse OPNsense ---
+--- Réponse OPNsense pour captiveportal/session/search ---
+Timestamp: 2025-07-27 19:40:45
+HTTP Code: 200
+cURL Error: 
+Response Body: {"total":2,"rowCount":2,"current":1,"rows":[{"zoneid":0,"sessionId":"aSgADUt\/FxDbptYvbCQGNg==","authenticated_via":"Local Database","userName":"admin","startTime":1753545065.1637368,"ipAddress":"11.11.11.93","macAddress":"7c:b2:7d:5e:05:38","packets_in":445569,"packets_out":2181901,"bytes_in":104048576,"bytes_out":2542543803,"last_accessed":1753645240,"acc_session_timeout":null},{"zoneid":0,"sessionId":"I1oZn1nwekSfRm7ZJwSwVw==","authenticated_via":"Local Database","userName":"test","startTime":1753590966.3916507,"ipAddress":"11.11.11.225","macAddress":"9a:cd:b0:9e:02:12","packets_in":1438,"packets_out":1968,"bytes_in":363848,"bytes_out":1233525,"last_accessed":1753597602,"acc_session_timeout":null}]}
+--- Fin Réponse OPNsense ---
+--- Réponse OPNsense pour captiveportal/session/search ---
+Timestamp: 2025-07-27 19:40:46
+HTTP Code: 200
+cURL Error: 
+Response Body: {"total":2,"rowCount":2,"current":1,"rows":[{"zoneid":0,"sessionId":"aSgADUt\/FxDbptYvbCQGNg==","authenticated_via":"Local Database","userName":"admin","startTime":1753545065.1637368,"ipAddress":"11.11.11.93","macAddress":"7c:b2:7d:5e:05:38","packets_in":445569,"packets_out":2181901,"bytes_in":104048576,"bytes_out":2542543803,"last_accessed":1753645240,"acc_session_timeout":null},{"zoneid":0,"sessionId":"I1oZn1nwekSfRm7ZJwSwVw==","authenticated_via":"Local Database","userName":"test","startTime":1753590966.3916507,"ipAddress":"11.11.11.225","macAddress":"9a:cd:b0:9e:02:12","packets_in":1438,"packets_out":1968,"bytes_in":363848,"bytes_out":1233525,"last_accessed":1753597602,"acc_session_timeout":null}]}
+--- Fin Réponse OPNsense ---
+--- Réponse OPNsense pour captiveportal/session/search ---
+Timestamp: 2025-07-27 19:40:46
+HTTP Code: 200
+cURL Error: 
+Response Body: {"total":2,"rowCount":2,"current":1,"rows":[{"zoneid":0,"sessionId":"aSgADUt\/FxDbptYvbCQGNg==","authenticated_via":"Local Database","userName":"admin","startTime":1753545065.1637368,"ipAddress":"11.11.11.93","macAddress":"7c:b2:7d:5e:05:38","packets_in":445638,"packets_out":2181988,"bytes_in":104066299,"bytes_out":2542574007,"last_accessed":1753645246,"acc_session_timeout":null},{"zoneid":0,"sessionId":"I1oZn1nwekSfRm7ZJwSwVw==","authenticated_via":"Local Database","userName":"test","startTime":1753590966.3916507,"ipAddress":"11.11.11.225","macAddress":"9a:cd:b0:9e:02:12","packets_in":1438,"packets_out":1968,"bytes_in":363848,"bytes_out":1233525,"last_accessed":1753597602,"acc_session_timeout":null}]}
+--- Fin Réponse OPNsense ---
+--- Réponse OPNsense pour captiveportal/session/search ---
+Timestamp: 2025-07-27 19:41:02
+HTTP Code: 200
+cURL Error: 
+Response Body: {"total":2,"rowCount":2,"current":1,"rows":[{"zoneid":0,"sessionId":"aSgADUt\/FxDbptYvbCQGNg==","authenticated_via":"Local Database","userName":"admin","startTime":1753545065.1637368,"ipAddress":"11.11.11.93","macAddress":"7c:b2:7d:5e:05:38","packets_in":445704,"packets_out":2182075,"bytes_in":104086748,"bytes_out":2542610450,"last_accessed":1753645260,"acc_session_timeout":null},{"zoneid":0,"sessionId":"I1oZn1nwekSfRm7ZJwSwVw==","authenticated_via":"Local Database","userName":"test","startTime":1753590966.3916507,"ipAddress":"11.11.11.225","macAddress":"9a:cd:b0:9e:02:12","packets_in":1438,"packets_out":1968,"bytes_in":363848,"bytes_out":1233525,"last_accessed":1753597602,"acc_session_timeout":null}]}
+--- Fin Réponse OPNsense ---
+--- Réponse OPNsense pour captiveportal/session/search ---
+Timestamp: 2025-07-27 19:41:54
+HTTP Code: 200
+cURL Error: 
+Response Body: {"total":2,"rowCount":2,"current":1,"rows":[{"zoneid":0,"sessionId":"aSgADUt\/FxDbptYvbCQGNg==","authenticated_via":"Local Database","userName":"admin","startTime":1753545065.1637368,"ipAddress":"11.11.11.93","macAddress":"7c:b2:7d:5e:05:38","packets_in":445970,"packets_out":2182463,"bytes_in":104168759,"bytes_out":2542930591,"last_accessed":1753645312,"acc_session_timeout":null},{"zoneid":0,"sessionId":"I1oZn1nwekSfRm7ZJwSwVw==","authenticated_via":"Local Database","userName":"test","startTime":1753590966.3916507,"ipAddress":"11.11.11.225","macAddress":"9a:cd:b0:9e:02:12","packets_in":1438,"packets_out":1968,"bytes_in":363848,"bytes_out":1233525,"last_accessed":1753597602,"acc_session_timeout":null}]}
+--- Fin Réponse OPNsense ---
+--- Réponse OPNsense pour captiveportal/session/search ---
+Timestamp: 2025-07-27 19:41:54
+HTTP Code: 200
+cURL Error: 
+Response Body: {"total":2,"rowCount":2,"current":1,"rows":[{"zoneid":0,"sessionId":"aSgADUt\/FxDbptYvbCQGNg==","authenticated_via":"Local Database","userName":"admin","startTime":1753545065.1637368,"ipAddress":"11.11.11.93","macAddress":"7c:b2:7d:5e:05:38","packets_in":445970,"packets_out":2182463,"bytes_in":104168759,"bytes_out":2542930591,"last_accessed":1753645312,"acc_session_timeout":null},{"zoneid":0,"sessionId":"I1oZn1nwekSfRm7ZJwSwVw==","authenticated_via":"Local Database","userName":"test","startTime":1753590966.3916507,"ipAddress":"11.11.11.225","macAddress":"9a:cd:b0:9e:02:12","packets_in":1438,"packets_out":1968,"bytes_in":363848,"bytes_out":1233525,"last_accessed":1753597602,"acc_session_timeout":null}]}
+--- Fin Réponse OPNsense ---
+--- Réponse OPNsense pour captiveportal/session/search ---
+Timestamp: 2025-07-27 19:41:56
+HTTP Code: 200
+cURL Error: 
+Response Body: {"total":2,"rowCount":2,"current":1,"rows":[{"zoneid":0,"sessionId":"aSgADUt\/FxDbptYvbCQGNg==","authenticated_via":"Local Database","userName":"admin","startTime":1753545065.1637368,"ipAddress":"11.11.11.93","macAddress":"7c:b2:7d:5e:05:38","packets_in":445970,"packets_out":2182463,"bytes_in":104168759,"bytes_out":2542930591,"last_accessed":1753645312,"acc_session_timeout":null},{"zoneid":0,"sessionId":"I1oZn1nwekSfRm7ZJwSwVw==","authenticated_via":"Local Database","userName":"test","startTime":1753590966.3916507,"ipAddress":"11.11.11.225","macAddress":"9a:cd:b0:9e:02:12","packets_in":1438,"packets_out":1968,"bytes_in":363848,"bytes_out":1233525,"last_accessed":1753597602,"acc_session_timeout":null}]}
+--- Fin Réponse OPNsense ---
+--- Réponse OPNsense pour captiveportal/session/search ---
+Timestamp: 2025-07-27 19:41:59
+HTTP Code: 200
+cURL Error: 
+Response Body: {"total":2,"rowCount":2,"current":1,"rows":[{"zoneid":0,"sessionId":"aSgADUt\/FxDbptYvbCQGNg==","authenticated_via":"Local Database","userName":"admin","startTime":1753545065.1637368,"ipAddress":"11.11.11.93","macAddress":"7c:b2:7d:5e:05:38","packets_in":446184,"packets_out":2182849,"bytes_in":104222087,"bytes_out":2543288978,"last_accessed":1753645317,"acc_session_timeout":null},{"zoneid":0,"sessionId":"I1oZn1nwekSfRm7ZJwSwVw==","authenticated_via":"Local Database","userName":"test","startTime":1753590966.3916507,"ipAddress":"11.11.11.225","macAddress":"9a:cd:b0:9e:02:12","packets_in":1438,"packets_out":1968,"bytes_in":363848,"bytes_out":1233525,"last_accessed":1753597602,"acc_session_timeout":null}]}
+--- Fin Réponse OPNsense ---
+--- Réponse OPNsense pour captiveportal/session/search ---
+Timestamp: 2025-07-27 19:46:41
+HTTP Code: 200
+cURL Error: 
+Response Body: {"total":2,"rowCount":2,"current":1,"rows":[{"zoneid":0,"sessionId":"aSgADUt\/FxDbptYvbCQGNg==","authenticated_via":"Local Database","userName":"admin","startTime":1753545065.1637368,"ipAddress":"11.11.11.93","macAddress":"7c:b2:7d:5e:05:38","packets_in":446865,"packets_out":2183765,"bytes_in":104479197,"bytes_out":2543789356,"last_accessed":1753645595,"acc_session_timeout":null},{"zoneid":0,"sessionId":"I1oZn1nwekSfRm7ZJwSwVw==","authenticated_via":"Local Database","userName":"test","startTime":1753590966.3916507,"ipAddress":"11.11.11.225","macAddress":"9a:cd:b0:9e:02:12","packets_in":1438,"packets_out":1968,"bytes_in":363848,"bytes_out":1233525,"last_accessed":1753597602,"acc_session_timeout":null}]}
+--- Fin Réponse OPNsense ---
+--- Réponse OPNsense pour captiveportal/session/search ---
+Timestamp: 2025-07-27 19:47:33
+HTTP Code: 200
+cURL Error: 
+Response Body: {"total":2,"rowCount":2,"current":1,"rows":[{"zoneid":0,"sessionId":"aSgADUt\/FxDbptYvbCQGNg==","authenticated_via":"Local Database","userName":"admin","startTime":1753545065.1637368,"ipAddress":"11.11.11.93","macAddress":"7c:b2:7d:5e:05:38","packets_in":447167,"packets_out":2184261,"bytes_in":104571304,"bytes_out":2544212411,"last_accessed":1753645651,"acc_session_timeout":null},{"zoneid":0,"sessionId":"I1oZn1nwekSfRm7ZJwSwVw==","authenticated_via":"Local Database","userName":"test","startTime":1753590966.3916507,"ipAddress":"11.11.11.225","macAddress":"9a:cd:b0:9e:02:12","packets_in":1438,"packets_out":1968,"bytes_in":363848,"bytes_out":1233525,"last_accessed":1753597602,"acc_session_timeout":null}]}
+--- Fin Réponse OPNsense ---
+--- Réponse OPNsense pour captiveportal/session/search ---
+Timestamp: 2025-07-27 19:52:02
+HTTP Code: 200
+cURL Error: 
+Response Body: {"total":2,"rowCount":2,"current":1,"rows":[{"zoneid":0,"sessionId":"aSgADUt\/FxDbptYvbCQGNg==","authenticated_via":"Local Database","userName":"admin","startTime":1753545065.1637368,"ipAddress":"11.11.11.93","macAddress":"7c:b2:7d:5e:05:38","packets_in":451759,"packets_out":2215120,"bytes_in":105222251,"bytes_out":2582828505,"last_accessed":1753645921,"acc_session_timeout":null},{"zoneid":0,"sessionId":"I1oZn1nwekSfRm7ZJwSwVw==","authenticated_via":"Local Database","userName":"test","startTime":1753590966.3916507,"ipAddress":"11.11.11.225","macAddress":"9a:cd:b0:9e:02:12","packets_in":1438,"packets_out":1968,"bytes_in":363848,"bytes_out":1233525,"last_accessed":1753597602,"acc_session_timeout":null}]}
+--- Fin Réponse OPNsense ---
+--- Réponse OPNsense pour captiveportal/session/search ---
+Timestamp: 2025-07-27 19:53:39
+HTTP Code: 200
+cURL Error: 
+Response Body: {"total":2,"rowCount":2,"current":1,"rows":[{"zoneid":0,"sessionId":"aSgADUt\/FxDbptYvbCQGNg==","authenticated_via":"Local Database","userName":"admin","startTime":1753545065.1637368,"ipAddress":"11.11.11.93","macAddress":"7c:b2:7d:5e:05:38","packets_in":452174,"packets_out":2215687,"bytes_in":105348694,"bytes_out":2583232669,"last_accessed":1753646017,"acc_session_timeout":null},{"zoneid":0,"sessionId":"I1oZn1nwekSfRm7ZJwSwVw==","authenticated_via":"Local Database","userName":"test","startTime":1753590966.3916507,"ipAddress":"11.11.11.225","macAddress":"9a:cd:b0:9e:02:12","packets_in":1438,"packets_out":1968,"bytes_in":363848,"bytes_out":1233525,"last_accessed":1753597602,"acc_session_timeout":null}]}
+--- Fin Réponse OPNsense ---
+--- Réponse OPNsense pour captiveportal/session/search ---
+Timestamp: 2025-07-27 19:54:29
+HTTP Code: 200
+cURL Error: 
+Response Body: {"total":2,"rowCount":2,"current":1,"rows":[{"zoneid":0,"sessionId":"aSgADUt\/FxDbptYvbCQGNg==","authenticated_via":"Local Database","userName":"admin","startTime":1753545065.1637368,"ipAddress":"11.11.11.93","macAddress":"7c:b2:7d:5e:05:38","packets_in":452339,"packets_out":2215944,"bytes_in":105422280,"bytes_out":2583419181,"last_accessed":1753646066,"acc_session_timeout":null},{"zoneid":0,"sessionId":"I1oZn1nwekSfRm7ZJwSwVw==","authenticated_via":"Local Database","userName":"test","startTime":1753590966.3916507,"ipAddress":"11.11.11.225","macAddress":"9a:cd:b0:9e:02:12","packets_in":1438,"packets_out":1968,"bytes_in":363848,"bytes_out":1233525,"last_accessed":1753597602,"acc_session_timeout":null}]}
+--- Fin Réponse OPNsense ---
+--- Réponse OPNsense pour captiveportal/session/search ---
+Timestamp: 2025-07-27 19:54:51
+HTTP Code: 200
+cURL Error: 
+Response Body: {"total":2,"rowCount":2,"current":1,"rows":[{"zoneid":0,"sessionId":"aSgADUt\/FxDbptYvbCQGNg==","authenticated_via":"Local Database","userName":"admin","startTime":1753545065.1637368,"ipAddress":"11.11.11.93","macAddress":"7c:b2:7d:5e:05:38","packets_in":452550,"packets_out":2216263,"bytes_in":105478619,"bytes_out":2583709297,"last_accessed":1753646088,"acc_session_timeout":null},{"zoneid":0,"sessionId":"I1oZn1nwekSfRm7ZJwSwVw==","authenticated_via":"Local Database","userName":"test","startTime":1753590966.3916507,"ipAddress":"11.11.11.225","macAddress":"9a:cd:b0:9e:02:12","packets_in":1438,"packets_out":1968,"bytes_in":363848,"bytes_out":1233525,"last_accessed":1753597602,"acc_session_timeout":null}]}
+--- Fin Réponse OPNsense ---
+--- Réponse OPNsense pour captiveportal/session/search ---
+Timestamp: 2025-07-27 19:55:34
+HTTP Code: 200
+cURL Error: 
+Response Body: {"total":2,"rowCount":2,"current":1,"rows":[{"zoneid":0,"sessionId":"aSgADUt\/FxDbptYvbCQGNg==","authenticated_via":"Local Database","userName":"admin","startTime":1753545065.1637368,"ipAddress":"11.11.11.93","macAddress":"7c:b2:7d:5e:05:38","packets_in":452742,"packets_out":2216595,"bytes_in":105523731,"bytes_out":2583997355,"last_accessed":1753646128,"acc_session_timeout":null},{"zoneid":0,"sessionId":"I1oZn1nwekSfRm7ZJwSwVw==","authenticated_via":"Local Database","userName":"test","startTime":1753590966.3916507,"ipAddress":"11.11.11.225","macAddress":"9a:cd:b0:9e:02:12","packets_in":1438,"packets_out":1968,"bytes_in":363848,"bytes_out":1233525,"last_accessed":1753597602,"acc_session_timeout":null}]}
+--- Fin Réponse OPNsense ---
+--- Réponse OPNsense pour captiveportal/session/search ---
+Timestamp: 2025-07-27 19:56:18
+HTTP Code: 200
+cURL Error: 
+Response Body: {"total":2,"rowCount":2,"current":1,"rows":[{"zoneid":0,"sessionId":"aSgADUt\/FxDbptYvbCQGNg==","authenticated_via":"Local Database","userName":"admin","startTime":1753545065.1637368,"ipAddress":"11.11.11.93","macAddress":"7c:b2:7d:5e:05:38","packets_in":452977,"packets_out":2216946,"bytes_in":105586590,"bytes_out":2584294090,"last_accessed":1753646173,"acc_session_timeout":null},{"zoneid":0,"sessionId":"I1oZn1nwekSfRm7ZJwSwVw==","authenticated_via":"Local Database","userName":"test","startTime":1753590966.3916507,"ipAddress":"11.11.11.225","macAddress":"9a:cd:b0:9e:02:12","packets_in":1438,"packets_out":1968,"bytes_in":363848,"bytes_out":1233525,"last_accessed":1753597602,"acc_session_timeout":null}]}
+--- Fin Réponse OPNsense ---
+--- Réponse OPNsense pour captiveportal/session/search ---
+Timestamp: 2025-07-27 19:56:43
+HTTP Code: 200
+cURL Error: 
+Response Body: {"total":2,"rowCount":2,"current":1,"rows":[{"zoneid":0,"sessionId":"aSgADUt\/FxDbptYvbCQGNg==","authenticated_via":"Local Database","userName":"admin","startTime":1753545065.1637368,"ipAddress":"11.11.11.93","macAddress":"7c:b2:7d:5e:05:38","packets_in":453260,"packets_out":2217366,"bytes_in":105668635,"bytes_out":2584630699,"last_accessed":1753646200,"acc_session_timeout":null},{"zoneid":0,"sessionId":"I1oZn1nwekSfRm7ZJwSwVw==","authenticated_via":"Local Database","userName":"test","startTime":1753590966.3916507,"ipAddress":"11.11.11.225","macAddress":"9a:cd:b0:9e:02:12","packets_in":1438,"packets_out":1968,"bytes_in":363848,"bytes_out":1233525,"last_accessed":1753597602,"acc_session_timeout":null}]}
+--- Fin Réponse OPNsense ---
+--- Réponse OPNsense pour captiveportal/session/search ---
+Timestamp: 2025-07-27 19:58:42
+HTTP Code: 200
+cURL Error: 
+Response Body: {"total":2,"rowCount":2,"current":1,"rows":[{"zoneid":0,"sessionId":"aSgADUt\/FxDbptYvbCQGNg==","authenticated_via":"Local Database","userName":"admin","startTime":1753545065.1637368,"ipAddress":"11.11.11.93","macAddress":"7c:b2:7d:5e:05:38","packets_in":455712,"packets_out":2233375,"bytes_in":105972591,"bytes_out":2604645440,"last_accessed":1753646320,"acc_session_timeout":null},{"zoneid":0,"sessionId":"I1oZn1nwekSfRm7ZJwSwVw==","authenticated_via":"Local Database","userName":"test","startTime":1753590966.3916507,"ipAddress":"11.11.11.225","macAddress":"9a:cd:b0:9e:02:12","packets_in":1438,"packets_out":1968,"bytes_in":363848,"bytes_out":1233525,"last_accessed":1753597602,"acc_session_timeout":null}]}
+--- Fin Réponse OPNsense ---
+--- Réponse OPNsense pour captiveportal/session/search ---
+Timestamp: 2025-07-27 19:58:50
+HTTP Code: 200
+cURL Error: 
+Response Body: {"total":2,"rowCount":2,"current":1,"rows":[{"zoneid":0,"sessionId":"aSgADUt\/FxDbptYvbCQGNg==","authenticated_via":"Local Database","userName":"admin","startTime":1753545065.1637368,"ipAddress":"11.11.11.93","macAddress":"7c:b2:7d:5e:05:38","packets_in":455744,"packets_out":2233413,"bytes_in":105979553,"bytes_out":2604655904,"last_accessed":1753646326,"acc_session_timeout":null},{"zoneid":0,"sessionId":"I1oZn1nwekSfRm7ZJwSwVw==","authenticated_via":"Local Database","userName":"test","startTime":1753590966.3916507,"ipAddress":"11.11.11.225","macAddress":"9a:cd:b0:9e:02:12","packets_in":1438,"packets_out":1968,"bytes_in":363848,"bytes_out":1233525,"last_accessed":1753597602,"acc_session_timeout":null}]}
+--- Fin Réponse OPNsense ---
+--- Réponse OPNsense pour captiveportal/session/search ---
+Timestamp: 2025-07-27 19:58:52
+HTTP Code: 200
+cURL Error: 
+Response Body: {"total":2,"rowCount":2,"current":1,"rows":[{"zoneid":0,"sessionId":"aSgADUt\/FxDbptYvbCQGNg==","authenticated_via":"Local Database","userName":"admin","startTime":1753545065.1637368,"ipAddress":"11.11.11.93","macAddress":"7c:b2:7d:5e:05:38","packets_in":455791,"packets_out":2233466,"bytes_in":106003831,"bytes_out":2604678478,"last_accessed":1753646331,"acc_session_timeout":null},{"zoneid":0,"sessionId":"I1oZn1nwekSfRm7ZJwSwVw==","authenticated_via":"Local Database","userName":"test","startTime":1753590966.3916507,"ipAddress":"11.11.11.225","macAddress":"9a:cd:b0:9e:02:12","packets_in":1438,"packets_out":1968,"bytes_in":363848,"bytes_out":1233525,"last_accessed":1753597602,"acc_session_timeout":null}]}
+--- Fin Réponse OPNsense ---
+--- Réponse OPNsense pour captiveportal/session/search ---
+Timestamp: 2025-07-27 19:58:53
+HTTP Code: 200
+cURL Error: 
+Response Body: {"total":2,"rowCount":2,"current":1,"rows":[{"zoneid":0,"sessionId":"aSgADUt\/FxDbptYvbCQGNg==","authenticated_via":"Local Database","userName":"admin","startTime":1753545065.1637368,"ipAddress":"11.11.11.93","macAddress":"7c:b2:7d:5e:05:38","packets_in":455791,"packets_out":2233466,"bytes_in":106003831,"bytes_out":2604678478,"last_accessed":1753646331,"acc_session_timeout":null},{"zoneid":0,"sessionId":"I1oZn1nwekSfRm7ZJwSwVw==","authenticated_via":"Local Database","userName":"test","startTime":1753590966.3916507,"ipAddress":"11.11.11.225","macAddress":"9a:cd:b0:9e:02:12","packets_in":1438,"packets_out":1968,"bytes_in":363848,"bytes_out":1233525,"last_accessed":1753597602,"acc_session_timeout":null}]}
+--- Fin Réponse OPNsense ---
+--- Réponse OPNsense pour captiveportal/session/search ---
+Timestamp: 2025-07-27 19:59:00
+HTTP Code: 200
+cURL Error: 
+Response Body: {"total":2,"rowCount":2,"current":1,"rows":[{"zoneid":0,"sessionId":"aSgADUt\/FxDbptYvbCQGNg==","authenticated_via":"Local Database","userName":"admin","startTime":1753545065.1637368,"ipAddress":"11.11.11.93","macAddress":"7c:b2:7d:5e:05:38","packets_in":455832,"packets_out":2233519,"bytes_in":106015961,"bytes_out":2604694564,"last_accessed":1753646336,"acc_session_timeout":null},{"zoneid":0,"sessionId":"I1oZn1nwekSfRm7ZJwSwVw==","authenticated_via":"Local Database","userName":"test","startTime":1753590966.3916507,"ipAddress":"11.11.11.225","macAddress":"9a:cd:b0:9e:02:12","packets_in":1438,"packets_out":1968,"bytes_in":363848,"bytes_out":1233525,"last_accessed":1753597602,"acc_session_timeout":null}]}
+--- Fin Réponse OPNsense ---
+--- Réponse OPNsense pour captiveportal/session/search ---
+Timestamp: 2025-07-27 20:04:34
+HTTP Code: 200
+cURL Error: 
+Response Body: {"total":2,"rowCount":2,"current":1,"rows":[{"zoneid":0,"sessionId":"aSgADUt\/FxDbptYvbCQGNg==","authenticated_via":"Local Database","userName":"admin","startTime":1753545065.1637368,"ipAddress":"11.11.11.93","macAddress":"7c:b2:7d:5e:05:38","packets_in":461357,"packets_out":2248987,"bytes_in":107496052,"bytes_out":2621197481,"last_accessed":1753646669,"acc_session_timeout":null},{"zoneid":0,"sessionId":"I1oZn1nwekSfRm7ZJwSwVw==","authenticated_via":"Local Database","userName":"test","startTime":1753590966.3916507,"ipAddress":"11.11.11.225","macAddress":"9a:cd:b0:9e:02:12","packets_in":1438,"packets_out":1968,"bytes_in":363848,"bytes_out":1233525,"last_accessed":1753597602,"acc_session_timeout":null}]}
+--- Fin Réponse OPNsense ---
+--- Réponse OPNsense pour captiveportal/session/search ---
+Timestamp: 2025-07-27 20:05:18
+HTTP Code: 0
+cURL Error: Failed to connect to 11.11.11.1 port 443 after 3335 ms: Couldn't connect to server
+Response Body: 
+--- Fin Réponse OPNsense ---
+--- Réponse OPNsense pour captiveportal/session/search ---
+Timestamp: 2025-07-27 20:05:21
+HTTP Code: 200
+cURL Error: 
+Response Body: {"total":2,"rowCount":2,"current":1,"rows":[{"zoneid":0,"sessionId":"aSgADUt\/FxDbptYvbCQGNg==","authenticated_via":"Local Database","userName":"admin","startTime":1753545065.1637368,"ipAddress":"11.11.11.93","macAddress":"7c:b2:7d:5e:05:38","packets_in":462044,"packets_out":2249805,"bytes_in":107747684,"bytes_out":2621657415,"last_accessed":1753646715,"acc_session_timeout":null},{"zoneid":0,"sessionId":"I1oZn1nwekSfRm7ZJwSwVw==","authenticated_via":"Local Database","userName":"test","startTime":1753590966.3916507,"ipAddress":"11.11.11.225","macAddress":"9a:cd:b0:9e:02:12","packets_in":1438,"packets_out":1968,"bytes_in":363848,"bytes_out":1233525,"last_accessed":1753597602,"acc_session_timeout":null}]}
+--- Fin Réponse OPNsense ---
+--- Réponse OPNsense pour captiveportal/session/search ---
+Timestamp: 2025-07-27 21:08:15
+HTTP Code: 200
+cURL Error: 
+Response Body: {"total":2,"rowCount":2,"current":1,"rows":[{"zoneid":0,"sessionId":"aSgADUt\/FxDbptYvbCQGNg==","authenticated_via":"Local Database","userName":"admin","startTime":1753545065.1637368,"ipAddress":"11.11.11.93","macAddress":"7c:b2:7d:5e:05:38","packets_in":495013,"packets_out":2349207,"bytes_in":112380106,"bytes_out":2740204421,"last_accessed":1753650492,"acc_session_timeout":null},{"zoneid":0,"sessionId":"I1oZn1nwekSfRm7ZJwSwVw==","authenticated_via":"Local Database","userName":"test","startTime":1753590966.3916507,"ipAddress":"11.11.11.225","macAddress":"9a:cd:b0:9e:02:12","packets_in":1438,"packets_out":1968,"bytes_in":363848,"bytes_out":1233525,"last_accessed":1753597602,"acc_session_timeout":null}]}
+--- Fin Réponse OPNsense ---
+--- Réponse OPNsense pour captiveportal/session/search ---
+Timestamp: 2025-07-27 21:08:17
+HTTP Code: 200
+cURL Error: 
+Response Body: {"total":2,"rowCount":2,"current":1,"rows":[{"zoneid":0,"sessionId":"aSgADUt\/FxDbptYvbCQGNg==","authenticated_via":"Local Database","userName":"admin","startTime":1753545065.1637368,"ipAddress":"11.11.11.93","macAddress":"7c:b2:7d:5e:05:38","packets_in":495013,"packets_out":2349207,"bytes_in":112380106,"bytes_out":2740204421,"last_accessed":1753650492,"acc_session_timeout":null},{"zoneid":0,"sessionId":"I1oZn1nwekSfRm7ZJwSwVw==","authenticated_via":"Local Database","userName":"test","startTime":1753590966.3916507,"ipAddress":"11.11.11.225","macAddress":"9a:cd:b0:9e:02:12","packets_in":1438,"packets_out":1968,"bytes_in":363848,"bytes_out":1233525,"last_accessed":1753597602,"acc_session_timeout":null}]}
+--- Fin Réponse OPNsense ---
+--- Réponse OPNsense pour captiveportal/session/search ---
+Timestamp: 2025-07-27 21:08:18
+HTTP Code: 200
+cURL Error: 
+Response Body: {"total":2,"rowCount":2,"current":1,"rows":[{"zoneid":0,"sessionId":"aSgADUt\/FxDbptYvbCQGNg==","authenticated_via":"Local Database","userName":"admin","startTime":1753545065.1637368,"ipAddress":"11.11.11.93","macAddress":"7c:b2:7d:5e:05:38","packets_in":495095,"packets_out":2349312,"bytes_in":112411070,"bytes_out":2740244919,"last_accessed":1753650497,"acc_session_timeout":null},{"zoneid":0,"sessionId":"I1oZn1nwekSfRm7ZJwSwVw==","authenticated_via":"Local Database","userName":"test","startTime":1753590966.3916507,"ipAddress":"11.11.11.225","macAddress":"9a:cd:b0:9e:02:12","packets_in":1438,"packets_out":1968,"bytes_in":363848,"bytes_out":1233525,"last_accessed":1753597602,"acc_session_timeout":null}]}
+--- Fin Réponse OPNsense ---
+--- Réponse OPNsense pour captiveportal/session/search ---
+Timestamp: 2025-07-27 21:08:21
+HTTP Code: 200
+cURL Error: 
+Response Body: {"total":2,"rowCount":2,"current":1,"rows":[{"zoneid":0,"sessionId":"aSgADUt\/FxDbptYvbCQGNg==","authenticated_via":"Local Database","userName":"admin","startTime":1753545065.1637368,"ipAddress":"11.11.11.93","macAddress":"7c:b2:7d:5e:05:38","packets_in":495095,"packets_out":2349312,"bytes_in":112411070,"bytes_out":2740244919,"last_accessed":1753650497,"acc_session_timeout":null},{"zoneid":0,"sessionId":"I1oZn1nwekSfRm7ZJwSwVw==","authenticated_via":"Local Database","userName":"test","startTime":1753590966.3916507,"ipAddress":"11.11.11.225","macAddress":"9a:cd:b0:9e:02:12","packets_in":1438,"packets_out":1968,"bytes_in":363848,"bytes_out":1233525,"last_accessed":1753597602,"acc_session_timeout":null}]}
+--- Fin Réponse OPNsense ---
+--- Réponse OPNsense pour captiveportal/session/search ---
+Timestamp: 2025-07-27 21:09:32
+HTTP Code: 200
+cURL Error: 
+Response Body: {"total":2,"rowCount":2,"current":1,"rows":[{"zoneid":0,"sessionId":"aSgADUt\/FxDbptYvbCQGNg==","authenticated_via":"Local Database","userName":"admin","startTime":1753545065.1637368,"ipAddress":"11.11.11.93","macAddress":"7c:b2:7d:5e:05:38","packets_in":495471,"packets_out":2349879,"bytes_in":112515365,"bytes_out":2740665448,"last_accessed":1753650569,"acc_session_timeout":null},{"zoneid":0,"sessionId":"I1oZn1nwekSfRm7ZJwSwVw==","authenticated_via":"Local Database","userName":"test","startTime":1753590966.3916507,"ipAddress":"11.11.11.225","macAddress":"9a:cd:b0:9e:02:12","packets_in":1438,"packets_out":1968,"bytes_in":363848,"bytes_out":1233525,"last_accessed":1753597602,"acc_session_timeout":null}]}
+--- Fin Réponse OPNsense ---
+--- Réponse OPNsense pour captiveportal/session/search ---
+Timestamp: 2025-07-27 21:09:34
+HTTP Code: 200
+cURL Error: 
+Response Body: {"total":2,"rowCount":2,"current":1,"rows":[{"zoneid":0,"sessionId":"aSgADUt\/FxDbptYvbCQGNg==","authenticated_via":"Local Database","userName":"admin","startTime":1753545065.1637368,"ipAddress":"11.11.11.93","macAddress":"7c:b2:7d:5e:05:38","packets_in":495516,"packets_out":2349935,"bytes_in":112534490,"bytes_out":2740690350,"last_accessed":1753650572,"acc_session_timeout":null},{"zoneid":0,"sessionId":"I1oZn1nwekSfRm7ZJwSwVw==","authenticated_via":"Local Database","userName":"test","startTime":1753590966.3916507,"ipAddress":"11.11.11.225","macAddress":"9a:cd:b0:9e:02:12","packets_in":1438,"packets_out":1968,"bytes_in":363848,"bytes_out":1233525,"last_accessed":1753597602,"acc_session_timeout":null}]}
+--- Fin Réponse OPNsense ---
+--- Réponse OPNsense pour captiveportal/session/search ---
+Timestamp: 2025-07-27 21:12:19
+HTTP Code: 200
+cURL Error: 
+Response Body: {"total":2,"rowCount":2,"current":1,"rows":[{"zoneid":0,"sessionId":"aSgADUt\/FxDbptYvbCQGNg==","authenticated_via":"Local Database","userName":"admin","startTime":1753545065.1637368,"ipAddress":"11.11.11.93","macAddress":"7c:b2:7d:5e:05:38","packets_in":495930,"packets_out":2350449,"bytes_in":112686980,"bytes_out":2740894604,"last_accessed":1753650736,"acc_session_timeout":null},{"zoneid":0,"sessionId":"I1oZn1nwekSfRm7ZJwSwVw==","authenticated_via":"Local Database","userName":"test","startTime":1753590966.3916507,"ipAddress":"11.11.11.225","macAddress":"9a:cd:b0:9e:02:12","packets_in":1438,"packets_out":1968,"bytes_in":363848,"bytes_out":1233525,"last_accessed":1753597602,"acc_session_timeout":null}]}
+--- Fin Réponse OPNsense ---
+--- Réponse OPNsense pour captiveportal/session/search ---
+Timestamp: 2025-07-27 21:12:21
+HTTP Code: 200
+cURL Error: 
+Response Body: {"total":2,"rowCount":2,"current":1,"rows":[{"zoneid":0,"sessionId":"aSgADUt\/FxDbptYvbCQGNg==","authenticated_via":"Local Database","userName":"admin","startTime":1753545065.1637368,"ipAddress":"11.11.11.93","macAddress":"7c:b2:7d:5e:05:38","packets_in":495930,"packets_out":2350449,"bytes_in":112686980,"bytes_out":2740894604,"last_accessed":1753650736,"acc_session_timeout":null},{"zoneid":0,"sessionId":"I1oZn1nwekSfRm7ZJwSwVw==","authenticated_via":"Local Database","userName":"test","startTime":1753590966.3916507,"ipAddress":"11.11.11.225","macAddress":"9a:cd:b0:9e:02:12","packets_in":1438,"packets_out":1968,"bytes_in":363848,"bytes_out":1233525,"last_accessed":1753597602,"acc_session_timeout":null}]}
+--- Fin Réponse OPNsense ---
+--- Réponse OPNsense pour captiveportal/session/search ---
+Timestamp: 2025-07-27 21:12:22
+HTTP Code: 200
+cURL Error: 
+Response Body: {"total":2,"rowCount":2,"current":1,"rows":[{"zoneid":0,"sessionId":"aSgADUt\/FxDbptYvbCQGNg==","authenticated_via":"Local Database","userName":"admin","startTime":1753545065.1637368,"ipAddress":"11.11.11.93","macAddress":"7c:b2:7d:5e:05:38","packets_in":496184,"packets_out":2350970,"bytes_in":112739068,"bytes_out":2741436499,"last_accessed":1753650741,"acc_session_timeout":null},{"zoneid":0,"sessionId":"I1oZn1nwekSfRm7ZJwSwVw==","authenticated_via":"Local Database","userName":"test","startTime":1753590966.3916507,"ipAddress":"11.11.11.225","macAddress":"9a:cd:b0:9e:02:12","packets_in":1438,"packets_out":1968,"bytes_in":363848,"bytes_out":1233525,"last_accessed":1753597602,"acc_session_timeout":null}]}
+--- Fin Réponse OPNsense ---
+--- Réponse OPNsense pour captiveportal/session/search ---
+Timestamp: 2025-07-27 21:12:24
+HTTP Code: 200
+cURL Error: 
+Response Body: {"total":2,"rowCount":2,"current":1,"rows":[{"zoneid":0,"sessionId":"aSgADUt\/FxDbptYvbCQGNg==","authenticated_via":"Local Database","userName":"admin","startTime":1753545065.1637368,"ipAddress":"11.11.11.93","macAddress":"7c:b2:7d:5e:05:38","packets_in":496184,"packets_out":2350970,"bytes_in":112739068,"bytes_out":2741436499,"last_accessed":1753650741,"acc_session_timeout":null},{"zoneid":0,"sessionId":"I1oZn1nwekSfRm7ZJwSwVw==","authenticated_via":"Local Database","userName":"test","startTime":1753590966.3916507,"ipAddress":"11.11.11.225","macAddress":"9a:cd:b0:9e:02:12","packets_in":1438,"packets_out":1968,"bytes_in":363848,"bytes_out":1233525,"last_accessed":1753597602,"acc_session_timeout":null}]}
+--- Fin Réponse OPNsense ---
+--- Réponse OPNsense pour captiveportal/session/search ---
+Timestamp: 2025-07-27 21:12:50
+HTTP Code: 200
+cURL Error: 
+Response Body: {"total":2,"rowCount":2,"current":1,"rows":[{"zoneid":0,"sessionId":"aSgADUt\/FxDbptYvbCQGNg==","authenticated_via":"Local Database","userName":"admin","startTime":1753545065.1637368,"ipAddress":"11.11.11.93","macAddress":"7c:b2:7d:5e:05:38","packets_in":496397,"packets_out":2351522,"bytes_in":112792876,"bytes_out":2741984386,"last_accessed":1753650766,"acc_session_timeout":null},{"zoneid":0,"sessionId":"I1oZn1nwekSfRm7ZJwSwVw==","authenticated_via":"Local Database","userName":"test","startTime":1753590966.3916507,"ipAddress":"11.11.11.225","macAddress":"9a:cd:b0:9e:02:12","packets_in":1438,"packets_out":1968,"bytes_in":363848,"bytes_out":1233525,"last_accessed":1753597602,"acc_session_timeout":null}]}
+--- Fin Réponse OPNsense ---
+--- Réponse OPNsense pour captiveportal/session/search ---
+Timestamp: 2025-07-27 21:12:51
+HTTP Code: 200
+cURL Error: 
+Response Body: {"total":2,"rowCount":2,"current":1,"rows":[{"zoneid":0,"sessionId":"aSgADUt\/FxDbptYvbCQGNg==","authenticated_via":"Local Database","userName":"admin","startTime":1753545065.1637368,"ipAddress":"11.11.11.93","macAddress":"7c:b2:7d:5e:05:38","packets_in":496397,"packets_out":2351522,"bytes_in":112792876,"bytes_out":2741984386,"last_accessed":1753650766,"acc_session_timeout":null},{"zoneid":0,"sessionId":"I1oZn1nwekSfRm7ZJwSwVw==","authenticated_via":"Local Database","userName":"test","startTime":1753590966.3916507,"ipAddress":"11.11.11.225","macAddress":"9a:cd:b0:9e:02:12","packets_in":1438,"packets_out":1968,"bytes_in":363848,"bytes_out":1233525,"last_accessed":1753597602,"acc_session_timeout":null}]}
+--- Fin Réponse OPNsense ---
+--- Réponse OPNsense pour captiveportal/session/search ---
+Timestamp: 2025-07-27 21:12:52
+HTTP Code: 200
+cURL Error: 
+Response Body: {"total":2,"rowCount":2,"current":1,"rows":[{"zoneid":0,"sessionId":"aSgADUt\/FxDbptYvbCQGNg==","authenticated_via":"Local Database","userName":"admin","startTime":1753545065.1637368,"ipAddress":"11.11.11.93","macAddress":"7c:b2:7d:5e:05:38","packets_in":496590,"packets_out":2352072,"bytes_in":112818613,"bytes_out":2742586876,"last_accessed":1753650772,"acc_session_timeout":null},{"zoneid":0,"sessionId":"I1oZn1nwekSfRm7ZJwSwVw==","authenticated_via":"Local Database","userName":"test","startTime":1753590966.3916507,"ipAddress":"11.11.11.225","macAddress":"9a:cd:b0:9e:02:12","packets_in":1438,"packets_out":1968,"bytes_in":363848,"bytes_out":1233525,"last_accessed":1753597602,"acc_session_timeout":null}]}
+--- Fin Réponse OPNsense ---
+--- Réponse OPNsense pour captiveportal/session/search ---
+Timestamp: 2025-07-27 21:15:00
+HTTP Code: 200
+cURL Error: 
+Response Body: {"total":2,"rowCount":2,"current":1,"rows":[{"zoneid":0,"sessionId":"aSgADUt\/FxDbptYvbCQGNg==","authenticated_via":"Local Database","userName":"admin","startTime":1753545065.1637368,"ipAddress":"11.11.11.93","macAddress":"7c:b2:7d:5e:05:38","packets_in":501500,"packets_out":2393791,"bytes_in":113383360,"bytes_out":2795213271,"last_accessed":1753650896,"acc_session_timeout":null},{"zoneid":0,"sessionId":"I1oZn1nwekSfRm7ZJwSwVw==","authenticated_via":"Local Database","userName":"test","startTime":1753590966.3916507,"ipAddress":"11.11.11.225","macAddress":"9a:cd:b0:9e:02:12","packets_in":1438,"packets_out":1968,"bytes_in":363848,"bytes_out":1233525,"last_accessed":1753597602,"acc_session_timeout":null}]}
+--- Fin Réponse OPNsense ---
+--- Réponse OPNsense pour captiveportal/session/search ---
+Timestamp: 2025-07-27 21:18:11
+HTTP Code: 200
+cURL Error: 
+Response Body: {"total":2,"rowCount":2,"current":1,"rows":[{"zoneid":0,"sessionId":"aSgADUt\/FxDbptYvbCQGNg==","authenticated_via":"Local Database","userName":"admin","startTime":1753545065.1637368,"ipAddress":"11.11.11.93","macAddress":"7c:b2:7d:5e:05:38","packets_in":502141,"packets_out":2394665,"bytes_in":113603108,"bytes_out":2795802660,"last_accessed":1753651086,"acc_session_timeout":null},{"zoneid":0,"sessionId":"I1oZn1nwekSfRm7ZJwSwVw==","authenticated_via":"Local Database","userName":"test","startTime":1753590966.3916507,"ipAddress":"11.11.11.225","macAddress":"9a:cd:b0:9e:02:12","packets_in":1438,"packets_out":1968,"bytes_in":363848,"bytes_out":1233525,"last_accessed":1753597602,"acc_session_timeout":null}]}
+--- Fin Réponse OPNsense ---
+--- Réponse OPNsense pour captiveportal/session/search ---
+Timestamp: 2025-07-27 21:18:39
+HTTP Code: 200
+cURL Error: 
+Response Body: {"total":2,"rowCount":2,"current":1,"rows":[{"zoneid":0,"sessionId":"aSgADUt\/FxDbptYvbCQGNg==","authenticated_via":"Local Database","userName":"admin","startTime":1753545065.1637368,"ipAddress":"11.11.11.93","macAddress":"7c:b2:7d:5e:05:38","packets_in":502416,"packets_out":2395093,"bytes_in":113682255,"bytes_out":2796183327,"last_accessed":1753651116,"acc_session_timeout":null},{"zoneid":0,"sessionId":"I1oZn1nwekSfRm7ZJwSwVw==","authenticated_via":"Local Database","userName":"test","startTime":1753590966.3916507,"ipAddress":"11.11.11.225","macAddress":"9a:cd:b0:9e:02:12","packets_in":1438,"packets_out":1968,"bytes_in":363848,"bytes_out":1233525,"last_accessed":1753597602,"acc_session_timeout":null}]}
+--- Fin Réponse OPNsense ---
+--- Réponse OPNsense pour captiveportal/session/search ---
+Timestamp: 2025-07-27 21:18:40
+HTTP Code: 200
+cURL Error: 
+Response Body: {"total":2,"rowCount":2,"current":1,"rows":[{"zoneid":0,"sessionId":"aSgADUt\/FxDbptYvbCQGNg==","authenticated_via":"Local Database","userName":"admin","startTime":1753545065.1637368,"ipAddress":"11.11.11.93","macAddress":"7c:b2:7d:5e:05:38","packets_in":502416,"packets_out":2395093,"bytes_in":113682255,"bytes_out":2796183327,"last_accessed":1753651116,"acc_session_timeout":null},{"zoneid":0,"sessionId":"I1oZn1nwekSfRm7ZJwSwVw==","authenticated_via":"Local Database","userName":"test","startTime":1753590966.3916507,"ipAddress":"11.11.11.225","macAddress":"9a:cd:b0:9e:02:12","packets_in":1438,"packets_out":1968,"bytes_in":363848,"bytes_out":1233525,"last_accessed":1753597602,"acc_session_timeout":null}]}
+--- Fin Réponse OPNsense ---
+--- Réponse OPNsense pour captiveportal/session/search ---
+Timestamp: 2025-07-27 21:18:41
+HTTP Code: 200
+cURL Error: 
+Response Body: {"total":2,"rowCount":2,"current":1,"rows":[{"zoneid":0,"sessionId":"aSgADUt\/FxDbptYvbCQGNg==","authenticated_via":"Local Database","userName":"admin","startTime":1753545065.1637368,"ipAddress":"11.11.11.93","macAddress":"7c:b2:7d:5e:05:38","packets_in":502416,"packets_out":2395093,"bytes_in":113682255,"bytes_out":2796183327,"last_accessed":1753651116,"acc_session_timeout":null},{"zoneid":0,"sessionId":"I1oZn1nwekSfRm7ZJwSwVw==","authenticated_via":"Local Database","userName":"test","startTime":1753590966.3916507,"ipAddress":"11.11.11.225","macAddress":"9a:cd:b0:9e:02:12","packets_in":1438,"packets_out":1968,"bytes_in":363848,"bytes_out":1233525,"last_accessed":1753597602,"acc_session_timeout":null}]}
+--- Fin Réponse OPNsense ---
+--- Réponse OPNsense pour captiveportal/session/search ---
+Timestamp: 2025-07-27 21:18:41
+HTTP Code: 200
+cURL Error: 
+Response Body: {"total":2,"rowCount":2,"current":1,"rows":[{"zoneid":0,"sessionId":"aSgADUt\/FxDbptYvbCQGNg==","authenticated_via":"Local Database","userName":"admin","startTime":1753545065.1637368,"ipAddress":"11.11.11.93","macAddress":"7c:b2:7d:5e:05:38","packets_in":502535,"packets_out":2395236,"bytes_in":113734642,"bytes_out":2796237956,"last_accessed":1753651122,"acc_session_timeout":null},{"zoneid":0,"sessionId":"I1oZn1nwekSfRm7ZJwSwVw==","authenticated_via":"Local Database","userName":"test","startTime":1753590966.3916507,"ipAddress":"11.11.11.225","macAddress":"9a:cd:b0:9e:02:12","packets_in":1438,"packets_out":1968,"bytes_in":363848,"bytes_out":1233525,"last_accessed":1753597602,"acc_session_timeout":null}]}
+--- Fin Réponse OPNsense ---
+--- Réponse OPNsense pour captiveportal/session/search ---
+Timestamp: 2025-07-27 21:19:52
+HTTP Code: 200
+cURL Error: 
+Response Body: {"total":2,"rowCount":2,"current":1,"rows":[{"zoneid":0,"sessionId":"aSgADUt\/FxDbptYvbCQGNg==","authenticated_via":"Local Database","userName":"admin","startTime":1753545065.1637368,"ipAddress":"11.11.11.93","macAddress":"7c:b2:7d:5e:05:38","packets_in":502787,"packets_out":2395559,"bytes_in":113847654,"bytes_out":2796396217,"last_accessed":1753651193,"acc_session_timeout":null},{"zoneid":0,"sessionId":"I1oZn1nwekSfRm7ZJwSwVw==","authenticated_via":"Local Database","userName":"test","startTime":1753590966.3916507,"ipAddress":"11.11.11.225","macAddress":"9a:cd:b0:9e:02:12","packets_in":1438,"packets_out":1968,"bytes_in":363848,"bytes_out":1233525,"last_accessed":1753597602,"acc_session_timeout":null}]}
+--- Fin Réponse OPNsense ---
+--- Réponse OPNsense pour captiveportal/session/search ---
+Timestamp: 2025-07-27 21:42:41
+HTTP Code: 200
+cURL Error: 
+Response Body: {"total":2,"rowCount":2,"current":1,"rows":[{"zoneid":0,"sessionId":"aSgADUt\/FxDbptYvbCQGNg==","authenticated_via":"Local Database","userName":"admin","startTime":1753545065.1637368,"ipAddress":"11.11.11.93","macAddress":"7c:b2:7d:5e:05:38","packets_in":511552,"packets_out":2443542,"bytes_in":115896410,"bytes_out":2853537151,"last_accessed":1753652561,"acc_session_timeout":null},{"zoneid":0,"sessionId":"I1oZn1nwekSfRm7ZJwSwVw==","authenticated_via":"Local Database","userName":"test","startTime":1753590966.3916507,"ipAddress":"11.11.11.225","macAddress":"9a:cd:b0:9e:02:12","packets_in":1438,"packets_out":1968,"bytes_in":363848,"bytes_out":1233525,"last_accessed":1753597602,"acc_session_timeout":null}]}
+--- Fin Réponse OPNsense ---
+--- Réponse OPNsense pour captiveportal/session/search ---
+Timestamp: 2025-07-27 23:28:54
+HTTP Code: 0
+cURL Error: Failed to connect to 11.11.11.1 port 443 after 21034 ms: Couldn't connect to server
+Response Body: 
+--- Fin Réponse OPNsense ---
+--- Réponse OPNsense pour captiveportal/session/search ---
+Timestamp: 2025-07-27 23:30:30
+HTTP Code: 0
+cURL Error: Failed to connect to 11.11.11.1 port 443 after 21021 ms: Couldn't connect to server
+Response Body: 
+--- Fin Réponse OPNsense ---
+--- Réponse OPNsense pour captiveportal/session/search ---
+Timestamp: 2025-07-27 23:37:16
+HTTP Code: 0
+cURL Error: Failed to connect to 11.11.11.1 port 443 after 21024 ms: Couldn't connect to server
+Response Body: 
+--- Fin Réponse OPNsense ---
+--- Réponse OPNsense pour captiveportal/session/search ---
+Timestamp: 2025-07-28 00:08:24
+HTTP Code: 0
+cURL Error: Failed to connect to 11.11.11.1 port 443 after 21020 ms: Couldn't connect to server
+Response Body: 
+--- Fin Réponse OPNsense ---
+--- Réponse OPNsense pour captiveportal/session/search ---
+Timestamp: 2025-07-28 00:10:36
+HTTP Code: 0
+cURL Error: Failed to connect to 11.11.11.1 port 443 after 21113 ms: Couldn't connect to server
+Response Body: 
+--- Fin Réponse OPNsense ---
+--- Réponse OPNsense pour captiveportal/session/search ---
+Timestamp: 2025-07-28 00:10:57
+HTTP Code: 0
+cURL Error: Failed to connect to 11.11.11.1 port 443 after 21043 ms: Couldn't connect to server
+Response Body: 
+--- Fin Réponse OPNsense ---
+--- Réponse OPNsense pour captiveportal/session/search ---
+Timestamp: 2025-07-28 00:16:25
+HTTP Code: 0
+cURL Error: Failed to connect to 11.11.11.1 port 443 after 21042 ms: Couldn't connect to server
+Response Body: 
+--- Fin Réponse OPNsense ---
+--- Réponse OPNsense pour captiveportal/session/search ---
+Timestamp: 2025-07-28 00:18:16
+HTTP Code: 0
+cURL Error: Failed to connect to 11.11.11.1 port 443 after 21047 ms: Couldn't connect to server
+Response Body: 
+--- Fin Réponse OPNsense ---

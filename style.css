@@ -1,0 +1,222 @@
+/* Fichier: androndra/style.css */
+
+/* Styles généraux pour le corps de la page (arrière-plan, alignement global) */
+body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; /* Police moderne et lisible */
+    margin: 0; /* Supprime les marges par défaut du navigateur */
+    padding: 0; /* Supprime le padding par défaut du navigateur */
+    color: #333; /* Couleur de texte par défaut, sera surchargée pour le container pour un meilleur contraste */
+    display: flex; /* Utilise Flexbox pour centrer le contenu */
+    justify-content: center; /* Centre le contenu horizontalement */
+    align-items: center; /* Centre le contenu verticalement */
+    min-height: 100vh; /* Assure que le body prend au moins toute la hauteur de la fenêtre */
+    text-align: center; /* Centre le texte à l'intérieur du body (utile pour le contenu direct) */
+    overflow: hidden; /* Empêche les barres de défilement si le contenu dépasse */
+
+    /* Dégradé de fond comme base */
+    background: linear-gradient(135deg, #e0f2f7 0%, #b2ebf2 50%, #80deea 100%); /* Dégradé de bleus clairs */
+    /* Ajout de l'image de vague par-dessus le dégradé */
+    background-image: url('assets/images/background_wave.png'); /* Chemin vers l'image de la vague */
+    background-size: cover; /* L'image couvre toute la zone, sans être déformée */
+    background-repeat: no-repeat; /* Empêche la répétition de l'image */
+    background-position: center center; /* Centrer l'image de fond */
+    background-blend-mode: overlay; /* Mélange l'image de vague avec le dégradé en dessous pour un effet plus doux */
+}
+
+/* Styles pour le conteneur principal (la "boîte" de connexion ou d'accueil) */
+.container-custom {
+    /* Fond noir avec transparence pour l'effet "verre dépoli" */
+    background-color: rgba(0, 0, 0, 0.4); /* Noir avec 40% d'opacité */
+    padding: 40px; /* Espace interne autour du contenu */
+    border-radius: 15px; /* Bords très arrondis pour un look moderne */
+    box-shadow: 0 15px 40px rgba(0,0,0,0.2); /* Ombre prononcée pour donner de la profondeur */
+    max-width: 700px; /* Largeur maximale du conteneur */
+    width: 90%; /* Prend 90% de la largeur disponible, utile pour la responsivité */
+    z-index: 1; /* Assure que le conteneur est au-dessus du fond */
+    position: relative; /* Nécessaire pour que z-index fonctionne */
+    /* Effet "verre dépoli" (frosted glass) */
+    backdrop-filter: blur(30px); /* Applique un flou important à l'arrière-plan du conteneur */
+    -webkit-backdrop-filter: blur(30px); /* Compatibilité pour les navigateurs basés sur WebKit (ex: Safari) */
+    border: 1px solid rgba(255, 255, 255, 0.2); /* Bordure subtile et très transparente */
+    transform: translateY(-20px); /* Déplace légèrement le conteneur vers le haut pour un effet flottant */
+}
+
+/* Styles pour les éléments de texte à l'intérieur du conteneur personnalisé pour assurer la visibilité sur fond sombre */
+.container-custom h1,
+.container-custom p,
+.container-custom .footer {
+    color: #fff; /* Définit le texte en blanc pour un bon contraste avec le fond noir transparent */
+}
+
+/* Styles pour le logo */
+.logo {
+    margin-bottom: 30px; /* Espace en dessous du logo */
+    max-width: 280px; /* Largeur maximale du logo */
+    height: auto; /* Maintient le ratio d'aspect */
+    display: block; /* Permet d'appliquer les marges auto pour le centrage */
+    margin-left: auto; /* Centre le logo horizontalement */
+    margin-right: auto; /* Centre le logo horizontalement */
+    filter: drop-shadow(0 0 5px rgba(255,255,255,0.1)); /* Ajoute une légère ombre blanche au logo pour le faire ressortir */
+}
+
+/* Styles pour le titre principal (h1) */
+h1 {
+    color: #fff; /* Couleur blanche pour le titre sur fond noir transparent */
+    margin-bottom: 20px; /* Espace en dessous du titre */
+    font-size: 2.0em; /* Taille de la police du titre */
+    font-weight: 700; /* Gras pour le titre */
+    letter-spacing: +0.03em; /* Espacement léger entre les lettres */
+}
+
+/* Styles pour les paragraphes */
+p {
+    font-size: 1.2em; /* Taille de police plus grande pour la lisibilité */
+    line-height: 1.7; /* Hauteur de ligne augmentée pour une meilleure lisibilité */
+    margin-bottom: 40px; /* Espace en dessous des paragraphes */
+    color: #eee; /* Texte légèrement gris-blanc pour les paragraphes pour un contraste doux */
+}
+
+/* Styles pour les champs de saisie (inputs) avec la nouvelle classe personnalisée */
+/* Cela cible les éléments avec la classe 'form-field-half' (input et select) */
+.form-field-half {
+    padding: 0.75rem; /* Padding interne */
+    margin: 0.5rem auto; /* Marge autour des champs, 'auto' pour centrer horizontalement */
+    border: none; /* Supprime la bordure par défaut de Bootstrap */
+    border-radius: 0.5rem; /* Bords légèrement arrondis */
+    font-size: 1rem; /* Taille de police */
+    width: 50%; /* Largeur réduite à 50% du conteneur parent */
+    display: block; /* Nécessaire pour que 'margin: auto' fonctionne et centre l'élément */
+    box-sizing: border-box; /* S'assure que padding et border sont inclus dans la largeur */
+    /* Fond du champ de texte : blanc avec 15% d'opacité */
+    background: rgba(255, 255, 255, 0.15);
+    /* Couleur du texte saisi : blanc avec 90% d'opacité (suffisamment visible) */
+    color: rgba(255, 255, 255, 0.9);
+    /* Ajout d'une bordure subtile pour mieux délimiter le champ */
+    border: 1px solid rgba(255, 255, 255, 0.2); /* Bordure blanche avec 20% d'opacité */
+}
+
+/* Styles pour le placeholder (texte d'aide) des champs de saisie */
+.form-field-half::placeholder {
+    color: rgba(255, 255, 255, 0.7); /* Couleur du texte de placeholder : blanc avec 70% d'opacité */
+}
+
+/* Style au focus des champs de texte pour une meilleure indication */
+.form-field-half:focus {
+    border-color: rgba(255, 255, 255, 0.5); /* Bordure un peu plus opaque au focus */
+    box-shadow: 0 0 0 0.2rem rgba(255, 255, 255, 0.1); /* Légère ombre pour le focus */
+    outline: none; /* Supprime l'outline par défaut du navigateur */
+}
+
+/* Styles pour les boutons principaux (utilisant la classe Bootstrap .btn-primary) */
+.btn-primary {
+    /* Nouvelle apparence pour harmoniser avec les champs de saisie */
+    background-color: rgba(0, 0, 0, 0.6); /* Fond noir avec 60% d'opacité (plus sombre que les inputs) */
+    border-color: rgba(255, 255, 255, 0.3); /* Bordure légèrement plus visible que les inputs */
+    color: #fff;
+    padding: 15px 45px;
+    font-size: 1.4em;
+    border-radius: 50px;
+    transition: all 0.3s ease;
+    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.3);
+    text-transform: uppercase;
+    font-weight: 600;
+    /* Ajout de l'effet de verre dépoli pour le bouton */
+    backdrop-filter: blur(8px); /* Applique un flou modéré */
+    -webkit-backdrop-filter: blur(8px); /* Compatibilité WebKit */
+    border: 1px solid rgba(255, 255, 255, 0.3); /* Bordure blanche semi-transparente */
+}
+
+/* Styles au survol (hover) des boutons principaux */
+.btn-primary:hover {
+    background-color: rgba(0, 0, 0, 0.7); /* Plus sombre au survol */
+    border-color: rgba(255, 255, 255, 0.5); /* Bordure plus opaque au survol */
+    transform: translateY(-3px);
+    box-shadow: 0 12px 25px rgba(0, 0, 0, 0.4);
+}
+
+/* Styles pour le pied de page */
+.footer {
+    margin-top: 80px; /* Espace en dessous du bouton pour le pousser plus bas */
+    font-size: 0.9em; /* Taille de police du footer */
+    color: #ccc; /* Couleur du texte du footer */
+    text-align: center; /* Centre le texte du footer */
+    width: 100%; /* S'assure qu'il prend toute la largeur pour centrer correctement */
+    padding-bottom: 20px; /* Ajoute un padding en bas de la page */
+    /* Les propriétés 'position: absolute', 'bottom', et 'left' ont été retirées pour qu'il suive le flux */
+}
+
+.footer p {
+    margin-bottom: 0; /* Supprime la marge par défaut du paragraphe pour éviter un double espacement */
+    font-size: 0.8em; /* Ajustement de la taille de police si 0.9em était trop grand/petit sur le p du footer */
+    color: #ccc; /* Assure la couleur correcte pour le paragraphe du footer, au cas où .container-custom p l'ait surchargé */
+}
+
+
+/* Styles pour les éléments de navigation en haut de la page (si vous décidez de les ajouter) */
+.top-nav {
+    position: absolute;
+    top: 20px;
+    width: 100%;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0 40px;
+    box-sizing: border-box;
+    z-index: 10;
+}
+
+.top-nav .company-logo-text {
+    font-size: 1.8em;
+    font-weight: 700;
+    color: #fff;
+}
+
+.top-nav ul {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    gap: 25px;
+}
+
+.top-nav ul li a {
+    text-decoration: none;
+    color: #eee;
+    font-size: 1.1em;
+    font-weight: 500;
+    transition: color 0.3s ease;
+}
+
+.top-nav ul li a:hover {
+    color: #fff;
+}
+
+.top-nav .nav-icons {
+    display: flex;
+    gap: 15px;
+}
+
+.top-nav .nav-icons img {
+    width: 20px;
+    height: 20px;
+    cursor: pointer;
+    opacity: 0.8;
+    filter: invert(1);
+    transition: opacity 0.3s ease;
+}
+
+.top-nav .nav-icons img:hover {
+    opacity: 1;
+}
+#sidebar-wrapper {
+    height: 100vh;
+    overflow-y: auto;
+}
+.submenu-group {
+    display: none;
+    max-height: 300px;
+    overflow-y: auto;
+}
+.submenu-group {
+    display: none !important;
+}

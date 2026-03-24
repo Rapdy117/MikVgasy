@@ -1,0 +1,249 @@
+/* =====================================================
+   1. VARIABLES
+===================================================== */
+:root {
+    --navbar-height: 40px;
+    --sidebar-width: 220px;
+
+    --bg-card: rgba(26, 26, 46, 0.3);
+    --bg-content: rgba(26, 26, 46, 0);
+
+    --text-white: #E0E0E0;
+    --text-muted: #B0B0B0;
+
+    --primary: #17A2B8;
+    --border: rgba(60, 60, 88, 0.5);
+}
+
+/* =====================================================
+   2. GLOBAL / LAYOUT
+===================================================== */
+html, body {
+    height: 100%;
+    margin: 0;
+    overflow-x: hidden;
+}
+
+body {
+    font-family: 'Roboto', sans-serif;
+    color: var(--text-white);
+    background-color: transparent;
+    padding-top: calc(var(--navbar-height) + 11px);
+    font-size: 14px;
+}
+
+body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background: url('background_wave.png') center / cover no-repeat fixed;
+    z-index: -1;
+}
+
+#wrapper {
+    display: flex;
+    min-height: 100vh;
+}
+
+#page-content-wrapper {
+    margin-left: var(--sidebar-width);
+    width: calc(100% - var(--sidebar-width));
+    background-color: var(--bg-content);
+}
+
+/* =====================================================
+   3. COMPONENTS
+===================================================== */
+
+/* ---------- CARDS ---------- */
+.card {
+    background-color: var(--bg-card) !important;
+    border: 1px solid var(--border);
+}
+
+/* ---------- INPUTS ---------- */
+.input-group {
+    margin-bottom: 8px;
+}
+
+.input-group-text {
+    width: 110px;
+    height: 30px;
+    font-size: 0.8rem;
+
+    display: flex;
+    align-items: center;
+    padding: 0 8px;
+
+    background-color: rgba(23,162,184,0.15) !important;
+    border: 1px solid var(--primary);
+    color: var(--primary);
+    border-right: none;
+}
+
+.form-control {
+    height: 30px;
+    font-size: 0.8rem;
+    padding: 0 8px;
+
+    background-color: rgba(255,255,255,0.08) !important;
+    border: 1px solid var(--border);
+    color: var(--text-white) !important;
+    border-left: none;
+}
+
+.form-control:focus {
+    border-color: var(--primary);
+    box-shadow: 0 0 6px rgba(23,162,184,0.5);
+    background-color: rgba(255,255,255,0.1);
+}
+
+/* disabled / readonly */
+.form-control:disabled,
+.form-control[readonly] {
+    background-color: rgba(255,255,255,0.05) !important;
+    color: var(--text-muted) !important;
+}
+
+/* ---------- BUTTONS ---------- */
+.btn {
+    padding: 0;
+}
+
+.btn-save,
+.btn-test {
+    width: 100px;
+    height: 25px;
+    font-size: 0.8rem;
+
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+
+    border-radius: 4px;
+    transition: 0.2s ease;
+}
+
+/* SAVE */
+.btn-save {
+    background: rgba(23,162,184,0.15);
+    border: 1px solid var(--primary);
+    color: var(--primary);
+}
+
+.btn-save:hover {
+    background: var(--primary);
+    color: #fff;
+    box-shadow: 0 0 8px rgba(23,162,184,0.8);
+}
+
+/* TEST / CANCEL */
+.btn-test {
+    background: rgba(220,53,69,0.15);
+    border: 1px solid #dc3545;
+    color: #dc3545;
+}
+
+.btn-test:hover {
+    background: #dc3545;
+    color: #fff;
+    box-shadow: 0 0 10px rgba(220,53,69,0.9);
+}
+
+/* =====================================================
+   4. TABLE (UNIFIÉ + FIX BOOTSTRAP)
+===================================================== */
+
+/* RESET BOOTSTRAP */
+/* fond principal tableau (comme inputs) */
+.table {
+    width: 100%;
+    border-collapse: collapse;
+
+    background: rgba(255,255,255,0.05) !important;
+    color: var(--text-white);
+
+    --bs-table-bg: transparent !important;
+    --bs-table-striped-bg: transparent !important;
+    --bs-table-hover-bg: transparent !important;
+}
+/* base lignes */
+.table tbody tr {
+    background-color: rgba(255,255,255,0.03) !important;
+}
+
+/* alternance subtile */
+.table tbody tr:nth-child(even) {
+    background-color: rgba(0,0,0,0.15) !important;
+}
+.table tbody tr:hover {
+    background: rgba(23,162,184,0.15);
+}
+
+/* HEADER */
+.table thead th {
+    font-size: 0.75rem;
+    padding: 8px;
+
+    color: var(--primary);
+    background: rgba(23,162,184,0.08);
+
+    border-bottom: 1px solid rgba(0,255,255,0.2);
+    text-align: left;
+}
+
+/* RESET lignes bootstrap */
+.table tbody tr {
+    background-color: transparent !important;
+}
+
+/* alternance */
+.table tbody tr:nth-child(odd) {
+    background: rgba(255,255,255,0.03);
+}
+
+.table tbody tr:nth-child(even) {
+    background: rgba(0,0,0,0.15);
+}
+
+/* hover */
+.table tbody tr:hover {
+    background: rgba(23,162,184,0.2);
+    cursor: pointer;
+}
+
+/* cellules */
+.table td {
+    font-size: 0.8rem;
+    padding: 6px 8px;
+    border-bottom: 1px solid rgba(255,255,255,0.05);
+    /* texte uniforme dans le tableau */
+    color: var(--text-white) !important;
+
+}
+
+/* =====================================================
+   5. BADGES
+===================================================== */
+.badge.bg-success {
+    background: rgba(34,197,94,0.2) !important;
+    color: #22c55e !important;
+}
+
+.badge.bg-warning {
+    background: rgba(250,204,21,0.2) !important;
+    color: #facc15 !important;
+}
+
+/* =====================================================
+   6. SCROLLBAR
+===================================================== */
+::-webkit-scrollbar {
+    width: 6px;
+}
+
+::-webkit-scrollbar-thumb {
+    background: rgba(0,255,255,0.3);
+    border-radius: 10px;
+}
+

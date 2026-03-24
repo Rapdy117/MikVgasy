@@ -1,0 +1,203 @@
+/* =====================================================
+   VARIABLES
+===================================================== */
+:root {
+    --bg-card: rgba(26, 26, 46, 0.3);
+    --text-white: #E0E0E0;
+    --text-muted: #B0B0B0;
+    --primary: #17A2B8;
+    --border: rgba(60, 60, 88, 0.5);
+}
+
+/* =====================================================
+   SCOPE FORMULAIRE (IMPORTANT)
+===================================================== */
+.network-device-form {
+    font-size: 0.8rem;
+}
+
+/* =====================================================
+   CARDS
+===================================================== */
+.network-device-form .card {
+    background-color: var(--bg-card) !important;
+    border: 1px solid var(--border) !important;
+    border-radius: 6px;
+}
+
+.network-device-form .card-header {
+    background: rgba(23,162,184,0.15) !important;
+    color: var(--primary);
+    font-size: 0.8rem;
+    font-weight: 600;
+    padding: 6px 10px;
+    border-bottom: 1px solid var(--border);
+        background: rgba(23,162,184,0.15) !important;
+
+    display: flex;
+    align-items: center;
+}
+
+.network-device-form .card-header:hover {
+    background: rgba(23,162,184,0.25) !important;
+}
+
+.network-device-form .card-body {
+    padding: 8px;
+}
+
+/* =====================================================
+   INPUTS
+===================================================== */
+.network-device-form .input-group {
+    margin-bottom: 6px;
+}
+
+.network-device-form .input-group-text {
+    width: 110px;
+    height: 28px;
+    font-size: 0.8rem;
+
+    display: flex;
+    align-items: center;
+    padding: 0 8px;
+
+    background-color: rgba(23,162,184,0.15) !important;
+    border: 1px solid var(--primary) !important;
+    color: var(--primary);
+    border-right: none;
+}
+
+.network-device-form .form-control {
+    height: 28px;
+    font-size: 0.8rem;
+    padding: 0 8px;
+
+    background-color: rgba(255,255,255,0.08) !important;
+    border: 1px solid var(--border) !important;
+    color: var(--text-white) !important;
+    border-left: none;
+}
+
+.network-device-form .form-control:focus {
+    border-color: var(--primary) !important;
+    box-shadow: 0 0 6px rgba(23,162,184,0.5) !important;
+    background-color: rgba(255,255,255,0.1) !important;
+}
+
+/* disabled / readonly */
+.network-device-form .form-control:disabled,
+.network-device-form .form-control[readonly] {
+    background-color: rgba(255,255,255,0.05) !important;
+    color: var(--text-muted) !important;
+}
+
+/* SELECT */
+.network-device-form .form-select {
+    height: 28px;
+    font-size: 0.8rem;
+    padding: 0 8px;
+
+    background-color: rgba(255,255,255,0.08) !important;
+    border: 1px solid var(--border) !important;
+    color: var(--text-white) !important;
+}
+
+/* =====================================================
+   BUTTONS
+===================================================== */
+.btn-save {
+    width: 100px;
+    height: 25px;
+    font-size: 0.8rem;
+
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+
+    border-radius: 4px;
+    transition: 0.2s ease;
+
+    background: rgba(23,162,184,0.15);
+    border: 1px solid var(--primary);
+    color: var(--primary);
+}
+
+.btn-save:hover {
+    background: var(--primary);
+    color: #fff;
+    box-shadow: 0 0 8px rgba(23,162,184,0.8);
+}
+
+/* =====================================================
+   GUIDE - TEXTE PLUS CLAIR
+===================================================== */
+.network-device-form .card-body {
+    color: #EAEAEA;
+}
+
+.network-device-form .card-body li {
+    color: #DCDCDC;
+}
+
+.network-device-form .card-body b {
+    color: #FFFFFF;
+}
+
+.network-device-form .card-body h6 {
+    color: #17A2B8;
+}
+/* =====================================================
+   GUIDE UNIQUEMENT (CORRECTION PROPRE)
+===================================================== */
+.guide-content {
+    color: #EAEAEA;
+    font-size: 0.95rem;
+}
+
+/* titres */
+.guide-content h6 {
+    font-size: 1.05rem;
+    font-weight: 700;
+    color: #17A2B8;
+}
+
+/* liste */
+.guide-content ul {
+    margin-bottom: 10px;
+    padding-left: 18px;
+}
+
+.guide-content li {
+    font-size: 0.90rem;
+    color: #DCDCDC;
+    margin-bottom: 3px;
+}
+
+/* labels (Nom, Temps, etc.) */
+.guide-content b {
+    font-size: 0.75rem;
+    color: #FFFFFF;
+}
+
+/* =====================================================
+   VALIDITÉ (ALIGNEMENT AVEC MB / MIN)
+===================================================== */
+.network-device-form .validity-unit {
+    max-width: 90px;
+    height: 28px;
+    font-size: 0.8rem;
+    padding: 0 6px;
+
+    background-color: rgba(23,162,184,0.15) !important;
+    border: 1px solid var(--primary) !important;
+    color: var(--primary) !important;
+
+    border-left: none; /* fusion avec input */
+}
+
+/* focus propre */
+.network-device-form .validity-unit:focus {
+    box-shadow: 0 0 6px rgba(23,162,184,0.5) !important;
+    border-color: var(--primary) !important;
+}

@@ -1,0 +1,264 @@
+/* =====================================================
+   NETWORK DEVICE FORM — STRUCTURE GLOBALE
+===================================================== */
+
+.network-device-form .input-group {
+    display: flex;
+    align-items: stretch;
+    margin-bottom: 10px;
+}
+
+/* =====================================================
+   LABEL
+===================================================== */
+
+.network-device-form .input-group-text {
+    width: 110px;
+    height: 30px;
+
+    display: flex;
+    align-items: center;
+
+    font-size: 0.8rem;
+    padding: 0 8px;
+
+    background-color: rgba(23, 162, 184, 0.15);
+    border: 1px solid var(--secondary-color);
+    color: var(--secondary-color);
+
+    border-right: none;
+}
+
+/* =====================================================
+   INPUT
+===================================================== */
+
+.network-device-form .form-control {
+    height: 30px;
+
+    font-size: 0.8rem;
+    padding: 0 8px;
+
+    background-color: rgba(255, 255, 255, 0.08);
+    border: 1px solid var(--border-color);
+    color: var(--text-white);
+
+    border-left: none;
+}
+
+/* =====================================================
+   PLACEHOLDER
+===================================================== */
+
+.network-device-form .form-control::placeholder {
+    color: rgba(255,255,255,0.5);
+    font-size: 0.8rem;
+}
+
+/* =====================================================
+   FOCUS
+===================================================== */
+
+.network-device-form .form-control:focus {
+    border-color: var(--secondary-color);
+    box-shadow: 0 0 6px rgba(23, 162, 184, 0.5);
+    background-color: rgba(255, 255, 255, 0.1);
+}
+
+/* =====================================================
+   BOUTONS — BASE
+===================================================== */
+
+.network-device-form .btn {
+    width: 110px;
+    height: 30px;
+
+    font-size: 0.8rem;
+    padding: 0 8px;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+/* =====================================================
+   SAVE
+===================================================== */
+
+.network-device-form .btn-save {
+    background-color: rgba(23, 162, 184, 0.15);
+    border: 1px solid var(--secondary-color);
+    color: var(--secondary-color);
+}
+
+.network-device-form .btn-save:hover {
+    background-color: var(--secondary-color);
+    color: var(--text-white);
+    box-shadow: 0 0 8px rgba(23, 162, 184, 0.8);
+}
+
+/* =====================================================
+   TEST
+===================================================== */
+
+.network-device-form .btn-test {
+    background-color: rgba(220, 53, 69, 0.15);
+    border: 1px solid #dc3545;
+    color: #dc3545;
+}
+
+.network-device-form .btn-test:hover {
+    background-color: #dc3545;
+    color: #fff;
+    box-shadow: 0 0 10px rgba(220, 53, 69, 0.9);
+}
+
+/* =====================================================
+   TABLEAU NETWORK DEVICE
+===================================================== */
+
+.network-device-table {
+    width: 100%;
+    border-collapse: collapse;
+    background: transparent;
+}
+
+/* HEADER */
+.network-device-table thead th {
+    font-size: 0.75rem;
+    padding: 8px;
+
+    color: var(--secondary-color);
+    background-color: rgba(23, 162, 184, 0.08);
+
+    border-bottom: 1px solid rgba(0,255,255,0.2);
+    text-align: left;
+}
+
+/* LIGNES */
+.network-device-table tbody tr {
+    transition: 0.2s ease;
+}
+
+/* alternance */
+.network-device-table tbody tr:nth-child(odd) {
+    background-color: rgba(255, 255, 255, 0.03);
+}
+
+.network-device-table tbody tr:nth-child(even) {
+    background-color: rgba(0, 0, 0, 0.15);
+}
+
+/* hover */
+.network-device-table tbody tr:hover {
+    background-color: rgba(23, 162, 184, 0.15);
+}
+
+/* cellules */
+.network-device-table td {
+    font-size: 0.8rem;
+    padding: 6px 8px;
+    color: var(--text-white);
+    border-bottom: 1px solid rgba(255,255,255,0.05);
+}
+
+/* bouton tableau */
+.network-device-table .btn {
+    height: 25px;
+    font-size: 0.7rem;
+    padding: 0 6px;
+}
+
+/* =====================================================
+   TEST LOG (FREE RADIUS STYLE)
+===================================================== */
+
+#testStatus {
+    background: rgba(0,0,0,0.4);
+    color: #00ffff;
+
+    font-size: 12px;
+    line-height: 1.4;
+
+    padding: 10px;
+    border-radius: 5px;
+
+    height: 120px;
+    overflow: auto;
+
+    animation: fadeSlide 0.2s ease;
+}
+
+/* =========================
+   TABLE ACTION BUTTONS
+========================= */
+
+.btn-select {
+    background: linear-gradient(135deg, #3b82f6, #2563eb);
+    border: none;
+    color: #fff;
+    padding: 4px 8px;
+    border-radius: 6px;
+    transition: all 0.2s ease;
+}
+
+.btn-select:hover {
+    background: linear-gradient(135deg, #2563eb, #1d4ed8);
+    transform: scale(1.05);
+}
+
+/* DELETE */
+.btn-delete {
+    background: linear-gradient(135deg, #ef4444, #dc2626);
+    border: none;
+    color: #fff;
+    padding: 4px 8px;
+    border-radius: 6px;
+    transition: all 0.2s ease;
+}
+
+.btn-delete:hover {
+    background: linear-gradient(135deg, #dc2626, #b91c1c);
+    transform: scale(1.05);
+}
+
+/* ALIGNEMENT */
+.network-device-table td button {
+    margin-right: 5px;
+}
+
+/* HOVER ROW */
+.network-device-table tbody tr:hover {
+    background: rgba(255, 255, 255, 0.05);
+    cursor: pointer;
+}
+
+/* =========================
+   STATUS BADGE
+========================= */
+
+.status-badge {
+    padding: 3px 8px;
+    border-radius: 10px;
+    font-size: 0.75rem;
+    font-weight: 500;
+}
+
+/* ONLINE */
+.status-badge.online {
+    background: rgba(34, 197, 94, 0.2);
+    color: #22c55e;
+}
+
+/* OFFLINE */
+.status-badge.offline {
+    background: rgba(239, 68, 68, 0.2);
+    color: #ef4444;
+}
+.network-device-table td:last-child {
+    text-align: center;
+}
+.status-badge.checking {
+    background: rgba(250, 204, 21, 0.2);
+    color: #facc15;
+}

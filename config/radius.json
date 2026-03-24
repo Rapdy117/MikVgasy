@@ -1,0 +1,9 @@
+{
+    "test_user": "radius",
+    "test_pass": "Bl@clOps2024#",
+    "host": "10.10.10.2",
+    "auth_port": 1812,
+    "acct_port": 1813,
+    "secret": "starlink123",
+    "timeout": 3
+}
