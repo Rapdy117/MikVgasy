@@ -52,7 +52,18 @@ function opnsenseGet(array $device, string $path): array
 }
 
 try {
-    $device = loadActiveOpnSenseDevice();
+    $device = requireActiveDevice();
+
+    if (($device['type'] ?? '') !== 'opnsense') {
+        echo json_encode([
+            'label' => 'CPU indisponible',
+            'device_type' => (string)($device['type'] ?? 'other'),
+            'backend' => (string)($device['backend'] ?? 'generic'),
+            'supported' => false,
+        ]);
+        exit;
+    }
+
     $response = opnsenseGet($device, '/api/diagnostics/cpu_usage/getcputype');
 
     if (!$response['success']) {

@@ -156,7 +156,29 @@ function saveTrafficCache(array $cache): void
 }
 
 try {
-    $device = loadActiveOpnSenseDevice();
+    $device = requireActiveDevice();
+
+    if (($device['type'] ?? '') !== 'opnsense') {
+        echo json_encode([
+            'time' => microtime(true),
+            'last_update' => date('H:i:s'),
+            'supported' => false,
+            'device_type' => (string)($device['type'] ?? 'other'),
+            'backend' => (string)($device['backend'] ?? 'generic'),
+            'cpu' => [
+                'total' => 0,
+                'user' => 0,
+                'system' => 0,
+                'idle' => 0,
+            ],
+            'traffic' => [
+                'rx_bps' => 0,
+                'tx_bps' => 0,
+                'interfaces' => 'N/A',
+            ],
+        ]);
+        exit;
+    }
 
     $responses = opnsenseGetMulti($device, [
         'traffic' => '/api/diagnostics/traffic/interface',

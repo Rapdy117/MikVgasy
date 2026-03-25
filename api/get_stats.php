@@ -250,7 +250,64 @@ function extractRecentUserEvents(array $rows, int $limit = 5): array
 }
 
 try {
-    $device = loadActiveOpnSenseDevice();
+    $device = requireActiveDevice();
+    $totalUsers = (int)$pdo->query("SELECT COUNT(*) FROM users")->fetchColumn();
+    $activeHotspotUsersDb = (int)$pdo->query("SELECT COUNT(*) FROM radacct WHERE acctstoptime IS NULL")->fetchColumn();
+    $ticketsUsedToday = (int)$pdo->query("SELECT COUNT(*) FROM vouchers WHERE used = 1 AND DATE(used_at) = CURDATE()")->fetchColumn();
+    $salesMonthly = (int)$pdo->query("SELECT COUNT(*) FROM vouchers WHERE used = 1 AND YEAR(used_at) = YEAR(CURDATE()) AND MONTH(used_at) = MONTH(CURDATE())")->fetchColumn();
+    $salesTrendStmt = $pdo->query("
+        SELECT DAY(used_at) AS sale_day, COUNT(*) AS total
+        FROM vouchers
+        WHERE used = 1
+          AND used_at IS NOT NULL
+          AND YEAR(used_at) = YEAR(CURDATE())
+          AND MONTH(used_at) = MONTH(CURDATE())
+        GROUP BY DAY(used_at)
+        ORDER BY sale_day ASC
+    ");
+    $salesTrendRaw = $salesTrendStmt->fetchAll(PDO::FETCH_KEY_PAIR);
+    $daysInMonth = (int)date('t');
+    $salesDailyTrend = [];
+    for ($day = 1; $day <= $daysInMonth; $day++) {
+        $salesDailyTrend[] = [
+            'day' => $day,
+            'total' => (int)($salesTrendRaw[$day] ?? 0),
+        ];
+    }
+
+    if (($device['type'] ?? '') !== 'opnsense') {
+        $ready = canProbeDevice($device);
+
+        echo json_encode([
+            'active_hotspot_users' => $activeHotspotUsersDb,
+            'total_users' => $totalUsers,
+            'sales_today' => $ticketsUsedToday,
+            'sales_monthly' => $salesMonthly,
+            'sales_daily_trend' => $salesDailyTrend,
+            'memory_used_percent' => 0,
+            'device_name' => (string)($device['name'] ?? 'Device'),
+            'device_type' => (string)($device['type'] ?? 'other'),
+            'device_host' => (string)($device['host'] ?? ''),
+            'device_ip' => (string)($device['ip'] ?? ''),
+            'device_backend' => (string)($device['backend'] ?? 'generic'),
+            'device_status' => $ready ? 'READY' : 'UNSUPPORTED',
+            'device_message' => $ready
+                ? 'Backend ' . ($device['backend'] ?? 'generic') . ' selectionne.'
+                : 'Aucune telemetrie temps reel disponible pour ce type de device.',
+            'device_zones' => [],
+            'device_zone_count' => 0,
+            'telemetry_supported' => false,
+            'last_update' => date('H:i:s'),
+            'recent_events' => [],
+            'opnsense_name' => (string)($device['name'] ?? 'Device'),
+            'opnsense_version' => 'N/A',
+            'opnsense_status' => $ready ? 'READY' : 'UNSUPPORTED',
+            'opnsense_message' => 'Aucune API OPNsense utilisee pour le device actif.',
+            'opnsense_zones' => [],
+            'opnsense_zone_count' => 0,
+        ]);
+        exit;
+    }
 
     $responses = opnsenseMultiGet($device, [
         '/api/core/system/status',
@@ -271,30 +328,14 @@ try {
         !$infoResponse['success'] ||
         !$resourcesResponse['success']
     ) {
-        throw new Exception('Impossible de charger les diagnostics OPNsense principaux.');
+        throw new Exception('Impossible de charger les diagnostics du device actif.');
     }
 
     $systemStatus = $statusResponse['data']['metadata']['system'] ?? [];
     $systemInfo = $infoResponse['data'];
     $resources = $resourcesResponse['data']['memory'] ?? [];
     $zones = $zonesResponse['success'] ? normalizeZones($zonesResponse['data']) : [];
-    $sessionRows = $sessionsResponse['success'] ? ($sessionsResponse['data']['rows'] ?? []) : [];
-    $activeHotspotUsers = $sessionsResponse['success'] ? (int)($sessionsResponse['data']['total'] ?? 0) : 0;
-
-    $totalUsers = (int)$pdo->query("SELECT COUNT(*) FROM users")->fetchColumn();
-    $ticketsUsedToday = (int)$pdo->query("SELECT COUNT(*) FROM vouchers WHERE used = 1 AND DATE(used_at) = CURDATE()")->fetchColumn();
-    $salesMonthly = (int)$pdo->query("SELECT COUNT(*) FROM vouchers WHERE used = 1 AND YEAR(used_at) = YEAR(CURDATE()) AND MONTH(used_at) = MONTH(CURDATE())")->fetchColumn();
-    $salesTrendStmt = $pdo->query("
-        SELECT DAY(used_at) AS sale_day, COUNT(*) AS total
-        FROM vouchers
-        WHERE used = 1
-          AND used_at IS NOT NULL
-          AND YEAR(used_at) = YEAR(CURDATE())
-          AND MONTH(used_at) = MONTH(CURDATE())
-        GROUP BY DAY(used_at)
-        ORDER BY sale_day ASC
-    ");
-    $salesTrendRaw = $salesTrendStmt->fetchAll(PDO::FETCH_KEY_PAIR);
+    $activeHotspotUsers = $sessionsResponse['success'] ? (int)($sessionsResponse['data']['total'] ?? 0) : $activeHotspotUsersDb;
 
     $memoryTotalMb = (int)($resources['total_frmt'] ?? 0);
     $memoryUsedMb = (int)($resources['used_frmt'] ?? 0);
@@ -311,15 +352,6 @@ try {
         $recentEvents = extractRecentUserEvents($userLogsResponse['data']['rows'] ?? []);
     }
 
-    $daysInMonth = (int)date('t');
-    $salesDailyTrend = [];
-    for ($day = 1; $day <= $daysInMonth; $day++) {
-        $salesDailyTrend[] = [
-            'day' => $day,
-            'total' => (int)($salesTrendRaw[$day] ?? 0),
-        ];
-    }
-
     echo json_encode([
         'active_hotspot_users' => $activeHotspotUsers,
         'total_users' => $totalUsers,
@@ -327,6 +359,16 @@ try {
         'sales_monthly' => $salesMonthly,
         'sales_daily_trend' => $salesDailyTrend,
         'memory_used_percent' => $memoryUsedPercent,
+        'device_name' => (string)($systemInfo['name'] ?? $device['name']),
+        'device_type' => (string)($device['type'] ?? 'opnsense'),
+        'device_host' => (string)($device['host'] ?? ''),
+        'device_ip' => (string)($device['ip'] ?? ''),
+        'device_backend' => (string)($device['backend'] ?? 'opnsense_api'),
+        'device_status' => (string)($systemStatus['status'] ?? 'UNKNOWN'),
+        'device_message' => (string)($systemStatus['message'] ?? ''),
+        'device_zones' => $zones,
+        'device_zone_count' => count($zones),
+        'telemetry_supported' => true,
         'opnsense_name' => (string)($systemInfo['name'] ?? $device['name']),
         'opnsense_version' => (string)(($systemInfo['versions'][0] ?? 'Version inconnue')),
         'opnsense_status' => (string)($systemStatus['status'] ?? 'UNKNOWN'),
