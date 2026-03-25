@@ -36,7 +36,18 @@ header('Cache-Control: no-cache, no-store, must-revalidate');
 header('Connection: keep-alive');
 header('X-Accel-Buffering: no');
 
-$device = loadActiveOpnSenseDevice();
+$device = requireActiveDevice();
+
+if (($device['type'] ?? '') !== 'opnsense') {
+    emitSse([
+        'error' => 'Flux trafic indisponible pour le device actif ' . getDeviceDisplayLabel($device),
+        'supported' => false,
+        'device_type' => (string)($device['type'] ?? 'other'),
+        'backend' => (string)($device['backend'] ?? 'generic'),
+    ]);
+    exit;
+}
+
 $url = $device['host'] . '/api/diagnostics/traffic/stream/1';
 
 $buffer = '';

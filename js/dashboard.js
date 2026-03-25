@@ -36,6 +36,8 @@ document.addEventListener('DOMContentLoaded', () => {
     const salesTrendMonthLabel = document.getElementById('salesTrendMonthLabel');
     const salesActiveDays = document.getElementById('salesActiveDays');
     const salesPeakDay = document.getElementById('salesPeakDay');
+    const deviceSummaryTitle = document.getElementById('deviceSummaryTitle');
+    const deviceTypeLabel = document.getElementById('deviceTypeLabel');
 
     let trafficSource = null;
     let cpuSource = null;
@@ -46,6 +48,20 @@ document.addEventListener('DOMContentLoaded', () => {
     };
     let trafficInitialized = false;
     let latestMemoryPercent = 0;
+
+    function formatDeviceType(type) {
+        const normalized = String(type || 'other').toLowerCase();
+
+        if (normalized === 'opnsense') {
+            return 'OPNsense';
+        }
+
+        if (normalized === 'mikrotik') {
+            return 'MikroTik';
+        }
+
+        return 'Autre';
+    }
 
     function setGaugeCircleProgress(circle, percent, color) {
         if (!circle) {
@@ -258,6 +274,49 @@ document.addEventListener('DOMContentLoaded', () => {
             trafficIn: null,
             trafficOut: null,
         };
+    }
+
+    function stopLiveStreams(reason) {
+        if (trafficSource) {
+            trafficSource.close();
+            trafficSource = null;
+        }
+
+        if (cpuSource) {
+            cpuSource.close();
+            cpuSource = null;
+        }
+
+        liveStreamsStarted = false;
+        trafficInitialized = false;
+        destroyTrafficCharts();
+
+        if (downloadRateLive) {
+            downloadRateLive.innerText = '--';
+        }
+        if (uploadRateLive) {
+            uploadRateLive.innerText = '--';
+        }
+        if (bandwidthAdditionalInfo) {
+            bandwidthAdditionalInfo.innerText = reason || 'Telemetrie live indisponible pour le device actif';
+        }
+        if (trafficInterfacesInfo) {
+            trafficInterfacesInfo.innerText = 'Interfaces : N/A';
+        }
+        if (cpuTypeLabel) {
+            cpuTypeLabel.innerText = reason || 'CPU indisponible';
+        }
+        if (cpuTotalLive) {
+            cpuTotalLive.innerText = '--%';
+        }
+        if (cpuGaugeCpuLabel) {
+            cpuGaugeCpuLabel.innerText = '--%';
+        }
+        if (cpuGaugeRamLabel) {
+            cpuGaugeRamLabel.innerText = '--%';
+        }
+        setGaugeCircleProgress(cpuGaugeOuterValue, 0, '#64748b');
+        setGaugeCircleProgress(cpuGaugeInnerValue, 0, '#38bdf8');
     }
 
     function initializeTraffic(data) {
@@ -528,6 +587,11 @@ document.addEventListener('DOMContentLoaded', () => {
                     return;
                 }
 
+                if (data && typeof data === 'object' && data.label) {
+                    cpuTypeLabel.innerText = data.label;
+                    return;
+                }
+
                 if (typeof data === 'string') {
                     cpuTypeLabel.innerText = data;
                     return;
@@ -545,7 +609,12 @@ document.addEventListener('DOMContentLoaded', () => {
             });
     }
 
-    function startLiveStreams() {
+    function startLiveStreams(telemetrySupported) {
+        if (!telemetrySupported) {
+            stopLiveStreams('Telemetrie live indisponible pour le device actif');
+            return;
+        }
+
         if (liveStreamsStarted) {
             return;
         }
@@ -561,12 +630,17 @@ document.addEventListener('DOMContentLoaded', () => {
                     return response.json();
                 })
                 .then(data => {
-                    if (data.error) {
-                        throw new Error(data.error);
-                    }
+                if (data.error) {
+                    throw new Error(data.error);
+                }
 
-                    initializeTraffic(data);
-                    updateTrafficHeaderValues();
+                if (data.supported === false) {
+                    stopLiveStreams('Telemetrie trafic indisponible pour le device actif');
+                    return;
+                }
+
+                initializeTraffic(data);
+                updateTrafficHeaderValues();
                     openTrafficStream();
                 })
                 .catch(error => {
@@ -600,6 +674,14 @@ document.addEventListener('DOMContentLoaded', () => {
                 const opnsenseVersion = document.getElementById('opnsenseVersion');
                 const opnsenseStatus = document.getElementById('opnsenseStatus');
                 const opnsenseZones = document.getElementById('opnsenseZones');
+                const deviceName = data.device_name || data.opnsense_name || '--';
+                const deviceType = data.device_type || 'other';
+                const deviceStatus = data.device_status || data.opnsense_status || '--';
+                const deviceZones = data.device_zones || data.opnsense_zones || [];
+                const backendLabel = data.device_backend || 'generic';
+                const deviceVersion = data.opnsense_version && data.opnsense_version !== 'N/A'
+                    ? data.opnsense_version
+                    : backendLabel;
 
                 if (activeHotspotUsersCount) activeHotspotUsersCount.innerText = data.active_hotspot_users || '0';
                 if (connectedUsersCount) connectedUsersCount.innerText = data.total_users || '0';
@@ -616,13 +698,15 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (salesTrendMonthLabel) {
                     salesTrendMonthLabel.innerText = new Date().toLocaleDateString('fr-FR', { month: 'long', year: 'numeric' });
                 }
-                if (opnsenseName) opnsenseName.innerText = data.opnsense_name || '--';
-                if (opnsenseVersion) opnsenseVersion.innerText = data.opnsense_version || '--';
-                if (opnsenseStatus) opnsenseStatus.innerText = data.opnsense_status || '--';
+                if (deviceSummaryTitle) deviceSummaryTitle.innerText = deviceName;
+                if (deviceTypeLabel) deviceTypeLabel.innerText = formatDeviceType(deviceType);
+                if (opnsenseName) opnsenseName.innerText = deviceName;
+                if (opnsenseVersion) opnsenseVersion.innerText = deviceVersion || '--';
+                if (opnsenseStatus) opnsenseStatus.innerText = deviceStatus || '--';
                 if (opnsenseZones) {
-                    opnsenseZones.innerText = Array.isArray(data.opnsense_zones) && data.opnsense_zones.length > 0
-                        ? data.opnsense_zones.join(', ')
-                        : 'Aucune';
+                    opnsenseZones.innerText = Array.isArray(deviceZones) && deviceZones.length > 0
+                        ? deviceZones.join(', ')
+                        : (data.telemetry_supported === false ? backendLabel : 'Aucune');
                 }
 
                 if (recentEventsTableBody) {
@@ -651,7 +735,10 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
 
                 renderSalesTrend(data.sales_daily_trend);
-                startLiveStreams();
+                startLiveStreams(data.telemetry_supported !== false);
+                if (data.telemetry_supported === false) {
+                    fetchCpuType();
+                }
             })
             .catch(error => {
                 console.error('Erreur lors de la récupération des données du tableau de bord:', error);
