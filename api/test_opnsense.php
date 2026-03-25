@@ -1,6 +1,8 @@
 <?php
 header('Content-Type: application/json');
 
+require_once __DIR__ . '/../includes/device_manager.php';
+
 function post_string_or_null(string $key): ?string
 {
     $value = trim((string)($_POST[$key] ?? ''));
@@ -10,6 +12,7 @@ function post_string_or_null(string $key): ?string
 // =========================
 // GET INPUT
 // =========================
+$type = normalizeDeviceType((string)($_POST['type'] ?? 'opnsense'));
 $host = post_string_or_null('host');
 $key = post_string_or_null('api_key');
 $secret = post_string_or_null('api_secret');
@@ -19,7 +22,23 @@ $statusOnly = isset($_POST['status_only']);
 // =========================
 // VALIDATION
 // =========================
-if ($host === null || $key === null || $secret === null) {
+if ($host === null) {
+    echo json_encode([
+        'success' => false,
+        'log' => "❌ Missing host"
+    ]);
+    exit;
+}
+
+if ($type === 'other') {
+    echo json_encode([
+        'success' => false,
+        'log' => "❌ Test backend indisponible pour ce type de device"
+    ]);
+    exit;
+}
+
+if ($key === null || $secret === null) {
     echo json_encode([
         'success' => false,
         'log' => "❌ Missing API credentials"
@@ -27,13 +46,10 @@ if ($host === null || $key === null || $secret === null) {
     exit;
 }
 
-// normalize URL
-$host = rtrim($host, '/');
-
-// =========================
-// BUILD URL
-// =========================
-$url = $host . '/api/core/system/status';
+$host = normalizeDeviceHost($host);
+$url = $type === 'mikrotik'
+    ? rtrim($host, '/') . '/rest/system/resource'
+    : rtrim($host, '/') . '/api/core/system/status';
 
 // =========================
 // CURL INIT
@@ -75,14 +91,18 @@ $decoded = json_decode($response, true);
 // =========================
 // SUCCESS CHECK
 // =========================
-if ($http_code === 200 && $decoded) {
+if ($http_code === 200 && is_array($decoded)) {
 
     if ($statusOnly) {
-        echo json_encode(['success' => true]);
+        echo json_encode([
+            'success' => true,
+            'device_type' => $type,
+            'backend' => resolveDeviceBackend($type),
+        ]);
     } else {
         echo json_encode([
             'success' => true,
-            'log' => "✔ Connected successfully\nHTTP: $http_code"
+            'log' => "✔ Connected successfully\nType: " . strtoupper($type) . "\nBackend: " . resolveDeviceBackend($type) . "\nHTTP: $http_code"
         ]);
     }
 

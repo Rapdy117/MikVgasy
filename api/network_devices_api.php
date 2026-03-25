@@ -11,6 +11,27 @@ function post_string_or_null(string $key): ?string
     return $value === '' ? null : $value;
 }
 
+function buildConnectionState(?array $device): array
+{
+    if (!$device) {
+        return [
+            'supported' => false,
+            'status' => 'not_configured',
+            'label' => 'Aucun device actif',
+        ];
+    }
+
+    $supported = canProbeDevice($device);
+
+    return [
+        'supported' => $supported,
+        'status' => $supported ? 'ready' : 'not_supported',
+        'label' => $supported
+            ? 'Test disponible via backend ' . ($device['backend'] ?? 'generic')
+            : 'Test indisponible pour ce type de device',
+    ];
+}
+
 if (!isset($_SESSION['logged_in']) || $_SESSION['logged_in'] !== true) {
     http_response_code(403);
     echo json_encode([
@@ -85,6 +106,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             'success' => true,
             'active_device_id' => $activeDevice['id'],
             'active_device' => $activeDevice,
+            'connection_state' => buildConnectionState($activeDevice),
         ]);
         exit;
     }
@@ -105,7 +127,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $hasSecret = $api_secret !== null;
     $hasApiKey = $api_key !== null;
 
-    if ($name === null || $host === null || ($requiresApiCredentials && (!$hasApiKey || !$hasSecret)) || (!$requiresApiCredentials && !$hasSecret)) {
+    if ($name === null || $host === null || ($requiresApiCredentials && (!$hasApiKey || !$hasSecret))) {
         echo json_encode([
             'success' => false,
             'message' => 'Missing fields'
@@ -167,7 +189,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     echo json_encode([
         'success' => true,
         'id' => $id,
-        'active_device_id' => $data['active_device_id'] ?? null
+        'active_device_id' => $data['active_device_id'] ?? null,
+        'active_device' => findDeviceById($data, (string)($data['active_device_id'] ?? '')),
+        'connection_state' => buildConnectionState(findDeviceById($data, (string)($data['active_device_id'] ?? ''))),
     ]);
     exit;
 }
@@ -177,4 +201,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 // =========================
 $activeDevice = getActiveDeviceRecord($data);
 $data['active_device_id'] = $activeDevice['id'] ?? ($data['active_device_id'] ?? null);
+$data['active_device'] = $activeDevice;
+$data['connection_state'] = buildConnectionState($activeDevice);
 echo json_encode($data);

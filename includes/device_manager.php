@@ -19,16 +19,69 @@ function normalizeDeviceType(string $type): string
     };
 }
 
+function deriveDeviceType(array $device): string
+{
+    $vendor = strtolower(trim((string)($device['vendor'] ?? '')));
+    $type = normalizeDeviceType((string)($device['type'] ?? 'opnsense'));
+
+    if ($type === 'other' && $vendor === 'mikrotik') {
+        return 'mikrotik';
+    }
+
+    return $type;
+}
+
+function normalizeDeviceHost(string $host): string
+{
+    $host = trim($host);
+
+    if ($host === '') {
+        return '';
+    }
+
+    if (preg_match('#^https?://#i', $host)) {
+        return rtrim($host, '/');
+    }
+
+    return $host;
+}
+
+function extractDeviceAddress(string $host): string
+{
+    $host = trim($host);
+    if ($host === '') {
+        return '';
+    }
+
+    $parsedHost = parse_url($host, PHP_URL_HOST);
+    if (is_string($parsedHost) && $parsedHost !== '') {
+        return $parsedHost;
+    }
+
+    return preg_replace('#:\d+$#', '', $host) ?? $host;
+}
+
+function resolveDeviceBackend(string $type): string
+{
+    return match (normalizeDeviceType($type)) {
+        'opnsense' => 'opnsense_api',
+        'mikrotik' => 'mikrotik_api',
+        default => 'generic',
+    };
+}
+
 function normalizeDeviceRecord(array $device): array
 {
-    $type = normalizeDeviceType((string)($device['type'] ?? 'opnsense'));
-    $host = trim((string)($device['host'] ?? ''));
+    $type = deriveDeviceType($device);
+    $host = normalizeDeviceHost((string)($device['host'] ?? ''));
 
     return [
         'id' => (string)($device['id'] ?? ''),
         'name' => trim((string)($device['name'] ?? '')),
         'type' => $type,
         'host' => $host,
+        'ip' => extractDeviceAddress($host),
+        'backend' => resolveDeviceBackend($type),
         'api_key' => trim((string)($device['api_key'] ?? '')),
         'api_secret' => trim((string)($device['api_secret'] ?? ($device['secret'] ?? ''))),
         'secret' => trim((string)($device['secret'] ?? ($device['api_secret'] ?? ''))),
@@ -95,12 +148,6 @@ function findDeviceById(array $store, ?string $deviceId): ?array
 
 function pickDefaultDevice(array $store): ?array
 {
-    foreach ($store['devices'] as $device) {
-        if (($device['type'] ?? '') === 'opnsense') {
-            return $device;
-        }
-    }
-
     return $store['devices'][0] ?? null;
 }
 
@@ -149,66 +196,99 @@ function getNavbarDeviceInfo(): array
             'name' => $device['name'] !== '' ? $device['name'] : strtoupper($device['type']),
             'type' => $device['type'],
             'host' => $device['host'],
+            'ip' => $device['ip'],
+            'backend' => $device['backend'],
         ];
     }
 
     return [
         'id' => null,
-        'name' => 'OPNsense',
-        'type' => 'opnsense',
-        'host' => preg_replace('#^https?://#', '', rtrim(OPN_SENSE_URL, '/')),
+        'name' => 'Aucun device',
+        'type' => 'other',
+        'host' => '',
+        'ip' => '',
+        'backend' => 'generic',
     ];
 }
 
-function loadActiveOpnSenseDevice(): array
+function getActiveDeviceContext(): array
 {
     $store = loadDeviceStore();
     $activeDevice = getActiveDeviceRecord($store);
 
-    if (
-        $activeDevice &&
-        ($activeDevice['type'] ?? '') === 'opnsense' &&
-        !empty($activeDevice['host']) &&
-        !empty($activeDevice['api_key']) &&
-        !empty($activeDevice['api_secret'])
-    ) {
+    if (!$activeDevice) {
         return [
-            'id' => $activeDevice['id'],
-            'name' => $activeDevice['name'] !== '' ? $activeDevice['name'] : 'OPNsense',
-            'host' => rtrim((string)$activeDevice['host'], '/'),
-            'api_key' => (string)$activeDevice['api_key'],
-            'api_secret' => (string)$activeDevice['api_secret'],
-            'verify_ssl' => !empty($activeDevice['verify_ssl']),
-            'source' => 'active_device',
+            'device' => null,
+            'source' => 'none',
         ];
     }
 
-    foreach ($store['devices'] as $device) {
-        if (
-            ($device['type'] ?? '') === 'opnsense' &&
-            !empty($device['host']) &&
-            !empty($device['api_key']) &&
-            !empty($device['api_secret'])
-        ) {
-            return [
-                'id' => $device['id'],
-                'name' => $device['name'] !== '' ? $device['name'] : 'OPNsense',
-                'host' => rtrim((string)$device['host'], '/'),
-                'api_key' => (string)$device['api_key'],
-                'api_secret' => (string)$device['api_secret'],
-                'verify_ssl' => !empty($device['verify_ssl']),
-                'source' => 'fallback_opnsense',
-            ];
-        }
+    return [
+        'device' => $activeDevice,
+        'source' => 'active_device',
+    ];
+}
+
+function requireActiveDevice(): array
+{
+    $context = getActiveDeviceContext();
+    $device = $context['device'] ?? null;
+
+    if (!$device) {
+        throw new RuntimeException('Aucun device actif configure.');
     }
 
-    return [
-        'id' => null,
-        'name' => 'OPNsense',
-        'host' => rtrim(OPN_SENSE_URL, '/'),
-        'api_key' => OPN_SENSE_API_KEY,
-        'api_secret' => OPN_SENSE_API_SECRET,
-        'verify_ssl' => CURL_VERIFY_SSL,
-        'source' => 'config_fallback',
-    ];
+    return $device;
+}
+
+function requireActiveDeviceType(string $expectedType): array
+{
+    $device = requireActiveDevice();
+
+    if (($device['type'] ?? '') !== normalizeDeviceType($expectedType)) {
+        throw new RuntimeException(sprintf(
+            'Le device actif "%s" est de type %s. Backend %s requis.',
+            $device['name'] !== '' ? $device['name'] : ($device['ip'] !== '' ? $device['ip'] : 'inconnu'),
+            strtoupper((string)($device['type'] ?? 'other')),
+            strtoupper(normalizeDeviceType($expectedType))
+        ));
+    }
+
+    return $device;
+}
+
+function canProbeDevice(array $device): bool
+{
+    $type = (string)($device['type'] ?? 'other');
+
+    if ($type === 'opnsense') {
+        return !empty($device['host']) && !empty($device['api_key']) && !empty($device['api_secret']);
+    }
+
+    if ($type === 'mikrotik') {
+        return !empty($device['host']) && !empty($device['api_key']) && !empty($device['api_secret']);
+    }
+
+    return false;
+}
+
+function getDeviceDisplayLabel(array $device): string
+{
+    $name = trim((string)($device['name'] ?? ''));
+    $ip = trim((string)($device['ip'] ?? ''));
+    $type = strtoupper((string)($device['type'] ?? 'other'));
+
+    if ($name !== '' && $ip !== '') {
+        return sprintf('%s (%s, %s)', $name, $ip, $type);
+    }
+
+    if ($name !== '') {
+        return sprintf('%s (%s)', $name, $type);
+    }
+
+    if ($ip !== '') {
+        return sprintf('%s (%s)', $ip, $type);
+    }
+
+    return $type;
 }
