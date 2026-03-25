@@ -1,161 +1,669 @@
-// dashboard.js
+const DASHBOARD_REFRESH_MS = 45000;
+const TRAFFIC_DURATION_MS = 20000;
+const TRAFFIC_DELAY_MS = 2000;
+const TRAFFIC_STREAM_PATH = `../api/traffic_stream.php`;
+const TRAFFIC_INIT_PATH = `../api/get_traffic_stats.php`;
+const CPU_STREAM_PATH = `../api/cpu_stream.php`;
+const CPU_TYPE_PATH = `../api/get_cpu_type.php`;
+const WAN_INTERFACE_KEY = 'wan';
+const TRAFFIC_SERIES = {
+    upload: [
+        { key: 'outbytes', label: 'Upload', color: '#36A2EB', formatter: 'bits' },
+    ],
+    download: [
+        { key: 'inbytes', label: 'Download', color: '#22C55E', formatter: 'bits' },
+    ],
+};
 
-// Variable globale pour le graphique de bande passante
-let bandwidthChart;
-
-document.addEventListener('DOMContentLoaded', function () {
-    // Zone pour afficher les messages d'erreur de l'API
+document.addEventListener('DOMContentLoaded', () => {
     const messageArea = document.getElementById('messageArea');
+    const recentEventsTableBody = document.getElementById('recentEventsTableBody');
+    const trafficInterfacesInfo = document.getElementById('trafficInterfacesInfo');
+    const downloadRateLive = document.getElementById('downloadRateLive');
+    const uploadRateLive = document.getElementById('uploadRateLive');
+    const bandwidthAdditionalInfo = document.getElementById('bandwidthAdditionalInfo');
+    const cpuTypeLabel = document.getElementById('cpuTypeLabel');
+    const cpuTotalLive = document.getElementById('cpuTotalLive');
+    const cpuGauge = document.getElementById('cpuGauge');
+    const cpuGaugeOuterValue = document.getElementById('cpuGaugeOuterValue');
+    const cpuGaugeInnerValue = document.getElementById('cpuGaugeInnerValue');
+    const cpuGaugeCpuLabel = document.getElementById('cpuGaugeCpuLabel');
+    const cpuGaugeRamLabel = document.getElementById('cpuGaugeRamLabel');
+    const connectedUsersCount = document.getElementById('connectedUsersCount');
+    const summarySalesToday = document.getElementById('summarySalesToday');
+    const summarySalesMonthly = document.getElementById('summarySalesMonthly');
+    const salesTrendBars = document.getElementById('salesTrendBars');
+    const salesTrendMonthLabel = document.getElementById('salesTrendMonthLabel');
+    const salesActiveDays = document.getElementById('salesActiveDays');
+    const salesPeakDay = document.getElementById('salesPeakDay');
 
-    function fetchDashboardData() {
-        // showSpinner(); // Décommenter si vous réintégrez le spinner plus tard
-        fetch('api/get_stats.php') // L'URL de votre script PHP côté serveur
+    let trafficSource = null;
+    let cpuSource = null;
+    let liveStreamsStarted = false;
+    let trafficCharts = {
+        trafficIn: null,
+        trafficOut: null,
+    };
+    let trafficInitialized = false;
+    let latestMemoryPercent = 0;
+
+    function setGaugeCircleProgress(circle, percent, color) {
+        if (!circle) {
+            return;
+        }
+
+        const radius = Number(circle.getAttribute('r') ?? 0);
+        const circumference = 2 * Math.PI * radius;
+        const clamped = Math.max(0, Math.min(percent, 100));
+        const offset = circumference * (1 - (clamped / 100));
+
+        circle.style.strokeDasharray = `${circumference}`;
+        circle.style.strokeDashoffset = `${offset}`;
+        if (color) {
+            circle.style.stroke = color;
+        }
+    }
+
+    function escapeHtml(value) {
+        return String(value ?? '')
+            .replaceAll('&', '&amp;')
+            .replaceAll('<', '&lt;')
+            .replaceAll('>', '&gt;')
+            .replaceAll('"', '&quot;')
+            .replaceAll("'", '&#39;');
+    }
+
+    function showError(message) {
+        if (!messageArea) {
+            return;
+        }
+
+        messageArea.innerHTML = `<div class="alert alert-danger" role="alert">${escapeHtml(message)}</div>`;
+        messageArea.style.display = 'block';
+    }
+
+    function hideError() {
+        if (messageArea) {
+            messageArea.style.display = 'none';
+            messageArea.innerHTML = '';
+        }
+    }
+
+    function setAlpha(color, opacity) {
+        const op = Math.round(Math.min(Math.max(opacity || 1, 0), 1) * 255);
+        return color + op.toString(16).toUpperCase().padStart(2, '0');
+    }
+
+    function formatField(value, decimals = 2, bits = false) {
+        const numeric = Number(value);
+        if (!Number.isFinite(numeric) || numeric <= 0) {
+            return '';
+        }
+
+        const fileSizeTypes = ['', 'K', 'M', 'G', 'T', 'P', 'E', 'Z', 'Y'];
+        const ndx = Math.floor(Math.log(numeric) / Math.log(1000));
+        const suffix = bits ? 'b' : 'B';
+
+        if (ndx > 0) {
+            return `${(numeric / Math.pow(1000, ndx)).toFixed(decimals)} ${fileSizeTypes[ndx]}${suffix}`;
+        }
+
+        return `${numeric.toFixed(decimals)} ${suffix}`;
+    }
+
+    function formatBits(value, decimals = 2) {
+        return formatField(value, decimals, true);
+    }
+
+    function renderTrafficLegend(container, definitions) {
+        if (!container) {
+            return;
+        }
+
+        if (!definitions || definitions.length === 0) {
+            container.innerHTML = '';
+            container.style.display = 'none';
+            return;
+        }
+
+        container.style.display = 'block';
+        container.innerHTML = definitions.map(def => (
+            `<span class="traffic-interface-badge" style="--traffic-badge:${def.color};">${escapeHtml(def.label)}</span>`
+        )).join(' ');
+    }
+
+    function buildTrafficChartConfig(datasets, formatter) {
+        return {
+            type: 'line',
+            data: {
+                datasets,
+            },
+            options: {
+                bezierCurve: false,
+                maintainAspectRatio: false,
+                scaleShowLabels: false,
+                tooltipEvents: [],
+                pointDot: true,
+                scaleShowGridLines: true,
+                responsive: true,
+                normalized: true,
+                animation: false,
+                elements: {
+                    line: {
+                        fill: true,
+                        cubicInterpolationMode: 'monotone',
+                        clip: 0,
+                    },
+                },
+                layout: {
+                    padding: {
+                        left: 8,
+                        right: 10,
+                        top: 2,
+                        bottom: 0,
+                    },
+                },
+                scales: {
+                    x: {
+                        display: false,
+                        time: {
+                            tooltipFormat: 'HH:mm:ss',
+                            unit: 'second',
+                            stepSize: 10,
+                            minUnit: 'second',
+                            displayFormats: {
+                                second: 'HH:mm:ss',
+                                minute: 'HH:mm:ss',
+                            },
+                        },
+                        type: 'realtime',
+                        realtime: {
+                            duration: TRAFFIC_DURATION_MS,
+                            delay: TRAFFIC_DELAY_MS,
+                        },
+                    },
+                    y: {
+                        grace: '3%',
+                        ticks: {
+                            color: '#88A5C2',
+                            callback(value) {
+                                return formatter(value);
+                            },
+                        },
+                        grid: {
+                            color: 'rgba(96, 128, 160, 0.18)',
+                        },
+                    },
+                },
+                hover: {
+                    mode: 'nearest',
+                    intersect: false,
+                },
+                interaction: {
+                    mode: 'nearest',
+                    intersect: false,
+                },
+                plugins: {
+                    legend: {
+                        display: false,
+                    },
+                    tooltip: {
+                        mode: 'nearest',
+                        intersect: false,
+                        callbacks: {
+                            label(context) {
+                                const point = context.dataset.data[context.dataIndex];
+                                return `${context.dataset.label}: ${formatter(point?.y ?? 0) || '0'}`;
+                            },
+                        },
+                    },
+                    streaming: {
+                        frameRate: 30,
+                        ttl: 30000,
+                    },
+                    colorschemes: false,
+                },
+            },
+        };
+    }
+
+    function forceTrafficChartPalette(chart, seriesConfig) {
+        if (!chart) {
+            return;
+        }
+
+        chart.data.datasets.forEach((dataset, index) => {
+            const series = seriesConfig[index];
+            if (!series) {
+                return;
+            }
+
+            dataset.borderColor = series.color;
+            dataset.backgroundColor = setAlpha(series.color, 0.22);
+            dataset.pointHoverBackgroundColor = series.color;
+            dataset.pointHoverBorderColor = series.color;
+            dataset.pointBackgroundColor = series.color;
+            dataset.pointBorderColor = series.color;
+        });
+    }
+
+    function destroyTrafficCharts() {
+        if (trafficCharts.trafficIn) {
+            trafficCharts.trafficIn.destroy();
+        }
+        if (trafficCharts.trafficOut) {
+            trafficCharts.trafficOut.destroy();
+        }
+        trafficCharts = {
+            trafficIn: null,
+            trafficOut: null,
+        };
+    }
+
+    function initializeTraffic(data) {
+        if (typeof Chart === 'undefined') {
+            throw new Error('Chart.js indisponible');
+        }
+
+        const interfaces = data.interfaces ?? {};
+        const wanStats = interfaces[WAN_INTERFACE_KEY];
+        if (!wanStats) {
+            throw new Error('Interface WAN introuvable pour le widget trafic');
+        }
+
+        const uploadDatasets = TRAFFIC_SERIES.upload.map(series => ({
+            label: series.label,
+            hidden: false,
+            borderColor: series.color,
+            backgroundColor: setAlpha(series.color, 0.22),
+            pointHoverBackgroundColor: series.color,
+            pointHoverBorderColor: series.color,
+            pointBackgroundColor: series.color,
+            pointBorderColor: series.color,
+            pointRadius: 0,
+            borderWidth: 2,
+            intf: WAN_INTERFACE_KEY,
+            last_time: Number(data.time ?? 0),
+            src_field: series.key,
+            formatter: series.formatter,
+            data: [],
+        }));
+        const downloadDatasets = TRAFFIC_SERIES.download.map(series => ({
+            label: series.label,
+            hidden: false,
+            borderColor: series.color,
+            backgroundColor: setAlpha(series.color, 0.22),
+            pointHoverBackgroundColor: series.color,
+            pointHoverBorderColor: series.color,
+            pointBackgroundColor: series.color,
+            pointBorderColor: series.color,
+            pointRadius: 0,
+            borderWidth: 2,
+            intf: WAN_INTERFACE_KEY,
+            last_time: Number(data.time ?? 0),
+            src_field: series.key,
+            formatter: series.formatter,
+            data: [],
+        }));
+
+        destroyTrafficCharts();
+        trafficCharts.trafficIn = new Chart(
+            document.getElementById('downloadTrafficChart').getContext('2d'),
+            buildTrafficChartConfig(downloadDatasets, formatBits)
+        );
+        trafficCharts.trafficOut = new Chart(
+            document.getElementById('uploadTrafficChart').getContext('2d'),
+            buildTrafficChartConfig(uploadDatasets, formatBits)
+        );
+        forceTrafficChartPalette(trafficCharts.trafficIn, TRAFFIC_SERIES.download);
+        forceTrafficChartPalette(trafficCharts.trafficOut, TRAFFIC_SERIES.upload);
+
+        renderTrafficLegend(trafficInterfacesInfo, []);
+        if (bandwidthAdditionalInfo) {
+            bandwidthAdditionalInfo.innerText = `Interface: WAN | Fenetre affichee: ${Math.round(TRAFFIC_DURATION_MS / 1000)} s | Retard d'affichage: ${Math.round(TRAFFIC_DELAY_MS / 1000)} s`;
+        }
+        trafficInitialized = true;
+    }
+
+    function formatSeriesValue(pointY, formatter) {
+        return formatter === 'bits' ? (formatBits(pointY) || '0 b') : '0';
+    }
+
+    function buildTrafficHeaderValue(chart) {
+        if (!chart) {
+            return '--';
+        }
+
+        const dataset = chart.data.datasets[0];
+        if (!dataset || dataset.data.length === 0) {
+            return '--';
+        }
+
+        const point = dataset.data[dataset.data.length - 1];
+        return `<span class="traffic-header-series" style="--traffic-series:${dataset.borderColor}; color:${dataset.borderColor};"><span class="traffic-header-metric">${escapeHtml(formatSeriesValue(point?.y ?? 0, dataset.formatter))}</span></span>`;
+    }
+
+    function updateTrafficHeaderValues() {
+        if (downloadRateLive) {
+            downloadRateLive.innerHTML = buildTrafficHeaderValue(trafficCharts.trafficIn);
+        }
+        if (uploadRateLive) {
+            uploadRateLive.innerHTML = buildTrafficHeaderValue(trafficCharts.trafficOut);
+        }
+    }
+
+    function applyTrafficEvent(event) {
+        if (!event) {
+            return;
+        }
+
+        const data = JSON.parse(event.data);
+        if (data.error) {
+            throw new Error(data.error);
+        }
+
+        if (!trafficInitialized) {
+            initializeTraffic(data);
+        }
+
+        const wanStats = data.interfaces?.[WAN_INTERFACE_KEY];
+        if (!wanStats) {
+            return;
+        }
+
+        Object.values(trafficCharts).forEach(chart => {
+            chart.config.data.datasets.forEach(dataset => {
+                const elapsedTime = Number(data.time ?? 0) - Number(dataset.last_time ?? 0);
+                if (elapsedTime > 0) {
+                    const rawValue = Number(wanStats[dataset.src_field] ?? 0);
+                    const yValue = dataset.formatter === 'packets'
+                        ? Math.round(rawValue / elapsedTime)
+                        : Math.round((rawValue / elapsedTime) * 8);
+
+                    dataset.data.push({
+                        x: Date.now(),
+                        y: yValue,
+                    });
+                }
+
+                dataset.last_time = Number(data.time ?? 0);
+            });
+            chart.update('quiet');
+        });
+
+        updateTrafficHeaderValues();
+    }
+
+    function openTrafficStream() {
+        if (trafficSource) {
+            trafficSource.close();
+        }
+
+        trafficSource = new EventSource(TRAFFIC_STREAM_PATH);
+        trafficSource.onmessage = event => {
+            try {
+                applyTrafficEvent(event);
+            } catch (error) {
+                console.error('Erreur flux trafic:', error);
+                showError(`Erreur trafic: ${error.message}`);
+            }
+        };
+        trafficSource.onerror = event => {
+            if (trafficSource && trafficSource.readyState !== EventSource.CONNECTING) {
+                console.error('Flux trafic interrompu', event);
+            }
+        };
+    }
+
+    function updateCpuUi(data) {
+        const total = Number(data.total ?? 0);
+        let cpuGaugeColor = '#22c55e';
+
+        if (total >= 70) {
+            cpuGaugeColor = '#ef4444';
+        } else if (total >= 30) {
+            cpuGaugeColor = '#f59e0b';
+        }
+
+        if (cpuTotalLive) {
+            cpuTotalLive.innerText = `${total.toFixed(2)}%`;
+        }
+        if (cpuGauge) {
+            setGaugeCircleProgress(cpuGaugeOuterValue, total, cpuGaugeColor);
+            setGaugeCircleProgress(cpuGaugeInnerValue, latestMemoryPercent, '#38bdf8');
+            cpuGauge.style.setProperty('--cpu-gauge-color', cpuGaugeColor);
+            if (cpuGaugeCpuLabel) {
+                cpuGaugeCpuLabel.innerText = `${total.toFixed(1)}%`;
+            }
+        }
+    }
+
+    function renderSalesTrend(trend) {
+        if (!salesTrendBars) {
+            return;
+        }
+
+        if (!Array.isArray(trend) || trend.length === 0) {
+            salesTrendBars.innerHTML = '<span class="sales-trend-empty">Aucune donnée</span>';
+            if (salesActiveDays) {
+                salesActiveDays.innerText = '--';
+            }
+            if (salesPeakDay) {
+                salesPeakDay.innerText = '--';
+            }
+            return;
+        }
+
+        const maxValue = Math.max(...trend.map(item => Number(item.total ?? 0)), 0);
+        const activeDays = trend.filter(item => Number(item.total ?? 0) > 0).length;
+        const peakEntry = trend.reduce((best, item) => {
+            const total = Number(item.total ?? 0);
+            if (!best || total > best.total) {
+                return { day: Number(item.day ?? 0), total };
+            }
+
+            return best;
+        }, null);
+
+        if (salesActiveDays) {
+            salesActiveDays.innerText = `${activeDays}`;
+        }
+
+        if (salesPeakDay) {
+            salesPeakDay.innerText = peakEntry && peakEntry.total > 0
+                ? `J${peakEntry.day} (${peakEntry.total})`
+                : 'Aucun';
+        }
+
+        salesTrendBars.innerHTML = trend.map(item => {
+            const total = Number(item.total ?? 0);
+            const day = Number(item.day ?? 0);
+            const height = maxValue > 0 ? Math.max(8, Math.round((total / maxValue) * 100)) : 8;
+            const label = `${day}`;
+            return `
+                <span class="sales-trend-bar-wrap" title="Jour ${escapeHtml(label)} : ${escapeHtml(total)} vente(s)">
+                    <span class="sales-trend-bar ${total > 0 ? '' : 'sales-trend-bar-empty'}" style="height:${height}%"></span>
+                    <span class="sales-trend-day">${escapeHtml(label)}</span>
+                </span>
+            `;
+        }).join('');
+    }
+
+    function openCpuStream() {
+        if (cpuSource) {
+            cpuSource.close();
+        }
+
+        cpuSource = new EventSource(CPU_STREAM_PATH);
+        cpuSource.onmessage = event => {
+            try {
+                const data = JSON.parse(event.data);
+                if (data.error) {
+                    throw new Error(data.error);
+                }
+
+                updateCpuUi(data);
+            } catch (error) {
+                console.error('Erreur flux CPU:', error);
+                showError(`Erreur CPU: ${error.message}`);
+            }
+        };
+        cpuSource.onerror = event => {
+            if (cpuSource && cpuSource.readyState !== EventSource.CONNECTING) {
+                console.error('Flux CPU interrompu', event);
+            }
+        };
+    }
+
+    function fetchCpuType() {
+        fetch(CPU_TYPE_PATH)
             .then(response => {
                 if (!response.ok) {
-                    // Si la réponse n'est pas un succès HTTP (ex: 404, 500)
-                    throw new Error(`Erreur HTTP ! Statut: ${response.status}`);
+                    throw new Error(`Erreur HTTP ${response.status}`);
                 }
                 return response.json();
             })
             .then(data => {
-                // hideSpinner(); // Décommenter si vous réintégrez le spinner plus tard
-
-                // Afficher les erreurs spécifiques retournées par le script PHP
-                if (data.error) {
-                    console.error('Erreur API:', data.error);
-                    if (messageArea) {
-                        messageArea.innerHTML = `<div class="alert alert-danger" role="alert">${data.error}</div>`;
-                        messageArea.style.display = 'block';
-                        setTimeout(() => {
-                            messageArea.style.display = 'none';
-                        }, 5000); // Cache le message après 5 secondes
-                    }
-                    return; // Arrêter le traitement si une erreur API est présente
+                if (!cpuTypeLabel) {
+                    return;
                 }
 
-                // Masquer les messages d'erreur s'il y en avait et que la requête est un succès
-                if (messageArea) {
-                    messageArea.style.display = 'none';
+                if (typeof data === 'string') {
+                    cpuTypeLabel.innerText = data;
+                    return;
                 }
 
-                // --- Mettre à jour les informations du tableau de bord avec les données réelles ---
-
-                // Mise à jour "Hotspot Actif"
-                const activeHotspotUsersCount = document.getElementById('activeHotspotUsersCount');
-                if (activeHotspotUsersCount) {
-                    activeHotspotUsersCount.innerText = data.active_hotspot_users || '0';
+                if (Array.isArray(data)) {
+                    cpuTypeLabel.innerText = data.join(' ');
+                    return;
                 }
 
-                // Mise à jour "Infos Système"
-                const cpuLoad = document.getElementById('cpuLoad');
-                const freeMemory = document.getElementById('freeMemory');
-                const freeHdd = document.getElementById('freeHdd');
-                if (cpuLoad) cpuLoad.innerText = data.cpu_load || '--';
-                if (freeMemory) freeMemory.innerText = `${data.free_memory || '--'} / ${data.total_memory || '--'}`;
-                if (freeHdd) freeHdd.innerText = `${data.free_hdd_space || '--'} / ${data.total_hdd_space || '--'}`;
-
-                // Mise à jour "Bande Passante" (texte descriptif)
-                const bandwidthAdditionalInfo = document.getElementById('bandwidthAdditionalInfo');
-                if (bandwidthAdditionalInfo) {
-                    bandwidthAdditionalInfo.innerText = `Vitesse actuelle : ${data.current_upload_speed || '--'} Mbps (Montant) / ${data.current_download_speed || '--'} Mbps (Descendant)`;
-                }
-
-                // Dessiner la courbe de bande passante
-                if (data.bandwidth_history) {
-                    drawBandwidthChart(data.bandwidth_history);
-                } else {
-                    console.warn("Les données d'historique de bande passante sont manquantes.");
-                }
-
+                cpuTypeLabel.innerText = Object.values(data).join(' ');
             })
             .catch(error => {
-                // hideSpinner(); // Décommenter si vous réintégrez le spinner plus tard
-                console.error('Erreur lors de la récupération des données du tableau de bord:', error);
-                if (messageArea) {
-                    messageArea.innerHTML = `<div class="alert alert-danger" role="alert">Erreur lors du chargement des données: ${error.message}. Vérifiez la console pour plus de détails.</div>`;
-                    messageArea.style.display = 'block';
-                    setTimeout(() => {
-                        messageArea.style.display = 'none';
-                    }, 5000); // Cache le message après 5 secondes
-                }
+                console.error('Erreur CPU type:', error);
             });
     }
 
-    // Fonction pour dessiner/mettre à jour le graphique de bande passante
-    function drawBandwidthChart(historyData) {
-        const ctx = document.getElementById('bandwidthChart').getContext('2d');
-
-        // Détruire l'ancien graphique s'il existe pour éviter les superpositions
-        if (bandwidthChart) {
-            bandwidthChart.destroy();
+    function startLiveStreams() {
+        if (liveStreamsStarted) {
+            return;
         }
 
-        bandwidthChart = new Chart(ctx, {
-            type: 'line',
-            data: {
-                labels: historyData.labels,
-                datasets: [
-                    {
-                        label: 'Téléchargement (Mbps)',
-                        data: historyData.download,
-                        borderColor: 'rgb(75, 192, 192)',
-                        backgroundColor: 'rgba(75, 192, 192, 0.2)',
-                        fill: true,
-                        tension: 0.3
-                    },
-                    {
-                        label: 'Mise en ligne (Mbps)',
-                        data: historyData.upload,
-                        borderColor: 'rgb(255, 99, 132)',
-                        backgroundColor: 'rgba(255, 99, 132, 0.2)',
-                        fill: true,
-                        tension: 0.3
+        liveStreamsStarted = true;
+
+        window.setTimeout(() => {
+            fetch(TRAFFIC_INIT_PATH)
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error(`Erreur HTTP ${response.status}`);
                     }
-                ]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false, // Permet au graphique de prendre toute la hauteur du conteneur
-                plugins: {
-                    legend: {
-                        labels: {
-                            color: 'white' // Couleur du texte des légendes
-                        }
+                    return response.json();
+                })
+                .then(data => {
+                    if (data.error) {
+                        throw new Error(data.error);
                     }
-                },
-                scales: {
-                    x: {
-                        ticks: {
-                            color: 'rgba(255, 255, 255, 0.7)' // Couleur des labels de l'axe X
-                        },
-                        grid: {
-                            color: 'rgba(255, 255, 255, 0.1)' // Couleur des grilles de l'axe X
-                        }
-                    },
-                    y: {
-                        ticks: {
-                            color: 'rgba(255, 255, 255, 0.7)' // Couleur des labels de l'axe Y
-                        },
-                        grid: {
-                            color: 'rgba(255, 255, 255, 0.1)' // Couleur des grilles de l'axe Y
-                        },
-                        beginAtZero: true
-                    }
-                }
-            }
-        });
+
+                    initializeTraffic(data);
+                    updateTrafficHeaderValues();
+                    openTrafficStream();
+                })
+                .catch(error => {
+                    console.error('Erreur initialisation trafic:', error);
+                    showError(`Erreur trafic: ${error.message}`);
+                });
+        }, 350);
+
+        window.setTimeout(() => {
+            openCpuStream();
+        }, 900);
     }
 
-    // Appeler la fonction au chargement de la page
+    function fetchDashboardData() {
+        fetch('../api/get_stats.php')
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error(`Erreur HTTP ${response.status}`);
+                }
+                return response.json();
+            })
+            .then(data => {
+                if (data.error) {
+                    throw new Error(data.error);
+                }
+
+                hideError();
+
+                const activeHotspotUsersCount = document.getElementById('activeHotspotUsersCount');
+                const opnsenseName = document.getElementById('opnsenseName');
+                const opnsenseVersion = document.getElementById('opnsenseVersion');
+                const opnsenseStatus = document.getElementById('opnsenseStatus');
+                const opnsenseZones = document.getElementById('opnsenseZones');
+
+                if (activeHotspotUsersCount) activeHotspotUsersCount.innerText = data.active_hotspot_users || '0';
+                if (connectedUsersCount) connectedUsersCount.innerText = data.total_users || '0';
+                if (cpuGauge && data.memory_used_percent !== undefined) {
+                    const ramPercent = Math.max(0, Math.min(Number(data.memory_used_percent ?? 0), 100));
+                    latestMemoryPercent = ramPercent;
+                    setGaugeCircleProgress(cpuGaugeInnerValue, ramPercent, '#38bdf8');
+                    if (cpuGaugeRamLabel) {
+                        cpuGaugeRamLabel.innerText = `${ramPercent.toFixed(1)}%`;
+                    }
+                }
+                if (summarySalesToday) summarySalesToday.innerText = data.sales_today || '0';
+                if (summarySalesMonthly) summarySalesMonthly.innerText = data.sales_monthly || '0';
+                if (salesTrendMonthLabel) {
+                    salesTrendMonthLabel.innerText = new Date().toLocaleDateString('fr-FR', { month: 'long', year: 'numeric' });
+                }
+                if (opnsenseName) opnsenseName.innerText = data.opnsense_name || '--';
+                if (opnsenseVersion) opnsenseVersion.innerText = data.opnsense_version || '--';
+                if (opnsenseStatus) opnsenseStatus.innerText = data.opnsense_status || '--';
+                if (opnsenseZones) {
+                    opnsenseZones.innerText = Array.isArray(data.opnsense_zones) && data.opnsense_zones.length > 0
+                        ? data.opnsense_zones.join(', ')
+                        : 'Aucune';
+                }
+
+                if (recentEventsTableBody) {
+                    if (Array.isArray(data.recent_events) && data.recent_events.length > 0) {
+                        const paddedEvents = data.recent_events.slice(0, 5);
+                        while (paddedEvents.length < 5) {
+                            paddedEvents.push({ time: '', user: '', action: '' });
+                        }
+
+                        recentEventsTableBody.innerHTML = paddedEvents.map(item => `
+                            <tr>
+                                <td>${escapeHtml(item.time ?? '') || '&nbsp;'}</td>
+                                <td>${escapeHtml(item.user ?? '') || '&nbsp;'}</td>
+                                <td>${escapeHtml(item.action ?? '') || '&nbsp;'}</td>
+                            </tr>
+                        `).join('');
+                    } else {
+                        recentEventsTableBody.innerHTML = Array.from({ length: 5 }, () => `
+                            <tr>
+                                <td>&nbsp;</td>
+                                <td>&nbsp;</td>
+                                <td>&nbsp;</td>
+                            </tr>
+                        `).join('');
+                    }
+                }
+
+                renderSalesTrend(data.sales_daily_trend);
+                startLiveStreams();
+            })
+            .catch(error => {
+                console.error('Erreur lors de la récupération des données du tableau de bord:', error);
+                showError(`Erreur lors du chargement des données: ${error.message}`);
+            });
+    }
+
+    fetchCpuType();
     fetchDashboardData();
-    // Rafraîchir les données toutes les 10 secondes (ou plus selon vos besoins)
-    setInterval(fetchDashboardData, 10000); // Toutes les 10 secondes
+    window.setInterval(fetchDashboardData, DASHBOARD_REFRESH_MS);
+});
 
-    // --- Fonction redirectTo (si vous l'utilisez pour la navigation) ---
-    // Si cette fonction est appelée ailleurs pour la navigation, assurez-vous qu'elle est bien définie.
-    // Si elle n'est pas utilisée, vous pouvez la supprimer.
-    // function redirectTo(pageUrl) {
-    //     window.location.href = pageUrl;
-    // }
-
-}); // Fin de DOMContentLoaded
+function redirectTo(pageUrl) {
+    window.location.href = pageUrl;
+}

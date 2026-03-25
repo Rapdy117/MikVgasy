@@ -300,6 +300,7 @@ Incoherence :
 - certaines contraintes identiques n'utilisent pas le meme attribut RADIUS selon contexte
 - `session_timeout` est present pour les profils mais absent du mapping utilisateur
 - des traces MikroTik restent actives dans le mapping utilisateur
+- une trace MikroTik reste aussi presente dans les donnees de configuration de devices via [config/opnsense.json](/var/www/html/config/opnsense.json)
 
 ## Conclusion
 

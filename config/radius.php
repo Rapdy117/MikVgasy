@@ -7,6 +7,17 @@ header('Content-Type: application/json');
 
 $file = __DIR__ . '/radius.json';
 
+session_start();
+
+if (!isset($_SESSION['logged_in']) || $_SESSION['logged_in'] !== true) {
+    http_response_code(403);
+    echo json_encode([
+        'success' => false,
+        'message' => 'Unauthorized'
+    ]);
+    exit;
+}
+
 // =========================
 // SAVE
 // =========================

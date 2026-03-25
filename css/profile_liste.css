@@ -1,106 +1,15 @@
 /* =====================================================
-   VARIABLES
+   PROFILE LIST
+   Les styles communs sont centralises dans theme.css
 ===================================================== */
-:root {
-    --secondary-color: #17a2b8;
-    --text-white: #ffffff;
-    --border-color: rgba(255,255,255,0.2);
-}
 
-/* =====================================================
-   CARD
-===================================================== */
-.card {
-    background: rgba(0, 0, 0, 0.4);
-    border: 1px solid rgba(0,255,255,0.1);
-    border-radius: 6px;
-}
-
-.card-body {
-    padding: 8px;
-}
-
-/* =====================================================
-   TABLE (PROFILS)
-===================================================== */
-.table {
-    margin: 0;
-}
-
-.table thead th {
-    font-size: 0.7rem;
-    padding: 6px;
-    color: var(--secondary-color);
-    border-bottom: 1px solid var(--border-color);
-}
-
-.table tbody td {
-    font-size: 0.75rem;
-    padding: 5px 6px;
-    color: var(--text-white);
-    border-color: var(--border-color);
-}
-
-.table tbody tr:hover {
-    background: rgba(23, 162, 184, 0.15);
-}
-
-/* =====================================================
-   BOUTONS
-===================================================== */
-.btn-save {
-    background-color: rgba(23, 162, 184, 0.15);
-    border: 1px solid var(--secondary-color);
-    color: var(--secondary-color);
-}
-
-.btn-save:hover {
-    background-color: var(--secondary-color);
-    color: var(--text-white);
-    box-shadow: 0 0 8px rgba(23, 162, 184, 0.8);
-}
-
-/* Boutons actions (edit/delete) */
-.table .btn {
-    font-size: 0.7rem;
-    padding: 2px 6px;
-}
-
-/* =====================================================
-   HEADER TITRE
-===================================================== */
 h4 {
-    color: var(--text-white);
+    color: var(--theme-text);
 }
 
-/* =====================================================
-   TABLE PROFILS (OVERRIDE BOOTSTRAP)
-===================================================== */
-
-.table.table-dark {
-    background: rgba(0, 0, 0, 0.4) !important;
-    color: var(--text-white) !important;
-}
-
-/* HEADER */
-.table.table-dark thead th {
-    font-size: 0.7rem;
-    padding: 6px;
-    color: var(--secondary-color) !important;
-    border-bottom: 1px solid var(--border-color) !important;
-    background: transparent !important;
-}
-
-/* CELLULES */
-.table.table-dark tbody td {
-    font-size: 0.75rem;
-    padding: 5px 6px;
-    color: var(--text-white) !important;
-    border-color: var(--border-color) !important;
-    background: transparent !important;
-}
-
-/* HOVER */
-.table.table-dark.table-hover tbody tr:hover {
-    background: rgba(23, 162, 184, 0.15) !important;
+.table .btn {
+    min-width: auto;
+    height: 26px;
+    font-size: 0.72rem;
+    padding: 0 8px;
 }

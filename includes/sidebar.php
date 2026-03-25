@@ -1,5 +1,8 @@
 <?php
+require_once __DIR__ . '/device_manager.php';
+
 $current = basename($_SERVER['PHP_SELF']);
+$navbarDevice = getNavbarDeviceInfo();
 ?>
 
 <nav class="navbar navbar-expand-lg navbar-dark fixed-top" id="main-navbar">
@@ -32,7 +35,9 @@ $current = basename($_SERVER['PHP_SELF']);
             <div class="d-flex align-items-center ms-auto">
                 <span class="navbar-text text-white me-4 d-none d-md-block">
                     <i class="fas fa-network-wired me-2"></i>
-                    <span id="routerInfo">11.11.11.1</span>
+                    <span id="routerInfo" data-device-type="<?= htmlspecialchars($navbarDevice['type']) ?>">
+                        <?= htmlspecialchars($navbarDevice['host']) ?>
+                    </span>
                 </span>
 
                 <span class="navbar-text text-white me-4">

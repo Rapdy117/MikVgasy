@@ -149,6 +149,75 @@ Valeurs fonctionnelles importantes :
 - `type = 'mikrotik'` active une branche speciale dans [includes/radius_sync.php](/var/www/html/includes/radius_sync.php)
 - tout autre type suit la branche WISPr / OPNsense observee
 
+## Objet NasContext
+
+Structure cible recommandee pour le systeme multi-NAS :
+
+```text
+NasContext {
+  nas_id: int
+  nas_type: string
+  backend: 'radius' | 'opnsense_api' | 'mikrotik_api'
+  capabilities: string[]
+}
+```
+
+Regle de reference :
+
+- `nas_id` doit definir le backend technique
+- `nas_type` doit definir le traducteur a utiliser
+- `capabilities` doit definir les attributs et operations supportes
+
+Exemples :
+
+- `nas_type = 'opnsense'` -> `backend = 'opnsense_api'`
+- `nas_type = 'mikrotik'` -> `backend = 'mikrotik_api'`
+- `nas_type = 'radius'` -> `backend = 'radius'`
+
+## Objet NasCapability
+
+Structure documentaire cible :
+
+```text
+NasCapability {
+  nas_id: int
+  attribute_code: string
+  supported: bool
+  unit: string | null
+}
+```
+
+Exemples d'attributs :
+
+- `Session-Timeout`
+- `Idle-Timeout`
+- `Simultaneous-Use`
+- `Expiration`
+- `WISPr-Bandwidth-Max-Down`
+- `WISPr-Bandwidth-Max-Up`
+- `Mikrotik-Rate-Limit`
+- `Max-Octets`
+- `Max-Data`
+
+## Objet NetworkDevice
+
+Structure cible documentaire retenue pour `pages/network_devices.php` :
+
+```text
+NetworkDevice {
+  id: string
+  name: string
+  type: 'opnsense' | 'mikrotik' | 'radius'
+  capabilities: string[]
+}
+```
+
+Capacites UI de reference :
+
+- `opnsense` -> dashboard possible, test API possible
+- `mikrotik` -> test API possible, dashboard dedie non garanti
+- `radius` -> pas de dashboard, pas de test API OPNsense/MikroTik
+
 ## Objet NetworkDevice (OPNsense JSON)
 
 Structure deduite de [api/network_devices_api.php](/var/www/html/api/network_devices_api.php) :
@@ -242,6 +311,9 @@ Le code actuel ne fait pas cette normalisation de maniere coherente.
 - `data_limit` cote profil est interprete en MB puis converti en octets, alors que cote utilisateur il est ecrit brut en `radreply`
 - `auto_renewal` est saisi comme `0` ou `1`, mais affiche ensuite parfois comme texte "Oui/Non"
 - `verify_ssl` est stocke comme bool dans le JSON mais transite par formulaire sous forme de string `true/false`
+- le projet utilise une seule base physique, mais deux couches logiques :
+  - `users`, `profiles`, `devices`, `vouchers` pour le metier
+  - `radcheck`, `radreply`, `radusergroup`, `radgroupreply`, `radacct`, `nas` pour le backend RADIUS
 
 ## Regles De Reference Recommandees Pour Le Refactoring
 
@@ -252,5 +324,7 @@ Le code actuel ne fait pas cette normalisation de maniere coherente.
 - `auto_renewal: bool`
 - `verify_ssl: bool`
 - `status` borne strictement a `active`, `disabled`, `expired`
+- `nas_id: int` comme cle centrale de routage backend
+- `nas_type: string` comme discriminant de l'adaptateur technique
 
 Ce modele de reference sert de base documentaire. Il n'implique pas que le code actuel applique deja ces contraintes de maniere fiable.

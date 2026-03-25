@@ -191,6 +191,113 @@ Implication :
 - le projet est dans une phase de transition
 - la documentation doit servir de reference avant les changements structurels
 
+## 15. `nas_id` Comme Cle De Routage Cible
+
+Decision documentaire retenue :
+
+- le NAS selectionne doit definir le comportement du systeme
+- `nas_id` devient la cle centrale de resolution
+- `nas.type` devient la cle technique de dispatch
+
+Implication :
+
+- les endpoints metier devront cesser d'embarquer des decisions backend implicites
+- les attributs utilisables devront dependre du NAS selectionne
+
+## 16. FreeRADIUS Comme Backend Standard Multi-NAS
+
+Decision documentaire retenue :
+
+- FreeRADIUS reste le backend standard pour les NAS compatibles RADIUS
+
+Implication :
+
+- le projet ne doit pas opposer "multi-NAS" et "FreeRADIUS"
+- FreeRADIUS devient la branche standard de cette architecture
+
+## 17. OPNsense Comme Branche API Distincte
+
+Decision documentaire retenue :
+
+- OPNsense doit etre gere comme un device API explicite
+- il ne doit plus etre confondu avec un NAS RADIUS generique
+
+Implication :
+
+- les pages live comme le dashboard doivent dependre des capacites du device
+- les champs de configuration OPNsense doivent rester separes des devices RADIUS standards
+
+## 18. Reduction Du Perimetre Device A Trois Types
+
+Decision documentaire retenue :
+
+- la gestion des devices doit etre limitee a trois types fonctionnels :
+  - `opnsense`
+  - `mikrotik`
+  - `radius`
+
+Implication :
+
+- `opnsense` et `mikrotik` sont les deux branches API de management
+- `radius` represente un NAS standard sans API de pilotage projet
+- les formulaires, tests et pages disponibles doivent dependre strictement de ce triplet
+
+## 19. Capacites UI Dependantes Du Type De Device
+
+Decision documentaire retenue :
+
+- toutes les pages ne sont pas universelles
+- certaines vues doivent etre masquees ou desactivees selon le type du device courant
+
+Implication :
+
+- le dashboard ne doit pas etre propose pour un device `radius` standard
+- les tests de connexion doivent etre API pour `opnsense` et `mikrotik`, et RADIUS pour `radius`
+- la navigation doit s'appuyer sur des capacites documentees plutot que sur des conditions implicites dispersees
+
+## 20. Preservation De La Base UI Existante
+
+Decision documentaire retenue :
+
+- lorsque la base visuelle d'une page est jugee propre, les evolutions doivent s'appuyer dessus au lieu de la reconstruire
+
+Implication :
+
+- l'ajout des types de devices dans `pages/network_devices.php` doit rester une evolution de la page existante
+- la mise en page ne doit pas se degrader a cause d'un changement fonctionnel
+- `theme.css` et les patterns UI existants doivent rester le socle de reference
+
+## 21. Autorisation Requise Pour Les Fichiers UI Globaux
+
+Decision documentaire retenue :
+
+- les fichiers UI globaux partages ne doivent pas etre touches dans un chantier local sans autorisation explicite
+
+Implication :
+
+- [css/sidebar.css](/var/www/html/css/sidebar.css), [includes/sidebar.php](/var/www/html/includes/sidebar.php) et [css/theme.css](/var/www/html/css/theme.css) sont des fichiers sensibles a perimetre global
+- une demande ciblee sur une page comme `pages/network_devices.php` n'autorise pas implicitement la modification de ces fichiers
+- toute extension du chantier a ces fichiers doit etre precedee d'une validation explicite
+
+- OPNsense doit etre traite comme un backend API distinct
+
+Implication :
+
+- l'API projet a venir doit porter cette integration
+- la logique metier reste commune, seule la traduction technique change
+
+## 18. Deux Domaines Logiques Dans Une Seule Base Physique
+
+Decision formalisee :
+
+- la base physique `radius_manager` contient deja deux domaines logiques :
+  - donnees metier applicatives
+  - donnees RADIUS / AAA
+
+Implication :
+
+- meme sans separation physique immediate, le refactoring doit raisonner avec ces deux couches
+
 ## Resume Des Choix Actuels
 
 - monolithe PHP sans framework
@@ -200,3 +307,5 @@ Implication :
 - integration reseau orientee OPNsense
 - stockage mixte SQL + JSON
 - transition MikroTik -> OPNsense/FreeRADIUS non terminee
+- `nas_id` appele a devenir la cle centrale de routage backend
+- une seule base physique actuelle, mais deux couches logiques : metier et RADIUS

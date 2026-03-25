@@ -83,27 +83,33 @@ p {
     margin: 0.5rem auto; /* Marge autour des champs, 'auto' pour centrer horizontalement */
     border: none; /* Supprime la bordure par défaut de Bootstrap */
     border-radius: 0.5rem; /* Bords légèrement arrondis */
-    font-size: 1rem; /* Taille de police */
+    font-size: 1.02rem; /* Taille de police */
     width: 50%; /* Largeur réduite à 50% du conteneur parent */
     display: block; /* Nécessaire pour que 'margin: auto' fonctionne et centre l'élément */
     box-sizing: border-box; /* S'assure que padding et border sont inclus dans la largeur */
     /* Fond du champ de texte : blanc avec 15% d'opacité */
-    background: rgba(255, 255, 255, 0.15);
+    background: rgba(255, 255, 255, 0.2);
     /* Couleur du texte saisi : blanc avec 90% d'opacité (suffisamment visible) */
-    color: rgba(255, 255, 255, 0.9);
+    color: rgba(255, 255, 255, 0.96);
     /* Ajout d'une bordure subtile pour mieux délimiter le champ */
-    border: 1px solid rgba(255, 255, 255, 0.2); /* Bordure blanche avec 20% d'opacité */
+    border: 1px solid rgba(255, 255, 255, 0.28); /* Bordure blanche avec 28% d'opacité */
+    line-height: 1.35;
 }
 
 /* Styles pour le placeholder (texte d'aide) des champs de saisie */
 .form-field-half::placeholder {
-    color: rgba(255, 255, 255, 0.7); /* Couleur du texte de placeholder : blanc avec 70% d'opacité */
+    color: rgba(255, 255, 255, 0.82); /* Couleur du texte de placeholder : blanc plus lisible */
+}
+
+.form-field-half option {
+    background: rgba(18, 18, 30, 0.98);
+    color: #f4f7fb;
 }
 
 /* Style au focus des champs de texte pour une meilleure indication */
 .form-field-half:focus {
-    border-color: rgba(255, 255, 255, 0.5); /* Bordure un peu plus opaque au focus */
-    box-shadow: 0 0 0 0.2rem rgba(255, 255, 255, 0.1); /* Légère ombre pour le focus */
+    border-color: rgba(255, 255, 255, 0.58); /* Bordure un peu plus opaque au focus */
+    box-shadow: 0 0 0 0.2rem rgba(255, 255, 255, 0.16); /* Légère ombre pour le focus */
     outline: none; /* Supprime l'outline par défaut du navigateur */
 }
 
@@ -132,6 +138,13 @@ p {
     border-color: rgba(255, 255, 255, 0.5); /* Bordure plus opaque au survol */
     transform: translateY(-3px);
     box-shadow: 0 12px 25px rgba(0, 0, 0, 0.4);
+}
+
+.btn-primary:focus,
+.btn-primary:focus-visible {
+    border-color: rgba(255, 255, 255, 0.58);
+    box-shadow: 0 0 0 0.2rem rgba(255, 255, 255, 0.16), 0 12px 25px rgba(0, 0, 0, 0.4);
+    outline: none;
 }
 
 /* Styles pour le pied de page */
@@ -207,16 +220,4 @@ p {
 
 .top-nav .nav-icons img:hover {
     opacity: 1;
-}
-#sidebar-wrapper {
-    height: 100vh;
-    overflow-y: auto;
-}
-.submenu-group {
-    display: none;
-    max-height: 300px;
-    overflow-y: auto;
-}
-.submenu-group {
-    display: none !important;
 }

@@ -1,6 +1,18 @@
 # Rapport D'Analyse Du Projet
 
-J'ai analyse le projet sans modifier de fichier. J'ignore ici `phpmyadmin/` qui ressemble a un composant externe et je me concentre sur l'application sous `/var/www/html`.
+## Perimetre D'Analyse
+
+Cette analyse se base uniquement sur le code applicatif reel sous `/var/www/html`, sans modifier de fichier existant.
+
+Elements explicitement ignores :
+
+- `phpmyadmin/` : lien symbolique externe
+- `ARCHIVE/` : dossier d'archive s'il existe
+- `debug_*.log` : logs de debug
+- `*.zip` : archives
+- `test_*` : fichiers de test
+
+Le contenu de `docs/` n'est pas traite comme code metier.
 
 ## 1. Fichiers Importants
 
@@ -51,6 +63,7 @@ J'ai analyse le projet sans modifier de fichier. J'ignore ici `phpmyadmin/` qui 
 ## 5. Dependances Restantes Et Traces Historiques
 
 - Trace MikroTik explicite : [includes/radius_sync.php#L26](/var/www/html/includes/radius_sync.php#L26), [api/users/create_user.php#L109](/var/www/html/api/users/create_user.php#L109), [api/users/update_user.php#L119](/var/www/html/api/users/update_user.php#L119) utilisent encore `Mikrotik-Rate-Limit`.
+- Trace MikroTik dans la configuration : [config/opnsense.json](/var/www/html/config/opnsense.json) contient encore une entree `MikroTik NAS` avec `vendor = mikrotik`, ce qui montre qu'une partie de l'ancien referentiel reseau est toujours presente dans les donnees.
 - Ancien code Mikhmon/MikroTik encore present : [includes/get_radius.php](/var/www/html/includes/get_radius.php) contient `$_SESSION["mikhmon"]`, `admin.php?id=login`, variables de session anciennes et structure totalement differente du projet actuel.
 - Heritage structurel casse : [pages/hotspot_vouchers.php](/var/www/html/pages/hotspot_vouchers.php) contient deux pages concatenees dans un seul fichier, dont une seconde moitie dupliquee de l'ecran FreeRADIUS.
 - Liens morts dans la sidebar : [includes/sidebar.php](/var/www/html/includes/sidebar.php) pointe vers `sessions_liste.php`, `administration.php`, `reboot.php`, `shutdown.php` qui ne sont pas presents.

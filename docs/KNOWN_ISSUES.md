@@ -1,255 +1,136 @@
 # Bugs Et Problemes Connus
 
-## 1. Endpoint de creation utilisateur incorrect
+## Etat Courant
 
-Fichier impacte :
+Ce fichier decrit les problemes encore ouverts au 25 mars 2026.
 
-- [js/add_hotspot_user.js#L38](/var/www/html/js/add_hotspot_user.js#L38)
+Les anciens points historiques sur :
 
-Probleme :
+- l'endpoint de creation utilisateur
+- la redirection post-login
+- le dashboard branche sur `phpinfo()`
+- l'edition utilisateur non connectee
+- `profile_list.php` et `sessions_list.php` statiques
 
-- le script appelle `../api/create_user.php`
-- le fichier reel present dans le projet est [api/users/create_user.php](/var/www/html/api/users/create_user.php)
+ne sont plus des problemes actifs dans l'etat actuel du code.
 
-Effet :
+## 1. Hauteur et scroll du bloc `Derniers Evenements` encore fragiles
 
-- le formulaire d'ajout utilisateur ne peut pas fonctionner tel quel
+Fichiers impactes :
 
-Correction a envisager :
-
-- aligner le chemin frontend sur l'endpoint reel
-
-## 2. Redirection de login incoherente
-
-Fichier impacte :
-
-- [api_proxy.php#L30](/var/www/html/api_proxy.php#L30)
+- [pages/dashboard.php](/var/www/html/pages/dashboard.php)
+- [css/theme.css](/var/www/html/css/theme.css)
+- [js/dashboard.js](/var/www/html/js/dashboard.js)
 
 Probleme :
 
-- la redirection cible `dashboard/dashboard.php`
-- le dashboard reel est [pages/dashboard.php](/var/www/html/pages/dashboard.php)
+- le bloc a ete plusieurs fois reajuste
+- la colonne droite melange encore structure Bootstrap `row/col` et contraintes CSS de hauteur
+- le tableau reste sensible aux changements de nombre de lignes visibles
 
 Effet :
 
-- apres connexion reussie, la redirection peut echouer
+- risque de debordement visuel
+- scroll pas toujours coherent selon la hauteur du viewport
 
 Correction a envisager :
 
-- corriger la route de destination
+- simplifier completement la structure du panneau droit
+- fixer une hauteur de carte explicite ou une grille parent stricte
+- garder le scroll uniquement sur un wrapper unique
 
-## 3. Dashboard AJAX avec chemin relatif probablement faux
+## 2. `Derniers Evenements` ne montre encore que les sessions en cours OPNsense
 
-Fichier impacte :
-
-- [js/dashboard.js#L12](/var/www/html/js/dashboard.js#L12)
-
-Probleme :
-
-- l'appel fait `fetch('api/get_stats.php')`
-- depuis `pages/dashboard.php`, ce chemin relatif ne pointe pas vers `/api/get_stats.php`
-
-Effet :
-
-- les donnees du dashboard peuvent ne jamais se charger
-
-Correction a envisager :
-
-- rendre le chemin absolu ou corriger le chemin relatif
-
-## 4. `api/get_stats.php` ne renvoie pas le format attendu
-
-Fichier impacte :
+Fichiers impactes :
 
 - [api/get_stats.php](/var/www/html/api/get_stats.php)
+- [pages/dashboard.php](/var/www/html/pages/dashboard.php)
 
 Probleme :
 
-- le fichier appelle `phpinfo()`
-- [js/dashboard.js](/var/www/html/js/dashboard.js) attend un JSON structure
+- le tableau est maintenant centre sur les logs utilisateur OPNsense
+- il utilise les donnees de `/api/captiveportal/session/search`
+- cela donne une vue "utilisateurs connectes" plus qu'un vrai journal historise d'evenements
 
 Effet :
 
-- le frontend ne peut pas parser correctement la reponse
+- pas d'historique complet de connexions/deconnexions
+- les evenements disparaissent quand les sessions ne sont plus presentes dans la source live
 
 Correction a envisager :
 
-- remplacer `phpinfo()` par une reponse JSON conforme aux champs attendus
+- brancher un vrai journal utilisateur historise
+- ou stocker localement les evenements hotspot/OPNsense dans une table dediee
 
-## 5. Edition utilisateur non connectee
-
-Fichier impacte :
-
-- [js/users_list.js#L122](/var/www/html/js/users_list.js#L122)
-
-Probleme :
-
-- le bouton sauvegarde affiche seulement `alert("Save à connecter avec update_user.php")`
-
-Effet :
-
-- la page de details utilisateur est en lecture seule dans les faits
-
-Correction a envisager :
-
-- brancher le formulaire sur [api/users/update_user.php](/var/www/html/api/users/update_user.php)
-
-## 6. Inputs editables inexistants dans la liste utilisateur
-
-Fichier impacte :
-
-- [js/users_list.js#L105](/var/www/html/js/users_list.js#L105)
-
-Probleme :
-
-- le script active/desactive `.editable`
-- aucun champ `.editable` n'est present dans [pages/users_list.php](/var/www/html/pages/users_list.php)
-
-Effet :
-
-- le mode edition ne peut pas fonctionner
-
-Correction a envisager :
-
-- aligner le HTML et le JS
-
-## 7. `session_timeout` utilisateur non pris en charge backend
+## 3. Le bloc `Bilan` repose encore sur des compteurs, pas sur un vrai chiffre d'affaires
 
 Fichiers impactes :
 
-- [pages/add_hotspot_user.php#L81](/var/www/html/pages/add_hotspot_user.php#L81)
-- [api/users/create_user.php](/var/www/html/api/users/create_user.php)
-- [api/users/update_user.php](/var/www/html/api/users/update_user.php)
+- [api/get_stats.php](/var/www/html/api/get_stats.php)
+- [pages/dashboard.php](/var/www/html/pages/dashboard.php)
 
 Probleme :
 
-- le champ existe dans l'UI
-- il n'est ni lu ni mappe vers RADIUS cote backend
+- `Ventes du jour` et `Vente mensuel` sont actuellement calcules a partir du nombre de vouchers utilises
+- il n'existe pas encore de source prix/montant fiable dans le schema branche au dashboard
 
 Effet :
 
-- l'utilisateur peut croire configurer une limite de session qui n'est jamais appliquee
+- le bloc commercial represente un volume de ventes, pas un revenu monetise
 
 Correction a envisager :
 
-- propager le champ jusqu'au stockage et au mapping RADIUS
+- brancher une table de prix/transactions
+- ou mapper les montants depuis les profils/vouchers si le modele metier le permet
 
-## 8. Champs du formulaire profil ignores
+## 4. La page dashboard reste dependante de plusieurs appels OPNsense live
 
 Fichiers impactes :
 
-- [pages/add_profile.php](/var/www/html/pages/add_profile.php)
-- [api/profiles/create_profile.php](/var/www/html/api/profiles/create_profile.php)
+- [api/get_stats.php](/var/www/html/api/get_stats.php)
+- [api/get_traffic_stats.php](/var/www/html/api/get_traffic_stats.php)
+- [api/traffic_stream.php](/var/www/html/api/traffic_stream.php)
+- [api/cpu_stream.php](/var/www/html/api/cpu_stream.php)
 
 Probleme :
 
-- `description`, `validity_value`, `validity_unit`, `auto_renewal` existent dans l'UI
-- ils ne sont pas traites par l'API
+- le dashboard combine :
+  - un chargement principal JSON
+  - un stream trafic
+  - un stream CPU
+- le demarrage a ete sequence pour alleger la charge, mais l'ecran reste sensible a la latence OPNsense
 
 Effet :
 
-- perte silencieuse de donnees saisies
+- risque de `Failed to fetch` ou de chargement percu comme lent si OPNsense repond mal
 
 Correction a envisager :
 
-- soit supprimer ces champs de l'UI, soit les implermenter cote backend
+- mettre un cache court local
+- reduire encore les champs demandes au chargement principal
+- ajouter une strategie de fallback plus douce cote frontend
 
-## 9. Double champ `data_limit` dans le formulaire utilisateur
+## 5. L'abstraction NAS reste incomplete
 
 Fichier impacte :
 
-- [pages/add_hotspot_user.php#L86](/var/www/html/pages/add_hotspot_user.php#L86)
-- [pages/add_hotspot_user.php#L185](/var/www/html/pages/add_hotspot_user.php#L185)
+- [includes/nas_resolver.php](/var/www/html/includes/nas_resolver.php)
 
 Probleme :
 
-- deux champs portent le meme nom `data_limit`
+- le type `opnsense` reste encore route vers le backend `radius`
+- il n'existe pas encore d'adaptateur OPNsense metier complet pour les operations NAS
 
 Effet :
 
-- ambiguite sur la valeur effectivement recue en PHP
+- architecture multi-NAS engagee mais non terminee
 
 Correction a envisager :
 
-- dissocier les usages ou renommer les champs
+- introduire un vrai backend/adaptateur OPNsense
+- clarifier les responsabilites `radius` vs `opnsense`
 
-## 10. `api/test_radius.php` contient des variables incoherentes
-
-Fichier impacte :
-
-- [api/test_radius.php](/var/www/html/api/test_radius.php)
-
-Problemes observes :
-
-- reaffectation successive de `host`, `secret`, `port`
-- utilisation de `$input` non defini
-- utilisation de `$success` avant son initialisation
-- melange entre `user/pass` et `test_user/test_pass`
-
-Effet :
-
-- comportement imprevisible ou faux negatif/faux positif lors du test
-
-Correction a envisager :
-
-- nettoyer la logique et unifier les sources d'entree
-
-## 11. `profile_list.php` est statique
-
-Fichier impacte :
-
-- [pages/profile_list.php](/var/www/html/pages/profile_list.php)
-
-Probleme :
-
-- la liste des profils est un exemple hardcode
-
-Effet :
-
-- elle ne reflete pas la base reelle
-
-Correction a envisager :
-
-- brancher la page a la base SQL
-
-## 12. `sessions_list.php` est statique
-
-Fichier impacte :
-
-- [pages/sessions_list.php](/var/www/html/pages/sessions_list.php)
-
-Probleme :
-
-- les sessions affichees sont en dur
-
-Effet :
-
-- la page ne reflete pas les sessions reelles
-
-Correction a envisager :
-
-- connecter la page a `radacct` ou a l'API reseau reelle
-
-## 13. `hotspot_vouchers.php` contient deux pages concatenees
-
-Fichier impacte :
-
-- [pages/hotspot_vouchers.php](/var/www/html/pages/hotspot_vouchers.php)
-
-Probleme :
-
-- le fichier contient une page de vouchers puis une seconde structure de page FreeRADIUS
-
-Effet :
-
-- maintenance tres fragile
-- risque d'erreurs de rendu ou de logique
-
-Correction a envisager :
-
-- separer les responsabilites dans des fichiers distincts
-
-## 14. Schema SQL incomplet par rapport au code
+## 6. Le schema SQL fourni reste incomplet par rapport au code
 
 Fichier impacte :
 
@@ -257,79 +138,87 @@ Fichier impacte :
 
 Probleme :
 
-- `users` et `profiles` sont utilises partout
-- ils ne sont pas definis dans le schema fourni
+- le code utilise toujours des tables applicatives comme `users`, `profiles`, `vouchers`, `logs`
+- le schema de reference du projet reste focalise sur FreeRADIUS
 
 Effet :
 
-- difficulte d'installation
-- ambiguite sur la structure exacte attendue
+- installation incomplete si on se base uniquement sur le schema fourni
 
 Correction a envisager :
 
-- completer le schema officiel du projet
+- livrer un schema complet aligne sur l'application reelle
 
-## 15. Liens morts dans la sidebar
+## 7. La gestion des devices n'est pas encore alignee sur la directive a trois types
 
-Fichier impacte :
+Fichiers impactes :
 
+- [pages/network_devices.php](/var/www/html/pages/network_devices.php)
+- [js/network_device.js](/var/www/html/js/network_device.js)
+- [api/network_devices_api.php](/var/www/html/api/network_devices_api.php)
+- [includes/nas_resolver.php](/var/www/html/includes/nas_resolver.php)
+
+Probleme :
+
+- l'UI actuelle reste principalement centree sur OPNsense
+- la distinction cible `opnsense` / `mikrotik` / `radius` n'est pas encore materialisee proprement
+- les capacites UI comme l'acces au dashboard ne sont pas encore derivees du type de device
+
+Effet :
+
+- confusion entre device API et NAS RADIUS standard
+- risque d'afficher des pages ou tests incoherents pour certains types
+
+Correction a envisager :
+
+- faire porter au type de device la definition des champs, tests et pages actives
+- reserver le dashboard aux devices API qui exposent des donnees live
+- considerer `radius` comme une branche standard sans dashboard
+
+## 8. Les evolutions de `network_devices.php` doivent rester visuellement stables
+
+Fichiers impactes :
+
+- [pages/network_devices.php](/var/www/html/pages/network_devices.php)
+- [css/network_devices.css](/var/www/html/css/network_devices.css)
+- [css/theme.css](/var/www/html/css/theme.css)
+
+Probleme :
+
+- la page sert maintenant de point d'entree pour la nouvelle gestion des types de devices
+- chaque changement fonctionnel risque de detruire l'equilibre visuel deja en place si la mise en page est modifiee trop brutalement
+
+Effet :
+
+- dette UI supplementaire
+- incoherence avec la base visuelle existante du projet
+
+Correction a envisager :
+
+- faire des modifications incrementales
+- conserver la structure de page et les composants deja propres
+- ne pas sacrifier la qualite visuelle pour introduire la logique `opnsense` / `mikrotik` / `radius`
+
+## 9. Les fichiers UI globaux ne doivent pas etre embarques par erreur dans un chantier local
+
+Fichiers impactes :
+
+- [css/sidebar.css](/var/www/html/css/sidebar.css)
 - [includes/sidebar.php](/var/www/html/includes/sidebar.php)
+- [css/theme.css](/var/www/html/css/theme.css)
 
 Probleme :
 
-- certains liens pointent vers des fichiers absents
-
-Exemples :
-
-- `sessions_liste.php`
-- `administration.php`
-- `reboot.php`
-- `shutdown.php`
+- ces fichiers sont partages par plusieurs pages
+- une modification non autorisee dans un chantier local peut casser l'ensemble de l'interface
 
 Effet :
 
-- navigation partiellement cassée
+- regressions visuelles transverses
+- perte de confiance dans les refactors pourtant cibles
 
 Correction a envisager :
 
-- corriger les routes ou ajouter les pages manquantes
-
-## 16. Incoherence de mapping data quota
-
-Fichiers impactes :
-
-- [includes/radius_sync.php](/var/www/html/includes/radius_sync.php)
-- [api/users/create_user.php](/var/www/html/api/users/create_user.php)
-
-Probleme :
-
-- profil : `data_quota_mb` converti en `Max-Octets`
-- utilisateur : `data_limit` ecrit en `Max-Data` sans conversion
-
-Effet :
-
-- comportements differents pour des concepts proches
-
-Correction a envisager :
-
-- unifier unite, attribut cible et transformation
-
-## 17. Dependances MikroTik encore actives
-
-Fichiers impactes :
-
-- [includes/radius_sync.php](/var/www/html/includes/radius_sync.php)
-- [api/users/create_user.php](/var/www/html/api/users/create_user.php)
-- [api/users/update_user.php](/var/www/html/api/users/update_user.php)
-
-Probleme :
-
-- `Mikrotik-Rate-Limit` est encore utilise dans plusieurs flux
-
-Effet :
-
-- la transition vers OPNsense / FreeRADIUS n'est pas complete
-
-Correction a envisager :
-
-- definir une strategie unique de limitation de debit
+- traiter ces fichiers comme perimetre protege
+- exiger une autorisation explicite avant toute modification
+- limiter par defaut un chantier local aux fichiers strictement necessaires

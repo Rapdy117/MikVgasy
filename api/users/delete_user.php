@@ -3,6 +3,20 @@ require '../../config/db.php';
 
 session_start();
 
+function post_int_or_default(string $key, int $default = 0): ?int
+{
+    $value = trim((string)($_POST[$key] ?? ''));
+    if ($value === '') {
+        return $default;
+    }
+
+    if (filter_var($value, FILTER_VALIDATE_INT) === false) {
+        return null;
+    }
+
+    return (int)$value;
+}
+
 if (!isset($_SESSION['logged_in'])) {
     http_response_code(403);
     exit("Unauthorized");
@@ -11,9 +25,9 @@ if (!isset($_SESSION['logged_in'])) {
 /* =========================
    INPUT
 ========================= */
-$id = $_POST['id'] ?? null;
+$id = post_int_or_default('id', 0);
 
-if (!$id) {
+if ($id === null || $id <= 0) {
     exit("ID manquant");
 }
 

@@ -1,19 +1,25 @@
 <?php
 header('Content-Type: application/json');
 
+function post_string_or_null(string $key): ?string
+{
+    $value = trim((string)($_POST[$key] ?? ''));
+    return $value === '' ? null : $value;
+}
+
 // =========================
 // GET INPUT
 // =========================
-$host = trim($_POST['host'] ?? '');
-$key = trim($_POST['api_key'] ?? '');
-$secret = trim($_POST['api_secret'] ?? '');
+$host = post_string_or_null('host');
+$key = post_string_or_null('api_key');
+$secret = post_string_or_null('api_secret');
 $verify_ssl = ($_POST['verify_ssl'] ?? 'false') === 'true';
 $statusOnly = isset($_POST['status_only']);
 
 // =========================
 // VALIDATION
 // =========================
-if (!$host || !$key || !$secret) {
+if ($host === null || $key === null || $secret === null) {
     echo json_encode([
         'success' => false,
         'log' => "❌ Missing API credentials"

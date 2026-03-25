@@ -27,7 +27,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $_SESSION['username'] = $username; 
 
         // Redirection vers le tableau de bord
-        header('Location: dashboard/dashboard.php');
+        header('Location: /pages/dashboard.php');
         exit();
     } else {
         // Authentification échouée pour votre application

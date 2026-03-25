@@ -182,6 +182,7 @@ Risque :
 - `profiles.name` -> `radgroupreply.groupname`
 - `users.username` -> `radcheck.username`
 - `users.username` -> `radreply.username`
+- `nas.type` -> choix du mapping de debit dans [includes/radius_sync.php](/var/www/html/includes/radius_sync.php)
 
 ### Couplage typage/unites
 

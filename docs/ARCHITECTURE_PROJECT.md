@@ -52,7 +52,7 @@ Scripts structurants :
 - [js/select_nas.js](/var/www/html/js/select_nas.js) : chargement des NAS dans le formulaire profil
 - [js/network_device.js](/var/www/html/js/network_device.js) : CRUD des equipements OPNsense
 - [js/freeradius.js](/var/www/html/js/freeradius.js) : sauvegarde et test de la configuration RADIUS
-- [js/dashboard.js](/var/www/html/js/dashboard.js) : rafraichissement des donnees du dashboard
+- [js/dashboard.js](/var/www/html/js/dashboard.js) : rafraichissement du dashboard oriente hotspot/commercial, avec chargement principal via [api/get_stats.php](/var/www/html/api/get_stats.php), trafic live via stream OPNsense et jauge concentrique CPU/RAM
 
 ### 3. Couche backend applicative
 
@@ -87,6 +87,15 @@ Le projet dialogue avec deux systemes externes :
 - FreeRADIUS
 - OPNsense
 
+Nouvelle directive documentaire :
+
+- la gestion des devices doit maintenant etre bornee a trois types :
+  - `opnsense`
+  - `mikrotik`
+  - `radius`
+- seuls `opnsense` et `mikrotik` sont des devices API de management
+- `radius` designe un NAS standard sans dashboard ni pilotage live projet
+
 FreeRADIUS est utilise via :
 
 - ecriture directe en base SQL (`radcheck`, `radreply`, `radusergroup`, `radgroupreply`)
@@ -97,6 +106,9 @@ OPNsense est utilise via :
 - appels cURL vers l'API REST
 - configuration stockee localement dans `config/opnsense.json`
 - test d'etat et de connectivite depuis [api/test_opnsense.php](/var/www/html/api/test_opnsense.php)
+- metriques trafic du dashboard via [api/get_traffic_stats.php](/var/www/html/api/get_traffic_stats.php) puis stream live via [api/traffic_stream.php](/var/www/html/api/traffic_stream.php)
+- metriques CPU live du dashboard via [api/cpu_stream.php](/var/www/html/api/cpu_stream.php)
+- type CPU via [api/get_cpu_type.php](/var/www/html/api/get_cpu_type.php)
 
 ## Modules Fonctionnels
 
@@ -148,7 +160,13 @@ Architecture metier :
 
 ### Gestion des NAS et equipements reseau
 
-Deux blocs coexistent :
+La cible documentaire retenue est maintenant la suivante :
+
+- `opnsense` : device gere via API
+- `mikrotik` : device gere via API
+- `radius` : NAS standard sans API projet
+
+Dans l'etat actuel du code, deux blocs coexistent encore :
 
 - NAS FreeRADIUS en base via table `nas`
 - equipements OPNsense en JSON via `config/opnsense.json`
@@ -159,6 +177,12 @@ Composants :
 - [pages/network_devices.php](/var/www/html/pages/network_devices.php)
 - [api/network_devices_api.php](/var/www/html/api/network_devices_api.php)
 - [api/test_opnsense.php](/var/www/html/api/test_opnsense.php)
+
+Direction de convergence :
+
+- `pages/network_devices.php` doit devenir le point d'entree de configuration des trois types de devices
+- les champs affiches, les tests proposes et les pages accessibles doivent dependre du type de device
+- le dashboard doit etre reserve aux devices qui exposent reellement des metriques live, donc pas au `radius` standard
 
 ### Sessions et suivi
 
@@ -173,6 +197,32 @@ Source des sessions :
 
 - table `radacct` pour l'historique RADIUS
 - API OPNsense pour certaines actions de deconnexion
+
+### Dashboard hotspot/commercial
+
+Le dashboard courant n'est plus un simple panneau systeme.
+
+Il est maintenant organise autour de :
+
+- un bloc `Hotspot` avec KPI et raccourcis
+- un bloc `Bande Passante Live` avec `Download` et `Upload`
+- un bloc `Bilan` pour les indicateurs commerciaux du mois courant
+- un bloc `OPNsense` pour l'etat du firewall et la jauge concentrique `CPU/RAM`
+- un tableau `Derniers Evenements` centre sur les sessions utilisateur OPNsense
+
+Flux techniques utilises par le dashboard :
+
+- [api/get_stats.php](/var/www/html/api/get_stats.php) : charge les KPI hotspot, le bilan commercial, l'etat OPNsense et les evenements recents
+- [api/get_traffic_stats.php](/var/www/html/api/get_traffic_stats.php) : initialise le widget trafic
+- [api/traffic_stream.php](/var/www/html/api/traffic_stream.php) : alimente les courbes trafic en live
+- [api/cpu_stream.php](/var/www/html/api/cpu_stream.php) : alimente la jauge CPU
+- [api/get_cpu_type.php](/var/www/html/api/get_cpu_type.php) : renseigne le type de CPU OPNsense
+
+Limites connues du dashboard :
+
+- le bloc `Derniers Evenements` affiche surtout les utilisateurs actuellement vus par OPNsense
+- le `Bilan` repose encore sur des compteurs de vouchers utilises, pas sur un revenu monetise
+- la qualite du chargement depend toujours fortement de la reactivite OPNsense
 
 ## Flux Architecturaux Principaux
 

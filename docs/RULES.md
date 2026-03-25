@@ -215,6 +215,16 @@ Regle de reference :
 - toute suppression utilisateur doit nettoyer les entrees RADIUS associees
 - toute creation profil doit regenerer les attributs de groupe RADIUS
 
+## Regles UI Et Mise En Page
+
+- toute evolution de page doit preserver la base UI deja en place lorsqu'elle est consideree propre
+- une refonte visuelle locale ne doit pas casser la coherence avec `theme.css` et les composants deja stabilises
+- avant d'ajouter de nouveaux champs ou boutons, privilegier des ajustements sobres de la mise en page existante
+- l'ajout d'une nouvelle logique fonctionnelle ne doit pas se traduire par une degradation visuelle de la page
+- sur `pages/network_devices.php`, les evolutions doivent rester compatibles avec la structure actuelle plutot que reconstituer une interface a zero
+- les fichiers globaux partages comme [css/sidebar.css](/var/www/html/css/sidebar.css), [includes/sidebar.php](/var/www/html/includes/sidebar.php) et [css/theme.css](/var/www/html/css/theme.css) ne doivent pas etre modifies sans autorisation explicite prealable
+- si la demande utilisateur cible une page locale, le perimetre de modification doit rester local tant qu'une autorisation explicite n'etend pas ce perimetre
+
 ## Regle De Prudence Pour Les Modifications
 
 - si un champ est affiche dans l'UI mais non persiste cote backend, il ne doit pas etre suppose fonctionnel tant que la chaine complete formulaire -> backend -> stockage n'est pas verifiee

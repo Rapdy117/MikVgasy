@@ -1,47 +1,46 @@
-
 {
+    "active_device_id": "dev_1711039200",
     "devices": [
         {
             "id": "dev_1711039200",
             "name": "OPNsense",
             "type": "opnsense",
-            "host": "https:\/\/10.10.10.1",
+            "host": "https://10.10.10.1",
             "api_key": "puBtlg8b3UtRtaF57BTK+8NvDAa+4+FpEIDgnZerYkaltuSJAfF86O5c2uItwHPXEO8w9LVrqNf+e6Qt",
-            "api_secret": "uf\/+zA2wFhA72x2BDc+fEyivQSeSwo220BV8WFSlLz1NGy6z11wVQS5s5tP9KurUqYqBZCDi1J4eoDYI",
+            "api_secret": "uf/+zA2wFhA72x2BDc+fEyivQSeSwo220BV8WFSlLz1NGy6z11wVQS5s5tP9KurUqYqBZCDi1J4eoDYI",
+            "secret": "uf/+zA2wFhA72x2BDc+fEyivQSeSwo220BV8WFSlLz1NGy6z11wVQS5s5tP9KurUqYqBZCDi1J4eoDYI",
             "verify_ssl": false,
-            "updated_at": "2026-03-21 19:19:27"
+            "port": null,
+            "vendor": null,
+            "created_at": null,
+            "updated_at": "2026-03-25 21:04:14"
         },
-
         {
             "id": "dev_radius_001",
             "name": "Ubiquiti AP",
-            "type": "radius",
-            "vendor": "ubiquiti",
+            "type": "other",
             "host": "192.168.1.2",
+            "api_key": "",
+            "api_secret": "radius_secret",
             "secret": "radius_secret",
+            "verify_ssl": false,
             "port": 1812,
+            "vendor": "ubiquiti",
+            "created_at": null,
             "updated_at": "2026-03-24 10:00:00"
         },
-
-        {
-            "id": "dev_radius_002",
-            "name": "TP-Link Controller",
-            "type": "radius",
-            "vendor": "tplink",
-            "host": "192.168.1.3",
-            "secret": "radius_secret",
-            "port": 1812,
-            "updated_at": "2026-03-24 10:00:00"
-        },
-
         {
             "id": "dev_radius_003",
             "name": "MikroTik NAS",
-            "type": "radius",
-            "vendor": "mikrotik",
+            "type": "other",
             "host": "192.168.1.4",
+            "api_key": "",
+            "api_secret": "radius_secret",
             "secret": "radius_secret",
+            "verify_ssl": false,
             "port": 1812,
+            "vendor": "mikrotik",
+            "created_at": null,
             "updated_at": "2026-03-24 10:00:00"
         }
     ]

@@ -1,56 +1,111 @@
 <?php
 header('Content-Type: application/json');
 
-$file = __DIR__ . '/../config/opnsense.json';
+require_once __DIR__ . '/../includes/device_manager.php';
 
-// =========================
-// INIT FILE
-// =========================
-if (!file_exists($file)) {
-    file_put_contents($file, json_encode(['devices' => []], JSON_PRETTY_PRINT));
+session_start();
+
+function post_string_or_null(string $key): ?string
+{
+    $value = trim((string)($_POST[$key] ?? ''));
+    return $value === '' ? null : $value;
 }
 
-$data = json_decode(file_get_contents($file), true);
-
-if (!$data || !isset($data['devices'])) {
-    $data = ['devices' => []];
+if (!isset($_SESSION['logged_in']) || $_SESSION['logged_in'] !== true) {
+    http_response_code(403);
+    echo json_encode([
+        'success' => false,
+        'message' => 'Unauthorized'
+    ]);
+    exit;
 }
+
+// =========================
+$data = loadDeviceStore();
 
 // =========================
 // POST ACTIONS
 // =========================
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
-    $action = $_POST['action'] ?? 'save';
+    $action = trim((string)($_POST['action'] ?? 'save'));
 
     // =========================
     // DELETE
     // =========================
     if ($action === 'delete') {
 
-        $id = $_POST['id'] ?? '';
+        $id = post_string_or_null('id');
+
+        if ($id === null) {
+            echo json_encode([
+                'success' => false,
+                'message' => 'Missing id'
+            ]);
+            exit;
+        }
 
         $data['devices'] = array_values(array_filter($data['devices'], function ($d) use ($id) {
             return ($d['id'] ?? '') !== $id;
         }));
 
-        file_put_contents($file, json_encode($data, JSON_PRETTY_PRINT), LOCK_EX);
+        if (($data['active_device_id'] ?? null) === $id) {
+            $data['active_device_id'] = null;
+            unset($_SESSION['active_device_id']);
+        }
+
+        saveDeviceStore($data);
 
         echo json_encode(['success' => true]);
+        exit;
+    }
+
+    if ($action === 'set_active') {
+        $id = post_string_or_null('id');
+
+        if ($id === null) {
+            echo json_encode([
+                'success' => false,
+                'message' => 'Missing id'
+            ]);
+            exit;
+        }
+
+        $activeDevice = setActiveDeviceId($id);
+
+        if (!$activeDevice) {
+            echo json_encode([
+                'success' => false,
+                'message' => 'Device introuvable'
+            ]);
+            exit;
+        }
+
+        echo json_encode([
+            'success' => true,
+            'active_device_id' => $activeDevice['id'],
+            'active_device' => $activeDevice,
+        ]);
         exit;
     }
 
     // =========================
     // SAVE / UPDATE
     // =========================
-    $id = $_POST['id'] ?? '';
-    $name = trim($_POST['device_name'] ?? '');
-    $host = trim($_POST['host'] ?? '');
-    $api_key = trim($_POST['api_key'] ?? '');
-    $api_secret = trim($_POST['api_secret'] ?? '');
+    $id = post_string_or_null('id');
+    $type = normalizeDeviceType((string)($_POST['type'] ?? 'opnsense'));
+    $name = post_string_or_null('device_name');
+    $host = post_string_or_null('host');
+    $api_key = post_string_or_null('api_key');
+    $api_secret = post_string_or_null('api_secret');
     $verify_ssl = ($_POST['verify_ssl'] ?? 'false') === 'true';
+    $setActive = ($_POST['is_active'] ?? '0') === '1';
 
-    if (!$name || !$host || !$api_key || !$api_secret) {
+    $requiresApiCredentials = in_array($type, ['opnsense', 'mikrotik'], true);
+    $hasSecret = $api_secret !== null;
+    $hasApiKey = $api_key !== null;
+
+    if ($name === null || $host === null || ($requiresApiCredentials && (!$hasApiKey || !$hasSecret)) || (!$requiresApiCredentials && !$hasSecret)) {
         echo json_encode([
             'success' => false,
             'message' => 'Missing fields'
@@ -59,7 +114,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 
     // generate ID if not exists
-    if (!$id) {
+    if ($id === null) {
         $id = 'dev_' . time();
     }
 
@@ -68,16 +123,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     foreach ($data['devices'] as &$device) {
         if (($device['id'] ?? '') === $id) {
 
-            $device = [
+            $device = normalizeDeviceRecord([
                 'id' => $id,
                 'name' => $name,
-                'type' => 'opnsense',
+                'type' => $type,
                 'host' => $host,
-                'api_key' => $api_key,
-                'api_secret' => $api_secret,
+                'api_key' => $requiresApiCredentials ? ($api_key ?? '') : '',
+                'api_secret' => $api_secret ?? '',
+                'secret' => $api_secret ?? '',
                 'verify_ssl' => $verify_ssl,
+                'port' => $device['port'] ?? null,
+                'vendor' => $device['vendor'] ?? null,
+                'created_at' => $device['created_at'] ?? null,
                 'updated_at' => date('Y-m-d H:i:s')
-            ];
+            ]);
 
             $found = true;
             break;
@@ -85,23 +144,30 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 
     if (!$found) {
-        $data['devices'][] = [
+        $data['devices'][] = normalizeDeviceRecord([
             'id' => $id,
             'name' => $name,
-            'type' => 'opnsense',
+            'type' => $type,
             'host' => $host,
-            'api_key' => $api_key,
-            'api_secret' => $api_secret,
+            'api_key' => $requiresApiCredentials ? ($api_key ?? '') : '',
+            'api_secret' => $api_secret ?? '',
+            'secret' => $api_secret ?? '',
             'verify_ssl' => $verify_ssl,
             'created_at' => date('Y-m-d H:i:s')
-        ];
+        ]);
     }
 
-    file_put_contents($file, json_encode($data, JSON_PRETTY_PRINT), LOCK_EX);
+    if ($setActive || empty($data['active_device_id'])) {
+        $data['active_device_id'] = $id;
+        $_SESSION['active_device_id'] = $id;
+    }
+
+    saveDeviceStore($data);
 
     echo json_encode([
         'success' => true,
-        'id' => $id
+        'id' => $id,
+        'active_device_id' => $data['active_device_id'] ?? null
     ]);
     exit;
 }
@@ -109,4 +175,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 // =========================
 // GET DEVICES
 // =========================
+$activeDevice = getActiveDeviceRecord($data);
+$data['active_device_id'] = $activeDevice['id'] ?? ($data['active_device_id'] ?? null);
 echo json_encode($data);

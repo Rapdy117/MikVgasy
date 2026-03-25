@@ -1,5 +1,17 @@
 # Architecture Du Projet
 
+## Perimetre
+
+Cette documentation couvre uniquement le systeme applicatif.
+
+Elements exclus :
+
+- `phpmyadmin/` : symlink externe
+- `ARCHIVE/` : contenu archive
+- `debug_*.log`
+- `*.zip`
+- `test_*`
+
 ## Vue D'Ensemble
 
 L'application est une interface web PHP de gestion hotspot qui s'appuie sur :
@@ -14,10 +26,20 @@ Le flux architectural principal est :
 
 `Pages PHP -> JavaScript -> API PHP -> Base SQL / JSON / API externes`
 
+Orientation cible a retenir pour les evolutions :
+
+`Pages PHP -> JavaScript -> services metier -> resolution par nas_id -> backend NAS`
+
 Les integrations externes reelles observees dans le code sont :
 
 - FreeRADIUS
 - OPNsense
+
+Lecture cible :
+
+- FreeRADIUS = backend standard pour les NAS compatibles RADIUS
+- OPNsense = backend API distinct a terme
+- `nas_id` = cle qui determine le backend et les attributs utilisables
 
 ## Organisation Backend / Frontend
 
@@ -160,6 +182,11 @@ Structure :
 - le test se fait via `radclient`
 - la logique de provisionnement des profils et utilisateurs ecrit directement dans les tables FreeRADIUS
 
+Positionnement cible :
+
+- FreeRADIUS doit rester le backend standard pour les NAS RADIUS
+- la table `nas` devient la source de verite du dispatch par `nas_id`
+
 Observation :
 
 - il y a coexistence entre configuration fichier et configuration base
@@ -183,11 +210,17 @@ Structure :
 - les tests de connectivite sont faits par cURL
 - certaines actions reseau comme la deconnexion de session passent par l'API OPNsense
 
+Positionnement cible :
+
+- OPNsense doit etre traite comme une branche backend API
+- son comportement futur doit etre pilote par `nas_id`
+
 Observation :
 
 - il y a deux strategies de configuration OPNsense dans le projet :
   - via `config/config.php` pour les constantes globales
   - via `config/opnsense.json` pour les devices enregistres
+- `config/opnsense.json` contient encore une entree orientee MikroTik, ce qui confirme une transition non terminee dans les donnees de configuration
 
 ### 6. Sessions et suivi
 
@@ -230,6 +263,14 @@ Structure :
 - [api/network_devices_api.php](/var/www/html/api/network_devices_api.php) depend du JSON `config/opnsense.json`
 - [api/test_opnsense.php](/var/www/html/api/test_opnsense.php) depend des credentials fournis par formulaire
 
+Dependance cible a introduire :
+
+- toute operation metier sensible au NAS doit d'abord dependre de `nas_id`
+- `nas_id` doit ensuite determiner :
+  - le backend
+  - les attributs disponibles
+  - les transformations a appliquer
+
 ## Couches De Stockage
 
 ### Base MySQL
@@ -244,6 +285,60 @@ Tables FreeRADIUS observees dans le code :
 - `nas`
 
 Tables applicatives attendues par le code :
+
+- `users`
+- `profiles`
+- `devices`
+- `vouchers`
+- `user_overrides`
+- `logs`
+
+Lecture architecturale recommandee :
+
+- une seule base physique est utilisee aujourd'hui : `radius_manager`
+- mais elle porte deux couches logiques distinctes :
+  - donnees metier applicatives
+  - donnees AAA / FreeRADIUS
+
+Couche metier :
+
+- `users`
+- `profiles`
+- `devices`
+- `vouchers`
+- `user_overrides`
+- `logs`
+
+Couche RADIUS :
+
+- `nas`
+- `radcheck`
+- `radreply`
+- `radusergroup`
+- `radgroupreply`
+- `radacct`
+
+## Architecture Cible Multi-NAS
+
+Principe cible :
+
+```text
+UI
+  ->
+services applicatifs
+  ->
+resolution par nas_id
+  ->
+adaptateur backend
+  ->
+FreeRADIUS SQL standard / API OPNsense / autre backend
+```
+
+Regle directrice :
+
+- `nas_id` doit definir le fonctionnement backend
+- les objets metier `User`, `Profile`, `Session` restent communs
+- seul l'adaptateur change selon `nas.type`
 
 - `users`
 - `profiles`

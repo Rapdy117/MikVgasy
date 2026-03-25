@@ -3,6 +3,12 @@ require '../../config/db.php';
 
 session_start();
 
+function get_string_or_null(string $key): ?string
+{
+    $value = trim((string)($_GET[$key] ?? ''));
+    return $value === '' ? null : $value;
+}
+
 if (!isset($_SESSION['logged_in'])) {
     http_response_code(403);
     exit("Unauthorized");
@@ -11,9 +17,9 @@ if (!isset($_SESSION['logged_in'])) {
 /* =========================
    INPUT
 ========================= */
-$username = $_GET['username'] ?? null;
+$username = get_string_or_null('username');
 
-if (!$username) {
+if ($username === null) {
     exit("Username manquant");
 }
 
