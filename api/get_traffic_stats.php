@@ -50,7 +50,21 @@ function opnsenseGet(array $device, string $path): array
 }
 
 try {
-    $device = loadActiveOpnSenseDevice();
+    $device = requireActiveDevice();
+
+    if (($device['type'] ?? '') !== 'opnsense') {
+        echo json_encode([
+            'time' => microtime(true),
+            'interval' => 2000,
+            'interfaces' => [],
+            'last_update' => date('H:i:s'),
+            'supported' => false,
+            'device_type' => (string)($device['type'] ?? 'other'),
+            'backend' => (string)($device['backend'] ?? 'generic'),
+        ]);
+        exit;
+    }
+
     $trafficResponse = opnsenseGet($device, '/api/diagnostics/traffic/interface');
 
     if (!$trafficResponse['success']) {

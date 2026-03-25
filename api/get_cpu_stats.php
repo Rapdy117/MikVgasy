@@ -112,7 +112,28 @@ function saveCpuCache(array $history): void
 }
 
 try {
-    $device = loadActiveOpnSenseDevice();
+    $device = requireActiveDevice();
+
+    if (($device['type'] ?? '') !== 'opnsense') {
+        echo json_encode([
+            'current_cpu_total' => 0,
+            'current_cpu_user' => 0,
+            'current_cpu_system' => 0,
+            'current_cpu_idle' => 0,
+            'cpu_history' => [
+                'labels' => [],
+                'total' => [],
+                'user' => [],
+                'system' => [],
+            ],
+            'last_update' => date('H:i:s'),
+            'supported' => false,
+            'device_type' => (string)($device['type'] ?? 'other'),
+            'backend' => (string)($device['backend'] ?? 'generic'),
+        ]);
+        exit;
+    }
+
     $activityResponse = opnsenseGet($device, '/api/diagnostics/activity/get_activity');
 
     if (!$activityResponse['success']) {
