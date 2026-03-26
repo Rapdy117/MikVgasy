@@ -19,9 +19,11 @@ document.addEventListener("DOMContentLoaded", function () {
     const apiKeyField = form ? form.querySelector('[name="api_key"]') : null;
     const apiSecretField = form ? form.querySelector('[name="api_secret"]') : null;
     const isActiveField = form ? form.querySelector('[name="is_active"]') : null;
+    const STATUS_STORAGE_KEY = 'networkDeviceStatuses';
     let selectedDeviceId = null;
     let currentDevice = null;
     let activeDeviceId = null;
+    let deviceStatuses = loadDeviceStatuses();
 
     function formatDeviceType(type) {
         const normalized = String(type || 'opnsense').toLowerCase();
@@ -74,6 +76,56 @@ document.addEventListener("DOMContentLoaded", function () {
             <span class="${colorClass}">${formatDeviceType(device.type)} | ${device.backend || 'generic'} | ${statusValue}</span>
             <div class="small text-muted mt-1">${message}</div>
         `;
+    }
+
+    function loadDeviceStatuses() {
+        try {
+            const raw = window.localStorage.getItem(STATUS_STORAGE_KEY);
+            const parsed = raw ? JSON.parse(raw) : {};
+            return parsed && typeof parsed === 'object' ? parsed : {};
+        } catch (error) {
+            console.error('STATUS LOAD ERROR:', error);
+            return {};
+        }
+    }
+
+    function saveDeviceStatuses() {
+        try {
+            window.localStorage.setItem(STATUS_STORAGE_KEY, JSON.stringify(deviceStatuses));
+        } catch (error) {
+            console.error('STATUS SAVE ERROR:', error);
+        }
+    }
+
+    function normalizeDeviceStatus(statusValue) {
+        const normalized = String(statusValue || 'offline').toLowerCase();
+        if (normalized === 'active' || normalized === 'connected' || normalized === 'offline') {
+            return normalized;
+        }
+        return 'offline';
+    }
+
+    function getStatusMeta(statusValue) {
+        const normalized = normalizeDeviceStatus(statusValue);
+
+        if (normalized === 'active') {
+            return { label: 'Actif', className: 'bg-success' };
+        }
+
+        if (normalized === 'connected') {
+            return { label: 'Connecte', className: 'bg-info text-dark' };
+        }
+
+        return { label: 'Hors ligne', className: 'bg-secondary' };
+    }
+
+    function updateStoredDeviceStatus(deviceId, statusValue) {
+        if (!deviceId) {
+            return;
+        }
+
+        deviceStatuses[deviceId] = normalizeDeviceStatus(statusValue);
+        saveDeviceStatuses();
     }
 
     function buildFullFormData() {
@@ -242,6 +294,11 @@ document.addEventListener("DOMContentLoaded", function () {
                     ? "✔ SUCCESS\n"
                     : "❌ FAILED\n";
 
+                updateStoredDeviceStatus(
+                    form.querySelector('[name="id"]').value || selectedDeviceId,
+                    data.device_status || (data.success ? 'active' : 'offline')
+                );
+
                 renderBackendStatus({
                     type: form.querySelector('[name="type"]').value,
                     backend: data.backend || 'generic'
@@ -392,6 +449,7 @@ document.addEventListener("DOMContentLoaded", function () {
             tr.className = "device-row";
             tr.dataset.id = device.id || '';
             tr.dataset.active = (device.id || '') === activeDeviceId ? '1' : '0';
+            const statusMeta = getStatusMeta(deviceStatuses[device.id || ''] || 'offline');
 
             tr.innerHTML = `
                 <td>${device.name}</td>
@@ -399,6 +457,9 @@ document.addEventListener("DOMContentLoaded", function () {
                 <td>
                     <span class="type-badge type-${String(device.type || 'opnsense').toLowerCase()}">${formatDeviceType(device.type)}</span>
                     ${(device.id || '') === activeDeviceId ? '<span class="badge bg-success ms-2">Actif</span>' : ''}
+                </td>
+                <td>
+                    <span class="badge ${statusMeta.className}">${statusMeta.label}</span>
                 </td>
             `;
 

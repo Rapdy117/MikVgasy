@@ -10,6 +10,26 @@ function post_string_or_null(string $key): ?string
     return $value === '' ? null : $value;
 }
 
+function probeTcpHost(string $host, int $port, float $timeout = 3.0): array
+{
+    $errno = 0;
+    $errstr = '';
+    $socket = @fsockopen($host, $port, $errno, $errstr, $timeout);
+
+    if (is_resource($socket)) {
+        fclose($socket);
+        return [
+            'reachable' => true,
+            'error' => null,
+        ];
+    }
+
+    return [
+        'reachable' => false,
+        'error' => trim($errstr) !== '' ? trim($errstr) : ('Erreur socket ' . $errno),
+    ];
+}
+
 // =========================
 // GET INPUT
 // =========================
@@ -55,6 +75,7 @@ function respond_test(bool $success, string $type, string $message, int $httpCod
         'success' => $success,
         'device_type' => $type,
         'backend' => resolveDeviceBackend($type),
+        'device_status' => $success ? 'active' : 'offline',
     ];
 
     if (!$statusOnly) {
@@ -82,9 +103,28 @@ if ($type === 'mikrotik') {
     $api->attempts = 1;
     $api->delay = 0;
 
+    $tcpProbe = probeTcpHost($routerHost, $routerPort);
+    if (!$tcpProbe['reachable']) {
+        echo json_encode([
+            'success' => false,
+            'device_type' => $type,
+            'backend' => resolveDeviceBackend($type),
+            'device_status' => 'offline',
+            'log' => "❌ Device hors ligne\nHost: {$routerHost}:{$routerPort}\n" . ($tcpProbe['error'] ?? 'Connexion impossible'),
+        ]);
+        exit;
+    }
+
     if (!$api->connect($routerHost, $key, $secret)) {
         $error = trim((string)($api->error_str ?? 'Connexion MikroTik impossible'));
-        respond_test(false, $type, "❌ MikroTik connection failed\nHost: {$routerHost}:{$routerPort}\n" . $error);
+        echo json_encode([
+            'success' => false,
+            'device_type' => $type,
+            'backend' => resolveDeviceBackend($type),
+            'device_status' => 'connected',
+            'log' => "⚠ Device connecte au reseau mais test API echoue\nHost: {$routerHost}:{$routerPort}\n" . $error,
+        ]);
+        exit;
     }
 
     $resource = $api->comm('/system/resource/print');
@@ -95,6 +135,24 @@ if ($type === 'mikrotik') {
     }
 
     respond_test(true, $type, "✔ Connected successfully\nType: MIKROTIK\nBackend: " . resolveDeviceBackend($type) . "\nHost: {$routerHost}:{$routerPort}");
+}
+
+$parsedHost = parse_url($host);
+$apiHost = is_array($parsedHost) && !empty($parsedHost['host']) ? (string)$parsedHost['host'] : preg_replace('#^https?://#', '', $host);
+$apiPort = is_array($parsedHost) && !empty($parsedHost['port'])
+    ? (int)$parsedHost['port']
+    : ((is_array($parsedHost) && (($parsedHost['scheme'] ?? '') === 'http')) ? 80 : 443);
+$tcpProbe = probeTcpHost($apiHost, $apiPort);
+
+if (!$tcpProbe['reachable']) {
+    echo json_encode([
+        'success' => false,
+        'device_type' => $type,
+        'backend' => resolveDeviceBackend($type),
+        'device_status' => 'offline',
+        'log' => "❌ Device hors ligne\nHost: {$apiHost}:{$apiPort}\n" . ($tcpProbe['error'] ?? 'Connexion impossible'),
+    ]);
+    exit;
 }
 
 $url = rtrim($host, '/') . '/api/core/system/status';
@@ -126,7 +184,10 @@ curl_close($ch);
 if ($error) {
     echo json_encode([
         'success' => false,
-        'log' => "❌ CURL ERROR:\n" . $error
+        'device_type' => $type,
+        'backend' => resolveDeviceBackend($type),
+        'device_status' => 'connected',
+        'log' => "⚠ Device connecte au reseau mais test API echoue\n" . $error
     ]);
     exit;
 }
@@ -146,4 +207,10 @@ if ($http_code === 200 && is_array($decoded)) {
 // =========================
 // FAILED
 // =========================
-respond_test(false, $type, "❌ Failed\nResponse: " . substr($response, 0, 200), $http_code);
+echo json_encode([
+    'success' => false,
+    'device_type' => $type,
+    'backend' => resolveDeviceBackend($type),
+    'device_status' => 'connected',
+    'log' => "⚠ Device connecte au reseau mais test API echoue\nResponse: " . substr($response, 0, 200) . ($http_code > 0 ? "\nHTTP: $http_code" : ''),
+]);
