@@ -145,6 +145,21 @@ body {
     min-width: 110px;
 }
 
+.network-device-table td:last-child .badge.bg-success {
+    background-color: #22c55e !important;
+    color: #ffffff !important;
+}
+
+.network-device-table td:last-child .badge.bg-info {
+    background-color: #facc15 !important;
+    color: #1f2937 !important;
+}
+
+.network-device-table td:last-child .badge.bg-secondary {
+    background-color: #ffffff !important;
+    color: #1f2937 !important;
+}
+
 .network-device-table,
 .network-device-table td,
 .network-device-table th {
