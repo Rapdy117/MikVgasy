@@ -42,7 +42,19 @@ if ($sessionId === '') {
     json_error('ID de session manquant dans la requete.');
 }
 
-$device = loadActiveOpnSenseDevice();
+$device = requireActiveDevice();
+
+if (($device['type'] ?? '') !== 'opnsense') {
+    json_error(
+        'La deconnexion distante n\'est pas disponible pour le device actif ' . getDeviceDisplayLabel($device) . '.',
+        409,
+        [
+            'device_type' => (string)($device['type'] ?? 'other'),
+            'backend' => (string)($device['backend'] ?? 'generic'),
+        ]
+    );
+}
+
 $fullUrl = $device['host'] . '/api/captiveportal/session/disconnect';
 $requestBody = json_encode(['sessionid' => $sessionId]);
 
@@ -69,7 +81,7 @@ $curlError = curl_error($ch);
 curl_close($ch);
 
 if ($curlError !== '') {
-    json_error('Erreur cURL lors de la communication avec OPNsense: ' . $curlError, 500);
+    json_error('Erreur cURL lors de la communication avec le device actif: ' . $curlError, 500);
 }
 
 $decoded = json_decode((string)$response, true);
@@ -89,14 +101,14 @@ if ($httpCode === 200) {
     }
 
     json_error(
-        'La deconnexion a echoue selon OPNsense.',
+        'La deconnexion a echoue selon le backend actif.',
         500,
         ['opnsense_response' => $decoded]
     );
 }
 
 json_error(
-    'Erreur de l\'API OPNsense (' . $httpCode . ').',
+    'Erreur de l\'API du device actif (' . $httpCode . ').',
     $httpCode > 0 ? $httpCode : 500,
     ['opnsense_response' => $decoded]
 );

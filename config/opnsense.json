@@ -1,11 +1,13 @@
 {
-    "active_device_id": "dev_1711039200",
+    "active_device_id": "dev_radius_003",
     "devices": [
         {
             "id": "dev_1711039200",
             "name": "OPNsense",
             "type": "opnsense",
             "host": "https://10.10.10.1",
+            "ip": "10.10.10.1",
+            "backend": "opnsense_api",
             "api_key": "puBtlg8b3UtRtaF57BTK+8NvDAa+4+FpEIDgnZerYkaltuSJAfF86O5c2uItwHPXEO8w9LVrqNf+e6Qt",
             "api_secret": "uf/+zA2wFhA72x2BDc+fEyivQSeSwo220BV8WFSlLz1NGy6z11wVQS5s5tP9KurUqYqBZCDi1J4eoDYI",
             "secret": "uf/+zA2wFhA72x2BDc+fEyivQSeSwo220BV8WFSlLz1NGy6z11wVQS5s5tP9KurUqYqBZCDi1J4eoDYI",
@@ -20,6 +22,8 @@
             "name": "Ubiquiti AP",
             "type": "other",
             "host": "192.168.1.2",
+            "ip": "192.168.1.2",
+            "backend": "generic",
             "api_key": "",
             "api_secret": "radius_secret",
             "secret": "radius_secret",
@@ -32,16 +36,18 @@
         {
             "id": "dev_radius_003",
             "name": "MikroTik NAS",
-            "type": "other",
-            "host": "192.168.1.4",
-            "api_key": "",
-            "api_secret": "radius_secret",
-            "secret": "radius_secret",
+            "type": "mikrotik",
+            "host": "10.10.11.133",
+            "ip": "10.10.11.133",
+            "backend": "mikrotik_api",
+            "api_key": "admin",
+            "api_secret": "Bl@ckOps2024#",
+            "secret": "Bl@ckOps2024#",
             "verify_ssl": false,
             "port": 1812,
             "vendor": "mikrotik",
             "created_at": null,
-            "updated_at": "2026-03-24 10:00:00"
+            "updated_at": "2026-03-26 08:29:32"
         }
     ]
 }
