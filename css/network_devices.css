@@ -146,18 +146,21 @@ body {
 }
 
 .network-device-table td:last-child .badge.bg-success {
-    background-color: #22c55e !important;
-    color: #ffffff !important;
+    background-color: rgba(23, 162, 184, 0.18) !important;
+    border: 1px solid var(--theme-primary) !important;
+    color: var(--theme-primary) !important;
 }
 
 .network-device-table td:last-child .badge.bg-info {
-    background-color: #facc15 !important;
-    color: #1f2937 !important;
+    background-color: rgba(245, 158, 11, 0.18) !important;
+    border: 1px solid #f59e0b !important;
+    color: #f59e0b !important;
 }
 
 .network-device-table td:last-child .badge.bg-secondary {
     background-color: #ffffff !important;
     color: #1f2937 !important;
+    border: 1px solid rgba(255, 255, 255, 0.5) !important;
 }
 
 .network-device-table,
