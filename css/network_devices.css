@@ -132,6 +132,19 @@ body {
     border-bottom: 1px solid rgba(255, 255, 255, 0.05);
 }
 
+.network-device-table .device-type-cell {
+    font-size: 0.8rem;
+    font-weight: 400;
+    color: var(--text-white);
+}
+
+.network-device-table td:last-child .badge {
+    font-size: 0.96rem;
+    font-weight: 700;
+    padding: 0.42rem 0.78rem;
+    min-width: 110px;
+}
+
 .network-device-table,
 .network-device-table td,
 .network-device-table th {
@@ -220,33 +233,6 @@ body {
 .btn-select:hover {
     background: linear-gradient(135deg, #2563eb, #1d4ed8);
     transform: scale(1.05);
-}
-
-.type-badge {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    min-width: 88px;
-    padding: 4px 10px;
-    border-radius: 999px;
-    font-size: 0.72rem;
-    font-weight: 700;
-    letter-spacing: 0.02em;
-}
-
-.type-badge.type-opnsense {
-    background: rgba(59, 130, 246, 0.18);
-    color: #60a5fa;
-}
-
-.type-badge.type-mikrotik {
-    background: rgba(245, 158, 11, 0.18);
-    color: #fbbf24;
-}
-
-.type-badge.type-radius {
-    background: rgba(168, 85, 247, 0.18);
-    color: #c084fc;
 }
 
 @media (max-width: 991.98px) {

@@ -119,6 +119,10 @@ document.addEventListener("DOMContentLoaded", function () {
         return { label: 'Hors ligne', className: 'bg-secondary' };
     }
 
+    function formatTableType(type) {
+        return formatDeviceType(type);
+    }
+
     function updateStoredDeviceStatus(deviceId, statusValue) {
         if (!deviceId) {
             return;
@@ -454,10 +458,7 @@ document.addEventListener("DOMContentLoaded", function () {
             tr.innerHTML = `
                 <td>${device.name}</td>
                 <td>${device.host}</td>
-                <td>
-                    <span class="type-badge type-${String(device.type || 'opnsense').toLowerCase()}">${formatDeviceType(device.type)}</span>
-                    ${(device.id || '') === activeDeviceId ? '<span class="badge bg-success ms-2">Actif</span>' : ''}
-                </td>
+                <td class="device-type-cell">${formatTableType(device.type)}</td>
                 <td>
                     <span class="badge ${statusMeta.className}">${statusMeta.label}</span>
                 </td>
