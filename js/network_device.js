@@ -94,7 +94,7 @@ document.addEventListener("DOMContentLoaded", function () {
         }
 
         if (normalized === 'connected') {
-            return { label: 'Connecte', className: 'bg-info text-dark' };
+            return { label: 'Connecté', className: 'bg-info text-dark' };
         }
 
         return { label: 'Hors ligne', className: 'bg-secondary' };
@@ -173,7 +173,7 @@ document.addEventListener("DOMContentLoaded", function () {
         }
 
         if (apiKeyLabel) {
-            apiKeyLabel.textContent = normalizedType === 'mikrotik' ? 'Administrateur' : 'Cle API';
+            apiKeyLabel.textContent = normalizedType === 'mikrotik' ? 'Administrateur' : 'Clé API';
         }
 
         apiSecretField.placeholder = isOther ? 'Secret / Token optionnel' : '';
@@ -182,7 +182,7 @@ document.addEventListener("DOMContentLoaded", function () {
         }
 
         if (verifySslLabel) {
-            verifySslLabel.textContent = 'Verifier SSL';
+            verifySslLabel.textContent = 'Vérifier SSL';
         }
 
         if (testBtn) {
@@ -207,7 +207,7 @@ document.addEventListener("DOMContentLoaded", function () {
             if (isActiveField) {
                 isActiveField.value = activeDeviceId ? '0' : '1';
             }
-            status.innerHTML = '<span class="text-muted">Aucun test effectue</span>';
+            status.innerHTML = '<span class="text-muted">Aucun test effectué</span>';
             showDeviceForm();
             enableEditMode();
             applyDeviceTypeRules();
@@ -284,7 +284,7 @@ document.addEventListener("DOMContentLoaded", function () {
     if (testBtn) {
         testBtn.addEventListener("click", function () {
 
-            status.innerHTML = "Testing...\n";
+            status.innerHTML = "Test en cours...\n";
 
             const formData = buildFullFormData();
 
@@ -314,7 +314,7 @@ document.addEventListener("DOMContentLoaded", function () {
                 }, {
                     supported: !!data.success,
                     status: data.success ? 'connected' : 'failed',
-                    label: data.log || 'Test termine'
+                    label: data.log || 'Test terminé'
                 });
 
             })
@@ -427,7 +427,7 @@ document.addEventListener("DOMContentLoaded", function () {
 
             form.reset();
             form.querySelector('[name="id"]').value = '';
-            status.innerHTML = '<span class="text-muted">Aucun test effectue</span>';
+            status.innerHTML = '<span class="text-muted">Aucun test effectué</span>';
             hideDeviceForm();
             disableEditMode();
             applyDeviceTypeRules();
@@ -506,7 +506,7 @@ document.addEventListener("DOMContentLoaded", function () {
                 form.reset();
                 form.querySelector('[name="id"]').value = '';
                 form.querySelector('[name="type"]').value = 'opnsense';
-                status.innerHTML = '<span class="text-muted">Aucun test effectue</span>';
+                status.innerHTML = '<span class="text-muted">Aucun test effectué</span>';
                 hideDeviceForm();
                 disableEditMode();
                 applyDeviceTypeRules();
