@@ -139,7 +139,7 @@ body {
 }
 
 .network-device-table td:last-child .badge {
-    font-size: 0.96rem;
+    font-size: 0.86rem;
     font-weight: 700;
     padding: 0.42rem 0.78rem;
     min-width: 110px;
