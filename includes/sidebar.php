@@ -36,7 +36,13 @@ $navbarDevice = getNavbarDeviceInfo();
                 <span class="navbar-text text-white me-4 d-none d-md-block">
                     <i class="fas fa-network-wired me-2"></i>
                     <span id="routerInfo" data-device-type="<?= htmlspecialchars($navbarDevice['type']) ?>">
-                        <?= htmlspecialchars($navbarDevice['host']) ?>
+                        <?= htmlspecialchars($navbarDevice['name']) ?>
+                        <?php if (!empty($navbarDevice['ip'])): ?>
+                            | <?= htmlspecialchars($navbarDevice['ip']) ?>
+                        <?php elseif (!empty($navbarDevice['host'])): ?>
+                            | <?= htmlspecialchars($navbarDevice['host']) ?>
+                        <?php endif; ?>
+                        | <?= htmlspecialchars(strtoupper($navbarDevice['type'])) ?>
                     </span>
                 </span>
 

@@ -14,6 +14,7 @@ document.addEventListener("DOMContentLoaded", function () {
     const deleteBtn = document.getElementById("deleteBtn");
     const activateBtn = document.getElementById("activateDeviceBtn");
     const activeBadge = document.getElementById("activeDeviceBadge");
+    const backendStatus = document.getElementById("deviceBackendStatus");
     const typeField = form ? form.querySelector('[name="type"]') : null;
     const apiKeyField = form ? form.querySelector('[name="api_key"]') : null;
     const apiSecretField = form ? form.querySelector('[name="api_secret"]') : null;
@@ -42,12 +43,37 @@ document.addEventListener("DOMContentLoaded", function () {
         }
 
         if (!device) {
-            activeBadge.textContent = 'Actif: OPNsense';
+            activeBadge.textContent = 'Actif: aucun';
             return;
         }
 
-        const label = device.name || device.host || formatDeviceType(device.type);
+        const label = [
+            device.name || device.ip || device.host || formatDeviceType(device.type),
+            device.ip || device.host || '',
+            formatDeviceType(device.type),
+        ].filter(Boolean).join(' | ');
         activeBadge.textContent = `Actif: ${label}`;
+    }
+
+    function renderBackendStatus(device, connectionState) {
+        if (!backendStatus) {
+            return;
+        }
+
+        if (!device) {
+            backendStatus.innerHTML = '<span class="text-muted">Aucun device actif</span>';
+            return;
+        }
+
+        const statusValue = String(connectionState?.status || 'unknown').toUpperCase();
+        const supported = connectionState?.supported === true;
+        const colorClass = supported ? 'text-success' : 'text-warning';
+        const message = connectionState?.label || 'Backend inconnu';
+
+        backendStatus.innerHTML = `
+            <span class="${colorClass}">${formatDeviceType(device.type)} | ${device.backend || 'generic'} | ${statusValue}</span>
+            <div class="small text-muted mt-1">${message}</div>
+        `;
     }
 
     function applyDeviceTypeRules() {
@@ -148,6 +174,7 @@ document.addEventListener("DOMContentLoaded", function () {
                 console.log("SAVE OK:", json);
                 selectedDeviceId = json.id || null;
                 activeDeviceId = json.active_device_id || activeDeviceId;
+                renderBackendStatus(json.active_device || null, json.connection_state || null);
                 loadDevices();
             })
             .catch(err => {
@@ -193,6 +220,15 @@ document.addEventListener("DOMContentLoaded", function () {
                     ? "✔ SUCCESS\n"
                     : "❌ FAILED\n";
 
+                renderBackendStatus({
+                    type: form.querySelector('[name="type"]').value,
+                    backend: data.backend || 'generic'
+                }, {
+                    supported: !!data.success,
+                    status: data.success ? 'connected' : 'failed',
+                    label: data.log || 'Test termine'
+                });
+
             })
             .catch(err => {
                 status.innerHTML = "❌ ERROR\n";
@@ -212,7 +248,9 @@ document.addEventListener("DOMContentLoaded", function () {
                 if (!data.devices) return;
 
                 activeDeviceId = data.active_device_id || null;
-                updateActiveBadge(data.devices.find(device => (device.id || '') === activeDeviceId) || null);
+                const activeDevice = data.active_device || data.devices.find(device => (device.id || '') === activeDeviceId) || null;
+                updateActiveBadge(activeDevice);
+                renderBackendStatus(activeDevice, data.connection_state || null);
                 renderTable(data.devices);
             })
             .catch(err => console.error("LOAD ERROR:", err));
@@ -424,6 +462,7 @@ document.addEventListener("DOMContentLoaded", function () {
 
                 activeDeviceId = data.active_device_id || currentDevice.id;
                 updateActiveBadge(data.active_device || currentDevice);
+                renderBackendStatus(data.active_device || currentDevice, data.connection_state || null);
                 loadDevices();
             })
             .catch(err => console.error(err));
