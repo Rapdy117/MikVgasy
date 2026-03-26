@@ -13,7 +13,6 @@ document.addEventListener("DOMContentLoaded", function () {
     const cancelBtn = document.getElementById("cancelBtn");
     const deleteBtn = document.getElementById("deleteBtn");
     const activateBtn = document.getElementById("activateDeviceBtn");
-    const activeBadge = document.getElementById("activeDeviceBadge");
     const backendStatus = document.getElementById("deviceBackendStatus");
     const typeField = form ? form.querySelector('[name="type"]') : null;
     const apiKeyField = form ? form.querySelector('[name="api_key"]') : null;
@@ -37,24 +36,6 @@ document.addEventListener("DOMContentLoaded", function () {
         }
 
         return 'OPNsense';
-    }
-
-    function updateActiveBadge(device) {
-        if (!activeBadge) {
-            return;
-        }
-
-        if (!device) {
-            activeBadge.textContent = 'Actif: aucun';
-            return;
-        }
-
-        const label = [
-            device.name || device.ip || device.host || formatDeviceType(device.type),
-            device.ip || device.host || '',
-            formatDeviceType(device.type),
-        ].filter(Boolean).join(' | ');
-        activeBadge.textContent = `Actif: ${label}`;
     }
 
     function renderBackendStatus(device, connectionState) {
@@ -117,6 +98,20 @@ document.addEventListener("DOMContentLoaded", function () {
         }
 
         return { label: 'Hors ligne', className: 'bg-secondary' };
+    }
+
+    function getDisplayStatus(device) {
+        const storedStatus = normalizeDeviceStatus(deviceStatuses[device.id || ''] || 'offline');
+
+        if ((device.id || '') === activeDeviceId) {
+            return storedStatus === 'offline' ? 'offline' : 'active';
+        }
+
+        if (storedStatus === 'active') {
+            return 'connected';
+        }
+
+        return storedStatus;
     }
 
     function formatTableType(type) {
@@ -332,7 +327,6 @@ document.addEventListener("DOMContentLoaded", function () {
 
                 activeDeviceId = data.active_device_id || null;
                 const activeDevice = data.active_device || data.devices.find(device => (device.id || '') === activeDeviceId) || null;
-                updateActiveBadge(activeDevice);
                 renderBackendStatus(activeDevice, data.connection_state || null);
                 renderTable(data.devices);
             })
@@ -453,7 +447,7 @@ document.addEventListener("DOMContentLoaded", function () {
             tr.className = "device-row";
             tr.dataset.id = device.id || '';
             tr.dataset.active = (device.id || '') === activeDeviceId ? '1' : '0';
-            const statusMeta = getStatusMeta(deviceStatuses[device.id || ''] || 'offline');
+            const statusMeta = getStatusMeta(getDisplayStatus(device));
 
             tr.innerHTML = `
                 <td>${device.name}</td>
