@@ -2,6 +2,7 @@
 header('Content-Type: application/json');
 
 require_once __DIR__ . '/../includes/device_manager.php';
+require_once __DIR__ . '/../docs/mikhmon/lib/routeros_api.class.php';
 
 function post_string_or_null(string $key): ?string
 {
@@ -46,10 +47,57 @@ if ($key === null || $secret === null) {
     exit;
 }
 
+function respond_test(bool $success, string $type, string $message, int $httpCode = 0): void
+{
+    global $statusOnly;
+
+    $payload = [
+        'success' => $success,
+        'device_type' => $type,
+        'backend' => resolveDeviceBackend($type),
+    ];
+
+    if (!$statusOnly) {
+        $payload['log'] = $message . ($httpCode > 0 ? "\nHTTP: $httpCode" : '');
+    }
+
+    echo json_encode($payload);
+    exit;
+}
+
 $host = normalizeDeviceHost($host);
-$url = $type === 'mikrotik'
-    ? rtrim($host, '/') . '/rest/system/resource'
-    : rtrim($host, '/') . '/api/core/system/status';
+
+if ($type === 'mikrotik') {
+    $parsedHost = parse_url($host);
+    $routerHost = is_array($parsedHost) && !empty($parsedHost['host']) ? (string)$parsedHost['host'] : $host;
+    $routerPort = is_array($parsedHost) && !empty($parsedHost['port'])
+        ? (int)$parsedHost['port']
+        : ((is_array($parsedHost) && (($parsedHost['scheme'] ?? '') === 'https')) ? 8729 : 8728);
+    $routerSsl = $routerPort === 8729 || (is_array($parsedHost) && (($parsedHost['scheme'] ?? '') === 'https'));
+
+    $api = new RouterosAPI();
+    $api->port = $routerPort;
+    $api->ssl = $routerSsl;
+    $api->timeout = 5;
+    $api->attempts = 1;
+    $api->delay = 0;
+
+    if (!$api->connect($routerHost, $key, $secret)) {
+        $error = trim((string)($api->error_str ?? 'Connexion MikroTik impossible'));
+        respond_test(false, $type, "❌ MikroTik connection failed\nHost: {$routerHost}:{$routerPort}\n" . $error);
+    }
+
+    $resource = $api->comm('/system/resource/print');
+    $api->disconnect();
+
+    if (!is_array($resource)) {
+        respond_test(false, $type, "❌ MikroTik API response invalide\nHost: {$routerHost}:{$routerPort}");
+    }
+
+    respond_test(true, $type, "✔ Connected successfully\nType: MIKROTIK\nBackend: " . resolveDeviceBackend($type) . "\nHost: {$routerHost}:{$routerPort}");
+}
+
+$url = rtrim($host, '/') . '/api/core/system/status';
 
 // =========================
 // CURL INIT
@@ -92,31 +140,10 @@ $decoded = json_decode($response, true);
 // SUCCESS CHECK
 // =========================
 if ($http_code === 200 && is_array($decoded)) {
-
-    if ($statusOnly) {
-        echo json_encode([
-            'success' => true,
-            'device_type' => $type,
-            'backend' => resolveDeviceBackend($type),
-        ]);
-    } else {
-        echo json_encode([
-            'success' => true,
-            'log' => "✔ Connected successfully\nType: " . strtoupper($type) . "\nBackend: " . resolveDeviceBackend($type) . "\nHTTP: $http_code"
-        ]);
-    }
-
-    exit;
+    respond_test(true, $type, "✔ Connected successfully\nType: " . strtoupper($type) . "\nBackend: " . resolveDeviceBackend($type), $http_code);
 }
 
 // =========================
 // FAILED
 // =========================
-if ($statusOnly) {
-    echo json_encode(['success' => false]);
-} else {
-    echo json_encode([
-        'success' => false,
-        'log' => "❌ Failed\nHTTP: $http_code\nResponse: " . substr($response, 0, 200)
-    ]);
-}
+respond_test(false, $type, "❌ Failed\nResponse: " . substr($response, 0, 200), $http_code);
