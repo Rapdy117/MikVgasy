@@ -76,6 +76,28 @@ document.addEventListener("DOMContentLoaded", function () {
         `;
     }
 
+    function buildFullFormData() {
+        const formData = new FormData();
+
+        if (!form) {
+            return formData;
+        }
+
+        form.querySelectorAll('[name]').forEach(field => {
+            if (!field.name) {
+                return;
+            }
+
+            if ((field.type === 'checkbox' || field.type === 'radio') && !field.checked) {
+                return;
+            }
+
+            formData.set(field.name, field.value ?? '');
+        });
+
+        return formData;
+    }
+
     function applyDeviceTypeRules() {
         if (!form || !typeField || !apiKeyField || !apiSecretField) {
             return;
@@ -203,7 +225,7 @@ document.addEventListener("DOMContentLoaded", function () {
 
             status.innerHTML = "Testing...\n";
 
-            const formData = new FormData(form);
+            const formData = buildFullFormData();
 
             fetch('../api/test_opnsense.php', {
                 method: 'POST',
