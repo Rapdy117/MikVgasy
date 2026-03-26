@@ -157,6 +157,8 @@ document.addEventListener("DOMContentLoaded", function () {
         const normalizedType = String(typeField.value || 'opnsense').toLowerCase();
         const apiKeyWrapper = apiKeyField.closest('.input-group');
         const apiSecretLabel = apiSecretField.closest('.input-group')?.querySelector('.input-group-text');
+        const apiKeyLabel = apiKeyField.closest('.input-group')?.querySelector('.input-group-text');
+        const verifySslLabel = form.querySelector('[name="verify_ssl"]')?.closest('.input-group')?.querySelector('.input-group-text');
         const isOther = normalizedType === 'other' || normalizedType === 'radius';
         const isEditing = saveBtn ? !saveBtn.classList.contains('d-none') : false;
 
@@ -170,9 +172,17 @@ document.addEventListener("DOMContentLoaded", function () {
             apiKeyField.value = '';
         }
 
+        if (apiKeyLabel) {
+            apiKeyLabel.textContent = normalizedType === 'mikrotik' ? 'Administrateur' : 'Cle API';
+        }
+
         apiSecretField.placeholder = isOther ? 'Secret / Token optionnel' : '';
         if (apiSecretLabel) {
-            apiSecretLabel.textContent = isOther ? 'Secret' : 'API Secret';
+            apiSecretLabel.textContent = isOther ? 'Secret' : (normalizedType === 'mikrotik' ? 'Mot de passe' : 'Secret API');
+        }
+
+        if (verifySslLabel) {
+            verifySslLabel.textContent = 'Verifier SSL';
         }
 
         if (testBtn) {
@@ -197,7 +207,7 @@ document.addEventListener("DOMContentLoaded", function () {
             if (isActiveField) {
                 isActiveField.value = activeDeviceId ? '0' : '1';
             }
-            status.innerHTML = '<span class="text-muted">No test yet</span>';
+            status.innerHTML = '<span class="text-muted">Aucun test effectue</span>';
             showDeviceForm();
             enableEditMode();
             applyDeviceTypeRules();
@@ -417,7 +427,7 @@ document.addEventListener("DOMContentLoaded", function () {
 
             form.reset();
             form.querySelector('[name="id"]').value = '';
-            status.innerHTML = '<span class="text-muted">No test yet</span>';
+            status.innerHTML = '<span class="text-muted">Aucun test effectue</span>';
             hideDeviceForm();
             disableEditMode();
             applyDeviceTypeRules();
@@ -496,7 +506,7 @@ document.addEventListener("DOMContentLoaded", function () {
                 form.reset();
                 form.querySelector('[name="id"]').value = '';
                 form.querySelector('[name="type"]').value = 'opnsense';
-                status.innerHTML = '<span class="text-muted">No test yet</span>';
+                status.innerHTML = '<span class="text-muted">Aucun test effectue</span>';
                 hideDeviceForm();
                 disableEditMode();
                 applyDeviceTypeRules();
