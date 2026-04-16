@@ -1,0 +1,23 @@
+## Debugger une erreur API
+
+Mémoire projet:
+- Lire `docs/project_rules.md` avant toute modification.
+- Lire/mettre à jour `docs/KNOWN_ISSUES.md` si le bug devient un risque connu ou est corrigé durablement.
+- Lire/mettre à jour `docs/DECISIONS.md`, `docs/ARCHITECTURE.md` ou `docs/DATA_MODEL.md` seulement si la correction change une décision, un flux ou le modèle de données.
+
+Fichier: [À remplir]
+Erreur HTTP: [200? 400? 500?]
+Message d'erreur exact: [copier/coller le message]
+Requête envoyée: [GET/POST path?param=value]
+
+Voici le code du fichier (15-20 lignes):
+[Coller le code problématique - PAS tout le fichier]
+
+Diagnostic demandé:
+1. Identifier la cause (SQL? Auth? Parse error?)
+2. Proposer fix en unified diff (5-10 lignes max)
+3. Valider syntaxe PHP
+4. Tester avant commit
+
+Mode: Agent (modif fichier + exec)
+Effort: low

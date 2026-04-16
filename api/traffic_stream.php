@@ -1,6 +1,7 @@
 <?php
 require_once __DIR__ . '/../config/config.php';
 require_once __DIR__ . '/../includes/device_manager.php';
+require_once __DIR__ . '/../includes/mikrotik_backend.php';
 
 if (session_status() === PHP_SESSION_NONE) {
     session_start();
@@ -37,13 +38,70 @@ header('Connection: keep-alive');
 header('X-Accel-Buffering: no');
 
 $device = requireActiveDevice();
+$requestedInterface = trim((string)($_GET['interface'] ?? ''));
+
+if (($device['type'] ?? '') === 'mikrotik') {
+    while (!connection_aborted()) {
+        try {
+            $cacheKey = trim((string)($device['id'] ?? $device['host'] ?? 'active'));
+            $cacheFile = sys_get_temp_dir() . '/mikrotik_traffic_stream_' . md5($cacheKey) . '.json';
+            $cacheTtl = 2;
+            $sample = null;
+            if (is_file($cacheFile)) {
+                $cached = json_decode((string)file_get_contents($cacheFile), true);
+                if (is_array($cached) && isset($cached['time'], $cached['sample'])) {
+                    if ((time() - (int)$cached['time']) <= $cacheTtl) {
+                        $sample = $cached['sample'];
+                    }
+                }
+            }
+
+            if (!is_array($sample)) {
+                $sample = getMikrotikTrafficSample($requestedInterface !== '' ? $requestedInterface : null);
+                file_put_contents($cacheFile, json_encode([
+                    'time' => time(),
+                    'sample' => $sample,
+                ], JSON_UNESCAPED_SLASHES));
+            }
+
+            emitSse([
+                'time' => microtime(true),
+                'metric_mode' => 'rate',
+                'interfaces' => [
+                    'wan' => [
+                        'name' => $sample['interface'],
+                        'inbytes' => $sample['rx_bps'],
+                        'outbytes' => $sample['tx_bps'],
+                    ],
+                ],
+                'interface_label' => $sample['interface'],
+                'selected_interface' => $sample['interface'],
+                'last_update' => date('H:i:s'),
+            ]);
+        } catch (Throwable $e) {
+            emitSse([
+                'error' => $e->getMessage(),
+                'supported' => false,
+                'device_type' => 'mikrotik',
+                'business_source' => resolveDeviceBusinessSource('mikrotik'),
+                'backend_driver' => deviceBackendDriverForApiResponse($device),
+            ]);
+            exit;
+        }
+
+        sleep(2);
+    }
+
+    exit;
+}
 
 if (($device['type'] ?? '') !== 'opnsense') {
     emitSse([
         'error' => 'Flux trafic indisponible pour le device actif ' . getDeviceDisplayLabel($device),
         'supported' => false,
-        'device_type' => (string)($device['type'] ?? 'other'),
-        'backend' => (string)($device['backend'] ?? 'generic'),
+        'device_type' => deviceTypeLabelForApiResponse($device),
+        'business_source' => deviceBusinessSourceForApiResponse(deviceTypeLabelForApiResponse($device)),
+        'backend_driver' => deviceBackendDriverForApiResponse($device),
     ]);
     exit;
 }

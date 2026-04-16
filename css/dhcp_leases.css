@@ -1,0 +1,93 @@
+.leases-header-row {
+    min-height: 42px;
+}
+
+.leases-toolbar {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-left: auto;
+    flex-wrap: nowrap;
+    min-width: 0;
+}
+
+.leases-search-group {
+    flex: 1 1 320px;
+    min-width: 220px;
+}
+
+.leases-search-group .input-group-text {
+    background: rgba(59, 130, 246, 0.12);
+    border-color: rgba(148, 163, 184, 0.18);
+    color: var(--theme-text);
+}
+
+.leases-search-group .form-control {
+    background: rgba(12, 20, 34, 0.82);
+    border-color: rgba(148, 163, 184, 0.18);
+    color: var(--theme-text);
+}
+
+.leases-search-group .form-control::placeholder {
+    color: rgba(226, 232, 240, 0.55);
+}
+
+.leases-search-group .form-control:focus {
+    border-color: rgba(59, 130, 246, 0.45);
+    box-shadow: 0 0 0 0.2rem rgba(59, 130, 246, 0.12);
+}
+
+.leases-toolbar .btn {
+    display: inline-flex;
+    align-items: center;
+    flex: 0 0 auto;
+}
+
+.leases-actions {
+    display: inline-flex;
+    align-items: center;
+    gap: 12px;
+    flex: 0 0 auto;
+    white-space: nowrap;
+}
+
+.leases-table {
+    font-family: 'Roboto', sans-serif;
+    table-layout: fixed;
+}
+
+.leases-table thead th {
+    text-align: center !important;
+}
+
+.leases-table tbody td {
+    text-align: right;
+    white-space: nowrap;
+}
+
+.leases-table thead th.leases-col-left {
+    text-align: left !important;
+}
+
+.leases-table tbody td.leases-col-left {
+    text-align: left !important;
+}
+
+.leases-table .leases-status-cell {
+    text-align: center !important;
+}
+
+.leases-table .leases-select-col {
+    width: 36px;
+    text-align: center !important;
+}
+
+.leases-table .leases-comment-cell {
+    max-width: 220px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.lease-row-clickable {
+    cursor: pointer;
+}

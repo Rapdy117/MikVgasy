@@ -199,6 +199,34 @@ Decision documentaire retenue :
 - `nas_id` devient la cle centrale de resolution
 - `nas.type` devient la cle technique de dispatch
 
+## 16. Credit Courant Comme Verite Metier (RADIUS / OPNsense)
+
+Decision actee :
+
+- `users.current_credit_time` et `users.current_credit_data` sont la source de verite metier
+- `users.session_timeout` / `users.data_limit` deviennent des projections techniques
+- l affichage "Actuel" est calcule = credit courant - consommation `radacct`
+
+## 17. Expiration Utilisateur Stockee Et Non Recalculee
+
+Decision actee :
+
+- `users.expiration_date` est la seule source de verite d expiration
+- si `first_login` ou `validity_time` manquent, l expiration reste vide
+- l UI ne doit pas deduire une expiration implicite
+
+## 18. MikroTik = Routeur Prioritaire
+
+Decision actee :
+
+- pour MikroTik, les profils et utilisateurs sont lus directement sur le routeur
+- la DB metier ne doit pas inventer de profil ni d attributs pour MikroTik
+- la data quota MikroTik est lue d abord depuis `limit-bytes-total` du profil routeur ; si absent ou nul, repli sur le quota encode dans le script `on-login` (champ `data_quota_mb` via `parseMikrotikOnLoginMetadata()` dans le code)
+- la DB metier ne sert qu a l historique commercial (vente / recharge)
+- des qu il existe plusieurs routeurs MikroTik, la resolution par `type = mikrotik` n est plus suffisante
+- le routage technique doit se faire par `device_id`, puis par `host/ip` du device selectionne
+- les credentials API (`api_key`, `api_secret`) doivent toujours provenir du `device` cible et jamais d une valeur statique ou d un fallback global
+
 Implication :
 
 - les endpoints metier devront cesser d'embarquer des decisions backend implicites
@@ -297,6 +325,19 @@ Decision formalisee :
 Implication :
 
 - meme sans separation physique immediate, le refactoring doit raisonner avec ces deux couches
+
+## 19. Modele NAS / Device Normalise (2026)
+
+Decision formalisee :
+
+- les types d'equipement dans [config/opnsense.json](/var/www/html/config/opnsense.json) sont limites a `opnsense`, `mikrotik`, `radius`
+- la source metier est exprimee par `business_source` : `radius` ou `mikrotik_local` ; le driver d'execution par `backend` / `backend_driver` : `opnsense_api`, `mikrotik_api`, `radius`
+- `device_id` et `nas_id` restent distincts ; [api/nas.php](/var/www/html/api/nas.php) expose uniquement des appariements valides apres authentification session
+
+Implication :
+
+- toute valeur `other`, `generic` ou entree NAS synthetique est exclue du contrat courant
+- les consommateurs JS doivent utiliser `business_source` / `backend_driver` plutot qu'un champ `backend` ambigu seul
 
 ## Resume Des Choix Actuels
 

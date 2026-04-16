@@ -14,6 +14,7 @@ document.addEventListener("DOMContentLoaded", function () {
     const deleteBtn = document.getElementById("deleteBtn");
     const activateBtn = document.getElementById("activateDeviceBtn");
     const backendStatus = document.getElementById("deviceBackendStatus");
+    const backendStatusIcon = document.getElementById("backendStatusIcon");
     const typeField = form ? form.querySelector('[name="type"]') : null;
     const apiKeyField = form ? form.querySelector('[name="api_key"]') : null;
     const apiSecretField = form ? form.querySelector('[name="api_secret"]') : null;
@@ -23,19 +24,56 @@ document.addEventListener("DOMContentLoaded", function () {
     let currentDevice = null;
     let activeDeviceId = null;
     let deviceStatuses = loadDeviceStatuses();
+    const VALID_DEVICE_TYPES = ['opnsense', 'mikrotik', 'radius'];
+
+    function isValidDeviceType(type) {
+        return VALID_DEVICE_TYPES.includes(String(type || '').trim().toLowerCase());
+    }
+
+    function getSelectedDeviceType() {
+        const rawType = String(typeField?.value || '').trim().toLowerCase();
+        return isValidDeviceType(rawType) ? rawType : '';
+    }
 
     function formatDeviceType(type) {
-        const normalized = String(type || 'opnsense').toLowerCase();
+        const normalized = String(type || '').trim().toLowerCase();
 
         if (normalized === 'mikrotik') {
             return 'MikroTik';
         }
 
-        if (normalized === 'other' || normalized === 'radius') {
-            return 'Autre';
+        if (normalized === 'radius') {
+            return 'RADIUS';
         }
 
-        return 'OPNsense';
+        if (normalized === 'opnsense') {
+            return 'OPNsense';
+        }
+
+        return 'Inconnu';
+    }
+
+    function formatBackendDriver(raw) {
+        const key = String(raw || '').toLowerCase();
+        const map = {
+            opnsense_api: 'OPNsense API',
+            mikrotik_api: 'MikroTik API',
+            radius: 'RADIUS',
+        };
+        return map[key] || (String(raw || '').trim() !== '' ? String(raw) : '—');
+    }
+
+    function formatBusinessSource(raw, labelFromServer) {
+        const fromServer = String(labelFromServer || '').trim();
+        if (fromServer !== '') {
+            return fromServer;
+        }
+        const key = String(raw || '').toLowerCase();
+        const map = {
+            mikrotik_local: 'Profils locaux (MikroTik)',
+            radius: 'RADIUS (FreeRADIUS / intégration)',
+        };
+        return map[key] || (String(raw || '').trim() !== '' ? String(raw) : '');
     }
 
     function renderBackendStatus(device, connectionState) {
@@ -43,20 +81,66 @@ document.addEventListener("DOMContentLoaded", function () {
             return;
         }
 
+        const setIconStatus = (statusValue) => {
+            if (!backendStatusIcon) {
+                return;
+            }
+
+            const normalized = normalizeDeviceStatus(statusValue);
+            backendStatusIcon.classList.remove(
+                'backend-status-active',
+                'backend-status-connected',
+                'backend-status-offline'
+            );
+            backendStatusIcon.classList.add(`backend-status-${normalized}`);
+        };
+
         if (!device) {
             backendStatus.innerHTML = '<span class="text-muted">Aucun device actif</span>';
+            setIconStatus('offline');
             return;
         }
 
-        const statusValue = String(connectionState?.status || 'unknown').toUpperCase();
-        const supported = connectionState?.supported === true;
+        const currentStatus = getDisplayStatus(device);
+        const cs = connectionState && typeof connectionState === 'object' ? connectionState : {};
+        const statusValue = String(cs.status || currentStatus || 'unknown').toUpperCase();
+        const supported = cs.supported === true;
         const colorClass = supported ? 'text-success' : 'text-warning';
-        const message = connectionState?.label || 'Backend inconnu';
+        const message = cs.label || 'Backend inconnu';
+        const hostValue = String(device.host || device.ip || '-');
+        setIconStatus(currentStatus);
+
+        const driverDisplay = cs.label_backend || formatBackendDriver(cs.backend_driver || device.backend_driver);
+        const sourceDisplay = formatBusinessSource(cs.business_source, cs.label_business_source);
+        const sourceLine = sourceDisplay
+            ? `<div class="small text-muted mt-1">Source : ${sourceDisplay}</div>`
+            : '';
 
         backendStatus.innerHTML = `
-            <span class="${colorClass}">${formatDeviceType(device.type)} | ${device.backend || 'generic'} | ${statusValue}</span>
+            <span class="${colorClass}">${formatDeviceType(device.type)} | ${driverDisplay} | ${statusValue}</span>
+            ${sourceLine}
             <div class="small text-muted mt-1">${message}</div>
+            <div class="small text-white-50 mt-1">Host : ${hostValue}</div>
         `;
+    }
+
+    function normalizeHostByType(rawValue, typeValue) {
+        const value = String(rawValue || '').trim();
+        const normalizedType = String(typeValue || '').trim().toLowerCase();
+
+        if (value === '') {
+            return '';
+        }
+
+        if (/^https?:\/\//i.test(value)) {
+            return value.replace(/\/+$/, '');
+        }
+
+        if (normalizedType === 'opnsense') {
+            return `https://${value.replace(/^\/+/, '')}`;
+        }
+
+        return value;
     }
 
     function loadDeviceStatuses() {
@@ -154,21 +238,22 @@ document.addEventListener("DOMContentLoaded", function () {
             return;
         }
 
-        const normalizedType = String(typeField.value || 'opnsense').toLowerCase();
+        const normalizedType = getSelectedDeviceType();
         const apiKeyWrapper = apiKeyField.closest('.input-group');
         const apiSecretLabel = apiSecretField.closest('.input-group')?.querySelector('.input-group-text');
         const apiKeyLabel = apiKeyField.closest('.input-group')?.querySelector('.input-group-text');
         const verifySslLabel = form.querySelector('[name="verify_ssl"]')?.closest('.input-group')?.querySelector('.input-group-text');
-        const isOther = normalizedType === 'other' || normalizedType === 'radius';
+        const isRadius = normalizedType === 'radius';
+        const isKnownType = normalizedType !== '';
         const isEditing = saveBtn ? !saveBtn.classList.contains('d-none') : false;
 
         if (apiKeyWrapper) {
-            apiKeyWrapper.classList.toggle('d-none', isOther);
+            apiKeyWrapper.classList.toggle('d-none', isRadius);
         }
 
-        apiKeyField.disabled = isOther || !isEditing;
-        apiKeyField.required = !isOther;
-        if (isOther) {
+        apiKeyField.disabled = isRadius || !isEditing;
+        apiKeyField.required = !isRadius;
+        if (isRadius) {
             apiKeyField.value = '';
         }
 
@@ -176,9 +261,14 @@ document.addEventListener("DOMContentLoaded", function () {
             apiKeyLabel.textContent = normalizedType === 'mikrotik' ? 'Administrateur' : 'Clé API';
         }
 
-        apiSecretField.placeholder = isOther ? 'Secret / Token optionnel' : '';
+        const hostField = form.querySelector('[name="host"]');
+        if (hostField) {
+            hostField.placeholder = normalizedType === 'opnsense' ? 'https://10.10.10.1' : '10.10.10.1';
+        }
+
+        apiSecretField.placeholder = isRadius ? 'Secret / Token optionnel' : '';
         if (apiSecretLabel) {
-            apiSecretLabel.textContent = isOther ? 'Secret' : (normalizedType === 'mikrotik' ? 'Mot de passe' : 'Secret API');
+            apiSecretLabel.textContent = isRadius ? 'Secret' : (normalizedType === 'mikrotik' ? 'Mot de passe' : 'Secret API');
         }
 
         if (verifySslLabel) {
@@ -186,9 +276,12 @@ document.addEventListener("DOMContentLoaded", function () {
         }
 
         if (testBtn) {
-            testBtn.disabled = isOther;
-            testBtn.classList.toggle('disabled', isOther);
-            testBtn.title = isOther ? 'Test API indisponible pour ce type de device' : '';
+            const testUnsupported = !isKnownType || isRadius;
+            testBtn.disabled = testUnsupported;
+            testBtn.classList.toggle('disabled', testUnsupported);
+            testBtn.title = !isKnownType
+                ? 'Type de device invalide'
+                : (isRadius ? 'Test de connexion indisponible pour ce type de device' : '');
         }
 
         if (activateBtn) {
@@ -203,7 +296,9 @@ document.addEventListener("DOMContentLoaded", function () {
             document.querySelectorAll('.device-row').forEach(row => row.classList.remove('table-active'));
             form.reset();
             form.querySelector('[name="id"]').value = '';
-            form.querySelector('[name="type"]').value = 'opnsense';
+            if (typeField) {
+                typeField.value = 'opnsense';
+            }
             if (isActiveField) {
                 isActiveField.value = activeDeviceId ? '0' : '1';
             }
@@ -224,8 +319,19 @@ document.addEventListener("DOMContentLoaded", function () {
 
             console.log("SUBMIT INTERCEPTED");
 
+            if (!getSelectedDeviceType()) {
+                alert('Veuillez sélectionner un type de device.');
+                return;
+            }
+
             // 🔥 FORCER CRÉATION SI ID VIDE OU MODE NEW
             const formData = new FormData(form);
+            const hostField = form.querySelector('[name="host"]');
+            if (hostField) {
+                const normalizedHost = normalizeHostByType(hostField.value, getSelectedDeviceType());
+                hostField.value = normalizedHost;
+                formData.set('host', normalizedHost);
+            }
 
             console.log("ID VALUE:", form.querySelector('[name="id"]').value);
             console.log("SAVE DATA:", [...formData.entries()]);
@@ -234,23 +340,23 @@ document.addEventListener("DOMContentLoaded", function () {
                 method: 'POST',
                 body: formData
             })
-            .then(res => res.text())
-            .then(data => {
+            .then(async (res) => {
+                const text = await res.text();
+                console.log("RAW RESPONSE:", text);
 
-                console.log("RAW RESPONSE:", data);
-
-                let json;
-
+                let json = null;
                 try {
-                    json = JSON.parse(data);
+                    json = text ? JSON.parse(text) : null;
                 } catch (e) {
-                    console.error("INVALID JSON:", data);
-                    return;
+                    console.error("INVALID JSON:", text);
                 }
 
-                if (!json.success) {
-                    console.error("SAVE FAILED:", json.message);
-                    alert("Erreur: " + (json.message || "Unknown error"));
+                return { ok: res.ok, json, text };
+            })
+            .then(({ ok, json, text }) => {
+                if (!json || !ok || !json.success) {
+                    console.error("SAVE FAILED:", json?.message || text);
+                    alert((json && json.message) || "La sauvegarde du device a echoue.");
                     return;
                 }
 
@@ -288,7 +394,7 @@ document.addEventListener("DOMContentLoaded", function () {
 
             const formData = buildFullFormData();
 
-            fetch('../api/test_opnsense.php', {
+            fetch('../api/test_device.php', {
                 method: 'POST',
                 body: formData
             })
@@ -303,6 +409,14 @@ document.addEventListener("DOMContentLoaded", function () {
                     ? "✔ SUCCESS\n"
                     : "❌ FAILED\n";
 
+                if (data.success && data.suggested_host && form) {
+                    const hostInput = form.querySelector('[name="host"]');
+                    if (hostInput && String(hostInput.value || '').trim() !== String(data.suggested_host).trim()) {
+                        hostInput.value = String(data.suggested_host).trim();
+                        status.innerHTML += `ℹ Host recommandé détecté: ${hostInput.value}\n`;
+                    }
+                }
+
                 updateStoredDeviceStatus(
                     form.querySelector('[name="id"]').value || selectedDeviceId,
                     data.device_status || (data.success ? 'active' : 'offline')
@@ -310,7 +424,7 @@ document.addEventListener("DOMContentLoaded", function () {
 
                 renderBackendStatus({
                     type: form.querySelector('[name="type"]').value,
-                    backend: data.backend || 'generic'
+                    backend_driver: data.backend_driver || ''
                 }, {
                     supported: !!data.success,
                     status: data.success ? 'connected' : 'failed',
@@ -337,6 +451,10 @@ document.addEventListener("DOMContentLoaded", function () {
 
                 activeDeviceId = data.active_device_id || null;
                 const activeDevice = data.active_device || data.devices.find(device => (device.id || '') === activeDeviceId) || null;
+                if (!selectedDeviceId && activeDevice && activeDevice.id) {
+                    selectedDeviceId = activeDevice.id;
+                    currentDevice = activeDevice;
+                }
                 renderBackendStatus(activeDevice, data.connection_state || null);
                 renderTable(data.devices);
             })
@@ -351,9 +469,10 @@ document.addEventListener("DOMContentLoaded", function () {
         showDeviceForm();
         selectedDeviceId = device.id || null;
         currentDevice = device;
+        const resolvedType = isValidDeviceType(device.type) ? String(device.type).trim().toLowerCase() : '';
 
         document.querySelector('[name="id"]').value = device.id || '';
-        document.querySelector('[name="type"]').value = device.type || 'opnsense';
+        document.querySelector('[name="type"]').value = resolvedType;
         document.querySelector('[name="device_name"]').value = device.name || '';
         document.querySelector('[name="host"]').value = device.host || '';
         document.querySelector('[name="api_key"]').value = device.api_key || '';
@@ -496,7 +615,7 @@ document.addEventListener("DOMContentLoaded", function () {
         .then(res => res.json())
         .then(data => {
             if (!data.success) {
-                alert("Erreur: " + (data.message || "Suppression impossible"));
+                alert(data.message || "La suppression du device a echoue.");
                 return;
             }
 
@@ -505,7 +624,9 @@ document.addEventListener("DOMContentLoaded", function () {
                 currentDevice = null;
                 form.reset();
                 form.querySelector('[name="id"]').value = '';
-                form.querySelector('[name="type"]').value = 'opnsense';
+                if (typeField) {
+                    typeField.value = 'opnsense';
+                }
                 status.innerHTML = '<span class="text-muted">Aucun test effectué</span>';
                 hideDeviceForm();
                 disableEditMode();
@@ -523,6 +644,13 @@ document.addEventListener("DOMContentLoaded", function () {
 
     if (typeField) {
         typeField.addEventListener('change', applyDeviceTypeRules);
+    }
+
+    const hostField = form ? form.querySelector('[name="host"]') : null;
+    if (hostField) {
+        hostField.addEventListener('blur', () => {
+            hostField.value = normalizeHostByType(hostField.value, getSelectedDeviceType());
+        });
     }
 
     if (activateBtn) {
@@ -544,14 +672,11 @@ document.addEventListener("DOMContentLoaded", function () {
             .then(res => res.json())
             .then(data => {
                 if (!data.success) {
-                    alert("Erreur: " + (data.message || "Activation impossible"));
+                    alert(data.message || "L activation du device a echoue.");
                     return;
                 }
 
-                activeDeviceId = data.active_device_id || currentDevice.id;
-                updateActiveBadge(data.active_device || currentDevice);
-                renderBackendStatus(data.active_device || currentDevice, data.connection_state || null);
-                loadDevices();
+                window.location.reload();
             })
             .catch(err => console.error(err));
         });

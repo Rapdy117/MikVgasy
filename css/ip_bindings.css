@@ -1,7 +1,277 @@
+/* En-tête page — même logique que hosts (toolbar + recherche largeur bornée) */
+.ip-bindings-page-header {
+    gap: 12px;
+}
+
+.ip-bindings-toolbar {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 10px;
+    flex-wrap: wrap;
+    width: min(100%, 78%);
+    margin-left: auto;
+}
+
+.ip-bindings-search-group {
+    width: min(100%, 320px);
+}
+
+.ip-bindings-search-group .input-group-text {
+    background: rgba(59, 130, 246, 0.12);
+    border-color: rgba(148, 163, 184, 0.18);
+    color: var(--theme-text);
+}
+
+.ip-bindings-search-group .form-control {
+    background: rgba(12, 20, 34, 0.82);
+    border-color: rgba(148, 163, 184, 0.18);
+    color: var(--theme-text);
+}
+
+.ip-bindings-search-group .form-control::placeholder {
+    color: rgba(226, 232, 240, 0.55);
+}
+
+.ip-bindings-search-group .form-control:focus {
+    border-color: rgba(59, 130, 246, 0.45);
+    box-shadow: 0 0 0 0.2rem rgba(59, 130, 246, 0.12);
+}
+
+.bindings-table {
+    font-family: 'Roboto', sans-serif;
+    table-layout: auto;
+}
+
+.bindings-table thead th {
+    font-size: 14px !important;
+    text-align: center !important;
+}
+
+.bindings-table tbody td {
+    font-size: 14px !important;
+    vertical-align: middle;
+    text-align: right;
+    white-space: nowrap;
+}
+
+.bindings-table thead th.bindings-col-left {
+    text-align: left !important;
+}
+
+.bindings-table tbody td.bindings-col-left {
+    text-align: left !important;
+}
+
+.bindings-table .bindings-col-address {
+    min-width: 10.5rem;
+    white-space: nowrap;
+}
+
+.bindings-table tbody tr.binding-row:hover {
+    cursor: pointer;
+}
+
+.bindings-table .bindings-comment-cell {
+    max-width: 260px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.bindings-table .bindings-status-cell {
+    text-align: center !important;
+}
+
+.bindings-table thead th:last-child,
+.bindings-table tbody td.action-cell {
+    width: 52px;
+    max-width: 52px;
+}
+
+.bindings-table .action-cell {
+    text-align: center !important;
+    vertical-align: middle;
+    white-space: nowrap;
+}
+
+.bindings-table .profile-action-btn {
+    min-width: 29px;
+    width: 29px;
+    height: 29px;
+    padding: 0;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+}
+
 /* =====================================================
-   IP BINDINGS
-   Cette feuille n'est pas branchee actuellement.
-   Si elle est reutilisee plus tard, s'appuyer sur
-   dashboard.css + theme.css puis ajouter ici seulement
-   les overrides specifiques a la page.
+   TABLEAU — hauteur = reste fenêtre + en-tête figé (réf. hosts.css / users_list.css)
 ===================================================== */
+html.ip-bindings-page.ip-bindings-page--table {
+    height: 100dvh;
+    max-height: 100dvh;
+    overflow: hidden;
+}
+
+html.ip-bindings-page body.ip-bindings-page--table {
+    height: 100%;
+    min-height: 0;
+    margin: 0;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+
+html.ip-bindings-page body.ip-bindings-page--table #wrapper {
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow: hidden;
+    display: flex;
+    flex-direction: row;
+    align-items: stretch;
+}
+
+html.ip-bindings-page body.ip-bindings-page--table #page-content-wrapper {
+    flex: 1 1 auto;
+    min-width: 0;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+
+html.ip-bindings-page body.ip-bindings-page--table #page-content-wrapper > .container-fluid {
+    flex: 1 1 auto;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    padding-bottom: 0 !important;
+}
+
+html.ip-bindings-page body.ip-bindings-page--table #page-content-wrapper > .container-fluid > .card {
+    flex: 1 1 auto;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    margin-bottom: 0 !important;
+}
+
+html.ip-bindings-page body.ip-bindings-page--table #page-content-wrapper > .container-fluid > .card > .card-body {
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+}
+
+html.ip-bindings-page body.ip-bindings-page--table .ip-bindings-page-header {
+    flex-shrink: 0;
+}
+
+html.ip-bindings-page.ip-bindings-page--table .ip-bindings-table-scroll {
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow-x: auto;
+    overflow-y: scroll;
+    position: relative;
+    overscroll-behavior: contain;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-gutter: stable;
+    scrollbar-width: thin;
+    scrollbar-color: var(--theme-scrollbar-thumb) var(--theme-scrollbar-track);
+    border-radius: 0 0 6px 6px;
+}
+
+html.ip-bindings-page.ip-bindings-page--table .ip-bindings-table-scroll::-webkit-scrollbar {
+    width: var(--theme-scrollbar-size);
+}
+
+html.ip-bindings-page.ip-bindings-page--table .ip-bindings-table-scroll::-webkit-scrollbar-track {
+    background: var(--theme-scrollbar-track);
+    border-radius: 0 6px 6px 0;
+}
+
+html.ip-bindings-page.ip-bindings-page--table .ip-bindings-table-scroll::-webkit-scrollbar-thumb {
+    background-image:
+        linear-gradient(180deg, rgba(148, 163, 184, 0.55), rgba(94, 234, 212, 0.45)),
+        radial-gradient(circle at 50% 90%, var(--theme-scrollbar-glow), transparent 60%);
+    background-clip: padding-box;
+    border-radius: 999px;
+    border: 2px solid transparent;
+    box-shadow: 0 0 6px rgba(78, 220, 255, 0.35);
+}
+
+html.ip-bindings-page.ip-bindings-page--table .ip-bindings-table-scroll::-webkit-scrollbar-thumb:hover {
+    background-image:
+        linear-gradient(180deg, rgba(186, 198, 214, 0.75), rgba(94, 234, 212, 0.55)),
+        radial-gradient(circle at 50% 90%, rgba(110, 245, 255, 0.85), transparent 60%);
+    background-clip: padding-box;
+    box-shadow: 0 0 8px rgba(110, 245, 255, 0.45);
+}
+
+html.ip-bindings-page.ip-bindings-page--table .ip-bindings-table-scroll table {
+    border-collapse: separate;
+    border-spacing: 0;
+}
+
+html.ip-bindings-page.ip-bindings-page--table .ip-bindings-table-scroll thead {
+    position: sticky;
+    top: 0;
+    z-index: 6;
+}
+
+html.ip-bindings-page.ip-bindings-page--table .ip-bindings-table-scroll thead th {
+    position: sticky;
+    top: 0;
+    z-index: 7;
+    font-size: 14px !important;
+    font-weight: 600;
+    background-color: rgba(18, 24, 41, 0.58) !important;
+    backdrop-filter: blur(2px);
+    -webkit-backdrop-filter: blur(2px);
+    border-bottom: 1px solid var(--theme-border) !important;
+}
+
+html.ip-bindings-page.ip-bindings-page--table .ip-bindings-table-scroll thead th[data-sort-key] {
+    cursor: pointer;
+    user-select: none;
+    padding-right: 1.35rem;
+    position: relative;
+}
+
+html.ip-bindings-page.ip-bindings-page--table .ip-bindings-table-scroll thead th[data-sort-key]::after {
+    position: absolute;
+    right: 5px;
+    top: 50%;
+    transform: translateY(-50%);
+    font-size: 0.65em;
+    line-height: 1;
+    opacity: 0.4;
+    color: rgba(226, 232, 240, 0.85);
+    content: '\2195';
+}
+
+html.ip-bindings-page.ip-bindings-page--table .ip-bindings-table-scroll thead th[data-sort-key].sort-asc::after {
+    content: '\25B2';
+    opacity: 1;
+    color: var(--theme-primary);
+    font-size: 0.58em;
+}
+
+html.ip-bindings-page.ip-bindings-page--table .ip-bindings-table-scroll thead th[data-sort-key].sort-desc::after {
+    content: '\25BC';
+    opacity: 1;
+    color: var(--theme-primary);
+    font-size: 0.58em;
+}
+
+html.ip-bindings-page.ip-bindings-page--table .ip-bindings-table-scroll thead th[data-sort-key].sort-asc::after,
+html.ip-bindings-page.ip-bindings-page--table .ip-bindings-table-scroll thead th[data-sort-key].sort-desc::after {
+    font-size: 0.58em;
+}
+
+html.ip-bindings-page.ip-bindings-page--table .bindings-table .action-cell {
+    text-align: center !important;
+}

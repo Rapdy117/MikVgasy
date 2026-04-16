@@ -1,10 +1,9 @@
 const DASHBOARD_REFRESH_MS = 45000;
+const OPN_LIVE_REFRESH_MS = 2000;
 const TRAFFIC_DURATION_MS = 20000;
 const TRAFFIC_DELAY_MS = 2000;
-const TRAFFIC_STREAM_PATH = `../api/traffic_stream.php`;
-const TRAFFIC_INIT_PATH = `../api/get_traffic_stats.php`;
-const CPU_STREAM_PATH = `../api/cpu_stream.php`;
 const CPU_TYPE_PATH = `../api/get_cpu_type.php`;
+const DEVICE_STREAM_PATH = `../api/device_stream.php`;
 const WAN_INTERFACE_KEY = 'wan';
 const TRAFFIC_SERIES = {
     upload: [
@@ -37,10 +36,18 @@ document.addEventListener('DOMContentLoaded', () => {
     const salesActiveDays = document.getElementById('salesActiveDays');
     const salesPeakDay = document.getElementById('salesPeakDay');
     const deviceSummaryTitle = document.getElementById('deviceSummaryTitle');
+    const deviceSummarySubtitle = document.getElementById('deviceSummarySubtitle');
+    const deviceNameValue = document.getElementById('deviceNameValue');
+    const deviceVersionValue = document.getElementById('deviceVersionValue');
+    const deviceStatusValue = document.getElementById('deviceStatusValue');
+    const deviceZonesValue = document.getElementById('deviceZonesValue');
     const deviceTypeLabel = document.getElementById('deviceTypeLabel');
 
-    let trafficSource = null;
-    let cpuSource = null;
+    let dashboardSource = null;
+    let dashboardStreamStarted = false;
+    let useDashboardStream = false;
+    let dashboardStatsTimer = null;
+    let opnsenseLiveTimer = null;
     let liveStreamsStarted = false;
     let trafficCharts = {
         trafficIn: null,
@@ -48,9 +55,13 @@ document.addEventListener('DOMContentLoaded', () => {
     };
     let trafficInitialized = false;
     let latestMemoryPercent = 0;
+    let lastRecentEvents = [];
 
     function formatDeviceType(type) {
-        const normalized = String(type || 'other').toLowerCase();
+        if (type === null || type === undefined || String(type).trim() === '') {
+            return 'Inconnu';
+        }
+        const normalized = String(type).trim().toLowerCase();
 
         if (normalized === 'opnsense') {
             return 'OPNsense';
@@ -60,7 +71,11 @@ document.addEventListener('DOMContentLoaded', () => {
             return 'MikroTik';
         }
 
-        return 'Autre';
+        if (normalized === 'radius') {
+            return 'RADIUS';
+        }
+
+        return 'Inconnu';
     }
 
     function setGaugeCircleProgress(circle, percent, color) {
@@ -277,15 +292,16 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function stopLiveStreams(reason) {
-        if (trafficSource) {
-            trafficSource.close();
-            trafficSource = null;
+        if (opnsenseLiveTimer) {
+            window.clearInterval(opnsenseLiveTimer);
+            opnsenseLiveTimer = null;
         }
 
-        if (cpuSource) {
-            cpuSource.close();
-            cpuSource = null;
+        if (dashboardSource) {
+            dashboardSource.close();
+            dashboardSource = null;
         }
+        dashboardStreamStarted = false;
 
         liveStreamsStarted = false;
         trafficInitialized = false;
@@ -430,14 +446,18 @@ document.addEventListener('DOMContentLoaded', () => {
             return;
         }
 
+        const isRate = String(data.metric_mode || '').toLowerCase() === 'rate';
+
         Object.values(trafficCharts).forEach(chart => {
             chart.config.data.datasets.forEach(dataset => {
                 const elapsedTime = Number(data.time ?? 0) - Number(dataset.last_time ?? 0);
                 if (elapsedTime > 0) {
                     const rawValue = Number(wanStats[dataset.src_field] ?? 0);
-                    const yValue = dataset.formatter === 'packets'
-                        ? Math.round(rawValue / elapsedTime)
-                        : Math.round((rawValue / elapsedTime) * 8);
+                    const yValue = isRate
+                        ? Math.round(rawValue)
+                        : (dataset.formatter === 'packets'
+                            ? Math.round(rawValue / elapsedTime)
+                            : Math.round((rawValue / elapsedTime) * 8));
 
                     dataset.data.push({
                         x: Date.now(),
@@ -451,27 +471,6 @@ document.addEventListener('DOMContentLoaded', () => {
         });
 
         updateTrafficHeaderValues();
-    }
-
-    function openTrafficStream() {
-        if (trafficSource) {
-            trafficSource.close();
-        }
-
-        trafficSource = new EventSource(TRAFFIC_STREAM_PATH);
-        trafficSource.onmessage = event => {
-            try {
-                applyTrafficEvent(event);
-            } catch (error) {
-                console.error('Erreur flux trafic:', error);
-                showError(`Erreur trafic: ${error.message}`);
-            }
-        };
-        trafficSource.onerror = event => {
-            if (trafficSource && trafficSource.readyState !== EventSource.CONNECTING) {
-                console.error('Flux trafic interrompu', event);
-            }
-        };
     }
 
     function updateCpuUi(data) {
@@ -548,32 +547,6 @@ document.addEventListener('DOMContentLoaded', () => {
         }).join('');
     }
 
-    function openCpuStream() {
-        if (cpuSource) {
-            cpuSource.close();
-        }
-
-        cpuSource = new EventSource(CPU_STREAM_PATH);
-        cpuSource.onmessage = event => {
-            try {
-                const data = JSON.parse(event.data);
-                if (data.error) {
-                    throw new Error(data.error);
-                }
-
-                updateCpuUi(data);
-            } catch (error) {
-                console.error('Erreur flux CPU:', error);
-                showError(`Erreur CPU: ${error.message}`);
-            }
-        };
-        cpuSource.onerror = event => {
-            if (cpuSource && cpuSource.readyState !== EventSource.CONNECTING) {
-                console.error('Flux CPU interrompu', event);
-            }
-        };
-    }
-
     function fetchCpuType() {
         fetch(CPU_TYPE_PATH)
             .then(response => {
@@ -615,43 +588,234 @@ document.addEventListener('DOMContentLoaded', () => {
             return;
         }
 
+        if (!useDashboardStream) {
+            return;
+        }
+
         if (liveStreamsStarted) {
             return;
         }
 
         liveStreamsStarted = true;
 
-        window.setTimeout(() => {
-            fetch(TRAFFIC_INIT_PATH)
-                .then(response => {
-                    if (!response.ok) {
-                        throw new Error(`Erreur HTTP ${response.status}`);
-                    }
-                    return response.json();
-                })
-                .then(data => {
-                if (data.error) {
-                    throw new Error(data.error);
+        openDashboardStream();
+    }
+
+    const runOpnsenseLiveUpdate = () => fetch('../api/get_live_metrics.php')
+        .then(response => (response.ok ? response.json() : Promise.reject(new Error(`Erreur HTTP ${response.status}`))))
+        .then(data => {
+            if (data?.error) throw new Error(data.error);
+            if (data?.cpu) updateCpuUi(data.cpu);
+            const traffic = data?.traffic || {};
+            applyTrafficPayload({
+                time: Number(data?.time ?? (Date.now() / 1000)),
+                metric_mode: 'rate',
+                interfaces: {
+                    wan: {
+                        name: String(traffic.interfaces || 'WAN'),
+                        inbytes: Number(traffic.rx_bps ?? 0),
+                        outbytes: Number(traffic.tx_bps ?? 0),
+                    },
+                },
+            });
+        })
+        .catch(() => {});
+
+    function renderRecentEvents(events) {
+        if (!recentEventsTableBody) {
+            return;
+        }
+
+        const formatTimeCell = (rawTime) => {
+            const source = String(rawTime ?? '').trim();
+            if (source === '') {
+                return '<span class="recent-time-date">&nbsp;</span><span class="recent-time-hour">&nbsp;</span>';
+            }
+
+            const match = source.match(/^(\d{4}-\d{2}-\d{2})\s+(\d{2}:\d{2}:\d{2})$/);
+            if (match) {
+                return `<span class="recent-time-date">${escapeHtml(match[1])}</span><span class="recent-time-hour">${escapeHtml(match[2])}</span>`;
+            }
+
+            return `<span class="recent-time-date">-</span><span class="recent-time-hour">${escapeHtml(source)}</span>`;
+        };
+
+        const formatUserCell = (rawUser) => {
+            const source = String(rawUser ?? '').trim();
+            if (source === '') {
+                return '&nbsp;';
+            }
+
+            const match = source.match(/^(.*)\s+\(([^)]+)\)$/);
+            if (!match) {
+                return `<span class="recent-user-name">${escapeHtml(source)}</span>`;
+            }
+
+            const userName = escapeHtml(match[1].trim());
+            const userIp = escapeHtml(match[2].trim());
+            return `<span class="recent-user-name">${userName || '-'}</span><span class="recent-user-ip">${userIp || '-'}</span>`;
+        };
+
+        if (Array.isArray(events) && events.length > 0) {
+            recentEventsTableBody.innerHTML = events.slice(0, 20).map(item => `
+                <tr>
+                    <td class="recent-time-cell">${formatTimeCell(item.time)}</td>
+                    <td class="recent-user-cell">${formatUserCell(item.user)}</td>
+                    <td>${escapeHtml(item.action ?? '') || '&nbsp;'}</td>
+                </tr>
+            `).join('');
+        } else {
+            recentEventsTableBody.innerHTML = `
+                <tr>
+                    <td class="recent-time-cell"><span class="recent-time-date">-</span><span class="recent-time-hour">-</span></td>
+                    <td class="recent-user-cell">-</td>
+                    <td>-</td>
+                </tr>
+            `;
+        }
+    }
+
+    function applyDashboardStats(data, recentEventsOverride = null) {
+        const activeHotspotUsersCount = document.getElementById('activeHotspotUsersCount');
+        const deviceName = data.device_name || data.opnsense_name || '--';
+        const deviceType = data.device_type != null && data.device_type !== '' ? data.device_type : null;
+        const deviceStatus = data.device_status || data.opnsense_status || '--';
+        const deviceZones = data.device_zones || data.opnsense_zones || [];
+        const backendLabel = data.device_backend_driver || data.device_backend || '';
+        const baseVersion = data.device_version && data.device_version !== 'N/A'
+            ? data.device_version
+            : (data.opnsense_version && data.opnsense_version !== 'N/A' ? data.opnsense_version : '');
+        const deviceVersion = [baseVersion, backendLabel].filter((value) => value && value !== 'N/A').join('\n') || backendLabel;
+
+        if (activeHotspotUsersCount) activeHotspotUsersCount.innerText = data.active_hotspot_users || '0';
+        if (connectedUsersCount) connectedUsersCount.innerText = data.total_users || '0';
+        if (cpuGauge && data.memory_used_percent !== undefined) {
+            const ramPercent = Math.max(0, Math.min(Number(data.memory_used_percent ?? 0), 100));
+            latestMemoryPercent = ramPercent;
+            setGaugeCircleProgress(cpuGaugeInnerValue, ramPercent, '#38bdf8');
+            if (cpuGaugeRamLabel) {
+                cpuGaugeRamLabel.innerText = `${ramPercent.toFixed(1)}%`;
+            }
+        }
+        if (summarySalesToday) summarySalesToday.innerText = data.sales_today || '0';
+        if (summarySalesMonthly) summarySalesMonthly.innerText = data.sales_monthly || '0';
+        if (salesTrendMonthLabel) {
+            salesTrendMonthLabel.innerText = new Date().toLocaleDateString('fr-FR', { month: 'long', year: 'numeric' });
+        }
+        if (deviceSummaryTitle) deviceSummaryTitle.innerText = deviceName;
+        if (deviceSummarySubtitle) deviceSummarySubtitle.innerText = formatDeviceType(deviceType);
+        if (deviceTypeLabel) deviceTypeLabel.innerText = formatDeviceType(deviceType);
+        if (deviceNameValue) deviceNameValue.innerText = deviceName;
+        if (deviceVersionValue) deviceVersionValue.innerText = deviceVersion || '--';
+        if (deviceStatusValue) deviceStatusValue.innerText = deviceStatus || '--';
+        if (deviceZonesValue) {
+            deviceZonesValue.innerText = Array.isArray(deviceZones) && deviceZones.length > 0
+                ? deviceZones.join(', ')
+                : (data.telemetry_supported === false ? backendLabel : 'Aucune');
+        }
+
+        const events = Array.isArray(recentEventsOverride)
+            ? recentEventsOverride
+            : (Array.isArray(data.recent_events) ? data.recent_events : null);
+        if (Array.isArray(events) && events.length > 0) {
+            lastRecentEvents = events;
+            renderRecentEvents(events);
+        }
+        renderSalesTrend(data.sales_daily_trend);
+    }
+
+    function applyTrafficPayload(payload) {
+        if (!payload) {
+            return;
+        }
+        applyTrafficEvent({ data: JSON.stringify(payload) });
+    }
+
+    function applyDashboardGenericPayload(payload) {
+        const device = payload?.device || {};
+        const hotspot = payload?.hotspot || {};
+        const commercialSummary = payload?.commercial_summary || {};
+        const resourceUsage = payload?.resource_usage || {};
+        const devicePayload = {
+            active_hotspot_users: hotspot.active_sessions ?? 0,
+            total_users: hotspot.total_users ?? 0,
+            sales_today: commercialSummary.today_amount ?? '0',
+            sales_monthly: commercialSummary.month_amount ?? '0',
+            sales_today_count: commercialSummary.today_count ?? 0,
+            sales_monthly_count: commercialSummary.month_count ?? 0,
+            sales_daily_trend: commercialSummary.daily_trend ?? [],
+            memory_used_percent: resourceUsage?.memory?.used_percent ?? 0,
+            device_name: device.name || '--',
+            device_type: device.type ?? null,
+            business_source: device.business_source ?? null,
+            device_host: device.host || '',
+            device_ip: device.ip || '',
+            device_backend_driver: device.backend_driver || '',
+            device_model: device.model || '',
+            device_status: device.status || '--',
+            device_message: device.message || '',
+            device_version: device.version || '--',
+            device_zones: Array.isArray(device.zones) ? device.zones : [],
+            device_zone_count: device.zone_count ?? 0,
+            telemetry_supported: device.telemetry_supported !== false,
+            last_update: device.last_update || '',
+        };
+
+        if (resourceUsage?.cpu) {
+            updateCpuUi(resourceUsage.cpu);
+        }
+
+        if (payload?.traffic_live) {
+            applyTrafficPayload(payload.traffic_live);
+        }
+
+        applyDashboardStats(devicePayload, Array.isArray(payload?.recent_events) ? payload.recent_events : undefined);
+    }
+
+    function openDashboardStream() {
+        if (dashboardStreamStarted) {
+            return;
+        }
+        dashboardStreamStarted = true;
+
+        if (dashboardSource) {
+            dashboardSource.close();
+        }
+
+        dashboardSource = new EventSource(DEVICE_STREAM_PATH);
+        dashboardSource.onmessage = event => {
+            try {
+                const payload = JSON.parse(event.data);
+                if (payload.error) {
+                    throw new Error(payload.error);
                 }
 
-                if (data.supported === false) {
-                    stopLiveStreams('Telemetrie trafic indisponible pour le device actif');
+                hideError();
+
+                if (payload.device || payload.traffic_live || payload.resource_usage || payload.hotspot || payload.commercial_summary) {
+                    applyDashboardGenericPayload(payload);
                     return;
                 }
 
-                initializeTraffic(data);
-                updateTrafficHeaderValues();
-                    openTrafficStream();
-                })
-                .catch(error => {
-                    console.error('Erreur initialisation trafic:', error);
-                    showError(`Erreur trafic: ${error.message}`);
-                });
-        }, 350);
-
-        window.setTimeout(() => {
-            openCpuStream();
-        }, 900);
+                if (payload.cpu) {
+                    updateCpuUi(payload.cpu);
+                }
+                if (payload.stats) {
+                    applyDashboardStats(payload.stats, Array.isArray(payload.recent_events) ? payload.recent_events : undefined);
+                } else if (Array.isArray(payload.recent_events) && payload.recent_events.length > 0) {
+                    lastRecentEvents = payload.recent_events;
+                    renderRecentEvents(payload.recent_events);
+                }
+            } catch (error) {
+                console.error('Erreur flux dashboard:', error);
+                showError(`Erreur dashboard: ${error.message}`);
+            }
+        };
+        dashboardSource.onerror = event => {
+            if (dashboardSource && dashboardSource.readyState !== EventSource.CONNECTING) {
+                console.error('Flux dashboard interrompu', event);
+            }
+        };
     }
 
     function fetchDashboardData() {
@@ -669,72 +833,41 @@ document.addEventListener('DOMContentLoaded', () => {
 
                 hideError();
 
-                const activeHotspotUsersCount = document.getElementById('activeHotspotUsersCount');
-                const opnsenseName = document.getElementById('opnsenseName');
-                const opnsenseVersion = document.getElementById('opnsenseVersion');
-                const opnsenseStatus = document.getElementById('opnsenseStatus');
-                const opnsenseZones = document.getElementById('opnsenseZones');
-                const deviceName = data.device_name || data.opnsense_name || '--';
-                const deviceType = data.device_type || 'other';
-                const deviceStatus = data.device_status || data.opnsense_status || '--';
-                const deviceZones = data.device_zones || data.opnsense_zones || [];
-                const backendLabel = data.device_backend || 'generic';
-                const deviceVersion = data.opnsense_version && data.opnsense_version !== 'N/A'
-                    ? data.opnsense_version
-                    : backendLabel;
-
-                if (activeHotspotUsersCount) activeHotspotUsersCount.innerText = data.active_hotspot_users || '0';
-                if (connectedUsersCount) connectedUsersCount.innerText = data.total_users || '0';
-                if (cpuGauge && data.memory_used_percent !== undefined) {
-                    const ramPercent = Math.max(0, Math.min(Number(data.memory_used_percent ?? 0), 100));
-                    latestMemoryPercent = ramPercent;
-                    setGaugeCircleProgress(cpuGaugeInnerValue, ramPercent, '#38bdf8');
-                    if (cpuGaugeRamLabel) {
-                        cpuGaugeRamLabel.innerText = `${ramPercent.toFixed(1)}%`;
+                const deviceType = data.device_type != null && data.device_type !== '' ? data.device_type : null;
+                if (deviceType === 'mikrotik') {
+                    useDashboardStream = true;
+                    if (opnsenseLiveTimer) {
+                        window.clearInterval(opnsenseLiveTimer);
+                        opnsenseLiveTimer = null;
                     }
-                }
-                if (summarySalesToday) summarySalesToday.innerText = data.sales_today || '0';
-                if (summarySalesMonthly) summarySalesMonthly.innerText = data.sales_monthly || '0';
-                if (salesTrendMonthLabel) {
-                    salesTrendMonthLabel.innerText = new Date().toLocaleDateString('fr-FR', { month: 'long', year: 'numeric' });
-                }
-                if (deviceSummaryTitle) deviceSummaryTitle.innerText = deviceName;
-                if (deviceTypeLabel) deviceTypeLabel.innerText = formatDeviceType(deviceType);
-                if (opnsenseName) opnsenseName.innerText = deviceName;
-                if (opnsenseVersion) opnsenseVersion.innerText = deviceVersion || '--';
-                if (opnsenseStatus) opnsenseStatus.innerText = deviceStatus || '--';
-                if (opnsenseZones) {
-                    opnsenseZones.innerText = Array.isArray(deviceZones) && deviceZones.length > 0
-                        ? deviceZones.join(', ')
-                        : (data.telemetry_supported === false ? backendLabel : 'Aucune');
-                }
-
-                if (recentEventsTableBody) {
-                    if (Array.isArray(data.recent_events) && data.recent_events.length > 0) {
-                        const paddedEvents = data.recent_events.slice(0, 5);
-                        while (paddedEvents.length < 5) {
-                            paddedEvents.push({ time: '', user: '', action: '' });
-                        }
-
-                        recentEventsTableBody.innerHTML = paddedEvents.map(item => `
-                            <tr>
-                                <td>${escapeHtml(item.time ?? '') || '&nbsp;'}</td>
-                                <td>${escapeHtml(item.user ?? '') || '&nbsp;'}</td>
-                                <td>${escapeHtml(item.action ?? '') || '&nbsp;'}</td>
-                            </tr>
-                        `).join('');
-                    } else {
-                        recentEventsTableBody.innerHTML = Array.from({ length: 5 }, () => `
-                            <tr>
-                                <td>&nbsp;</td>
-                                <td>&nbsp;</td>
-                                <td>&nbsp;</td>
-                            </tr>
-                        `).join('');
+                    if (dashboardStatsTimer) {
+                        window.clearInterval(dashboardStatsTimer);
+                        dashboardStatsTimer = null;
                     }
+                } else if (!dashboardStatsTimer) {
+                    useDashboardStream = false;
+                    if (dashboardSource) {
+                        dashboardSource.close();
+                        dashboardSource = null;
+                    }
+                    dashboardStreamStarted = false;
+                    dashboardStatsTimer = window.setInterval(fetchDashboardData, DASHBOARD_REFRESH_MS);
                 }
 
-                renderSalesTrend(data.sales_daily_trend);
+                if (deviceType === 'opnsense') {
+                    if (!opnsenseLiveTimer) {
+                        runOpnsenseLiveUpdate();
+                        opnsenseLiveTimer = window.setInterval(runOpnsenseLiveUpdate, OPN_LIVE_REFRESH_MS);
+                    }
+                } else if (opnsenseLiveTimer) {
+                    window.clearInterval(opnsenseLiveTimer);
+                    opnsenseLiveTimer = null;
+                }
+
+                applyDashboardStats(data);
+                if (!Array.isArray(data.recent_events) && lastRecentEvents.length > 0) {
+                    renderRecentEvents(lastRecentEvents);
+                }
                 startLiveStreams(data.telemetry_supported !== false);
                 if (data.telemetry_supported === false) {
                     fetchCpuType();
@@ -748,7 +881,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
     fetchCpuType();
     fetchDashboardData();
-    window.setInterval(fetchDashboardData, DASHBOARD_REFRESH_MS);
 });
 
 function redirectTo(pageUrl) {

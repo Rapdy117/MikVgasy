@@ -1,0 +1,245 @@
+.sessions-list-page #page-content-wrapper {
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+}
+
+.sessions-list-shell {
+    padding-top: 0 !important;
+    padding-bottom: 0 !important;
+    height: calc(100vh - var(--navbar-height) - var(--page-content-offset-y));
+    box-sizing: border-box;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+}
+
+.sessions-list-page .users-filter-field-search .input-group-text {
+    background: rgba(59, 130, 246, 0.12);
+    border-color: rgba(148, 163, 184, 0.18);
+    color: var(--theme-text);
+}
+
+.sessions-list-page .users-filter-field-search .form-control {
+    background: rgba(12, 20, 34, 0.82);
+    border-color: rgba(148, 163, 184, 0.18);
+    color: var(--theme-text);
+}
+
+.sessions-list-page .users-filter-field-search .form-control::placeholder {
+    color: rgba(226, 232, 240, 0.55);
+}
+
+.sessions-list-page .users-filter-field-search .form-control:focus {
+    border-color: rgba(59, 130, 246, 0.45);
+    box-shadow: 0 0 0 0.2rem rgba(59, 130, 246, 0.12);
+}
+
+.sessions-list-page .card > .card-header.users-list-card-header {
+    background: var(--theme-primary-soft) !important;
+    color: var(--theme-primary) !important;
+    font-size: calc(0.8rem - 1px);
+    font-weight: 600;
+    padding: 6px 10px;
+    border-bottom: 1px solid rgba(0, 255, 255, 0.1) !important;
+}
+
+.sessions-list-page .users-list-card-title i {
+    opacity: 0.95;
+    color: var(--theme-primary);
+}
+
+.sessions-list-page .users-list-card-title span {
+    font-size: calc(0.8rem + 3px);
+}
+
+.sessions-list-page .card.shadow-sm.mb-4 {
+    margin-bottom: 0 !important;
+    flex: 1 1 auto;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+}
+
+.sessions-list-page .card.shadow-sm.mb-4 > .card-body {
+    flex: 1 1 auto;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+    padding-top: 0.55rem;
+}
+
+.sessions-list-page .sessions-table-panel,
+.sessions-list-page .users-table-panel {
+    min-height: 300px;
+    max-height: none;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    border: 1px solid rgba(148, 163, 184, 0.16);
+    border-radius: 0.5rem;
+    background: rgba(15, 23, 42, 0.42);
+    flex: 1 1 auto;
+}
+
+/* Scroll tableau : aligné sur html.users-list-page .users-table-scroll (users_list.css) */
+html.sessions-list-page .sessions-table-scroll,
+html.sessions-list-page .users-table-scroll {
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow-x: auto;
+    overflow-y: scroll;
+    position: relative;
+    overscroll-behavior: contain;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-gutter: stable;
+    scrollbar-width: thin;
+    scrollbar-color: var(--theme-scrollbar-thumb) var(--theme-scrollbar-track);
+}
+
+html.sessions-list-page .sessions-table-scroll::-webkit-scrollbar,
+html.sessions-list-page .users-table-scroll::-webkit-scrollbar {
+    width: var(--theme-scrollbar-size);
+}
+
+html.sessions-list-page .sessions-table-scroll::-webkit-scrollbar-track,
+html.sessions-list-page .users-table-scroll::-webkit-scrollbar-track {
+    background: var(--theme-scrollbar-track);
+    border-radius: 999px;
+}
+
+html.sessions-list-page .sessions-table-scroll::-webkit-scrollbar-thumb,
+html.sessions-list-page .users-table-scroll::-webkit-scrollbar-thumb {
+    background-image:
+        linear-gradient(180deg, rgba(148, 163, 184, 0.55), rgba(94, 234, 212, 0.45)),
+        radial-gradient(circle at 50% 90%, var(--theme-scrollbar-glow), transparent 60%);
+    border-radius: 999px;
+    border: 2px solid transparent;
+    background-clip: padding-box;
+    box-shadow: 0 0 6px rgba(78, 220, 255, 0.35);
+}
+
+html.sessions-list-page .sessions-table-scroll table,
+html.sessions-list-page .users-table-scroll table {
+    border-collapse: separate;
+    border-spacing: 0;
+}
+
+/* En-tête figé : même recette que users_list.css (léger flou, pas de sur-opacité) */
+html.sessions-list-page .sessions-table-scroll thead,
+html.sessions-list-page .users-table-scroll thead {
+    position: sticky;
+    top: 0;
+    z-index: 6;
+}
+
+html.sessions-list-page .sessions-table-scroll thead th,
+html.sessions-list-page .users-table-scroll thead th {
+    position: sticky;
+    top: 0;
+    z-index: 7;
+    font-size: calc(0.78rem + 1px);
+    font-weight: 600;
+    background-color: rgba(18, 24, 41, 0.58) !important;
+    backdrop-filter: blur(2px);
+    -webkit-backdrop-filter: blur(2px);
+    border-bottom: 1px solid var(--theme-border) !important;
+}
+
+/* Colonnes triables (table_sort.js) — même esprit que users_list.css */
+html.sessions-list-page .sessions-table-scroll thead th[data-sort-key] {
+    cursor: pointer;
+    user-select: none;
+    padding-right: 1.35rem;
+    position: relative;
+}
+
+html.sessions-list-page .sessions-table-scroll thead th[data-sort-key]::after {
+    position: absolute;
+    right: 5px;
+    top: 50%;
+    transform: translateY(-50%);
+    font-size: 0.65em;
+    line-height: 1;
+    opacity: 0.4;
+    color: rgba(226, 232, 240, 0.85);
+    content: '\2195';
+}
+
+html.sessions-list-page .sessions-table-scroll thead th[data-sort-key].sort-asc::after {
+    content: '\25B2';
+    opacity: 1;
+    color: var(--theme-primary);
+    font-size: 0.58em;
+}
+
+html.sessions-list-page .sessions-table-scroll thead th[data-sort-key].sort-desc::after {
+    content: '\25BC';
+    opacity: 1;
+    color: var(--theme-primary);
+    font-size: 0.58em;
+}
+
+.sessions-list-page .sessions-table td,
+.sessions-list-page .sessions-table th,
+.sessions-list-page .users-table td,
+.sessions-list-page .users-table th {
+    white-space: nowrap;
+}
+
+.sessions-list-page .sessions-table td,
+.sessions-list-page .users-table td {
+    padding: 5px 8px;
+}
+
+.sessions-list-page .sessions-table .session-action-btn {
+    background-color: rgba(23, 162, 184, 0.2);
+    border: 1px solid var(--theme-primary);
+    color: var(--theme-primary);
+}
+
+.sessions-list-page .sessions-table .session-action-btn:hover,
+.sessions-list-page .sessions-table .session-action-btn:focus {
+    background-color: var(--theme-primary);
+    border-color: var(--theme-primary);
+    color: #fff;
+    box-shadow: 0 0 8px rgba(23, 162, 184, 0.6);
+}
+
+.sessions-list-page .sessions-table .action-header,
+.sessions-list-page .users-table .action-header,
+.sessions-list-page .sessions-table .action-cell,
+.sessions-list-page .users-table .action-cell {
+    text-align: center;
+}
+
+.sessions-list-page .profile-columns-menu {
+    min-width: 220px;
+    border: 1px solid rgba(148, 163, 184, 0.2);
+    background: rgba(8, 16, 30, 0.96);
+    border-radius: 0.5rem;
+}
+
+.sessions-list-page .profile-columns-menu .profile-column-option {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    border-radius: 0.35rem;
+    padding: 0.35rem 0.5rem;
+    cursor: pointer;
+}
+
+.sessions-list-page .sessions-table-actions .btn {
+    min-height: 32px;
+}
+
+.sessions-list-page .sessions-table-actions .dropdown-toggle {
+    min-width: 112px;
+}
+
+.sessions-list-page .sessions-header-search {
+    min-width: 220px;
+    max-width: 420px;
+    flex: 0 1 320px;
+}

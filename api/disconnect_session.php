@@ -1,6 +1,9 @@
 <?php
 require_once __DIR__ . '/../config/config.php';
+require_once __DIR__ . '/../config/db.php';
 require_once __DIR__ . '/../includes/device_manager.php';
+require_once __DIR__ . '/../includes/mikrotik_backend.php';
+require_once __DIR__ . '/../includes/operation_history.php';
 
 if (session_status() === PHP_SESSION_NONE) {
     session_start();
@@ -43,14 +46,49 @@ if ($sessionId === '') {
 }
 
 $device = requireActiveDevice();
+$deviceType = normalizeDeviceType((string)$device['type']);
 
-if (($device['type'] ?? '') !== 'opnsense') {
+if ($deviceType === 'mikrotik') {
+    try {
+        disconnectMikrotikHotspotActiveSession($sessionId);
+        recordOperationHistory($pdo, [
+            'operation_scope' => 'admin',
+            'operation_type' => 'session_disconnect',
+            'actor_username' => (string)($_SESSION['username'] ?? ''),
+            'actor_role' => (string)($_SESSION['user_role'] ?? 'administrator'),
+            'target_type' => 'session',
+            'target_name' => trim((string)($payload['username'] ?? '')) ?: null,
+            'target_ref' => $sessionId,
+            'device_id' => (string)($device['id'] ?? ''),
+            'profile_name' => trim((string)($payload['profile'] ?? '')) ?: null,
+            'summary' => 'Déconnexion manuelle',
+            'details_json' => [
+                'address' => trim((string)($payload['address'] ?? '')),
+                'source' => trim((string)($payload['source'] ?? '')),
+                'device_type' => $deviceType,
+            ],
+        ]);
+        echo json_encode([
+            'status' => 'success',
+            'message' => 'Session deconnectee avec succes.',
+        ]);
+        exit;
+    } catch (Throwable $e) {
+        json_error(
+            trim((string)$e->getMessage()) !== '' ? trim((string)$e->getMessage()) : 'Deconnexion MikroTik impossible.',
+            500
+        );
+    }
+}
+
+if ($deviceType !== 'opnsense') {
     json_error(
         'La deconnexion distante n\'est pas disponible pour le device actif ' . getDeviceDisplayLabel($device) . '.',
         409,
         [
-            'device_type' => (string)($device['type'] ?? 'other'),
-            'backend' => (string)($device['backend'] ?? 'generic'),
+            'device_type' => deviceTypeLabelForApiResponse($device),
+            'business_source' => deviceBusinessSourceForApiResponse(deviceTypeLabelForApiResponse($device)),
+            'backend_driver' => deviceBackendDriverForApiResponse($device),
         ]
     );
 }
@@ -93,6 +131,23 @@ if ($httpCode === 200) {
         (is_array($decoded) && $decoded === []);
 
     if ($isSuccess) {
+        recordOperationHistory($pdo, [
+            'operation_scope' => 'admin',
+            'operation_type' => 'session_disconnect',
+            'actor_username' => (string)($_SESSION['username'] ?? ''),
+            'actor_role' => (string)($_SESSION['user_role'] ?? 'administrator'),
+            'target_type' => 'session',
+            'target_name' => trim((string)($payload['username'] ?? '')) ?: null,
+            'target_ref' => $sessionId,
+            'device_id' => (string)($device['id'] ?? ''),
+            'profile_name' => trim((string)($payload['profile'] ?? '')) ?: null,
+            'summary' => 'Déconnexion manuelle',
+            'details_json' => [
+                'address' => trim((string)($payload['address'] ?? '')),
+                'source' => trim((string)($payload['source'] ?? '')),
+                'device_type' => $deviceType,
+            ],
+        ]);
         echo json_encode([
             'status' => 'success',
             'message' => 'Session deconnectee avec succes.'

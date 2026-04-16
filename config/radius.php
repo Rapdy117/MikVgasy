@@ -24,8 +24,6 @@ if (!isset($_SESSION['logged_in']) || $_SESSION['logged_in'] !== true) {
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     $data = [
-        'test_user' => $_POST['test_user'] ?? '',
-        'test_pass' => $_POST['test_pass'] ?? '',
         'host' => $_POST['host'] ?? '',
         'auth_port' => (int)($_POST['auth_port'] ?? 1812),
         'acct_port' => (int)($_POST['acct_port'] ?? 1813),
@@ -75,9 +73,14 @@ if (!$data) {
         'auth_port' => 1812,
         'acct_port' => 1813,
         'secret' => '',
-        'timeout' => 3
+        'timeout' => 3,
+        'test_user' => '',
+        'test_pass' => ''
     ]);
     exit;
 }
 
-echo json_encode($data);
+echo json_encode(array_merge([
+    'test_user' => '',
+    'test_pass' => ''
+], $data));

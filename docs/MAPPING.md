@@ -305,3 +305,35 @@ Incoherence :
 ## Conclusion
 
 Le projet repose sur un mapping direct entre les objets applicatifs et FreeRADIUS, sans couche d'abstraction intermediaire. Ce choix simplifie les ecritures SQL mais augmente fortement le couplage et les risques de regression. Toute modification future doit conserver la coherence entre `users`, `profiles`, `radcheck`, `radreply`, `radusergroup`, `radgroupreply` et `radacct`.
+
+## Mise a jour MVC (suppression DHCP)
+
+### Branche `opnsense` : DHCP leases
+
+- **View**: `pages/dhcp_leases.php`
+- **Controller**: `api/dhcp_lease_action.php`
+- **Model**:
+  - `includes/mikrotik_backend.php` (MikroTik: enable/disable/delete)
+  - `includes/opnsense_dhcp_leases.php` (OPNsense: delete)
+
+Comportement:
+
+- MikroTik: actions `enable`, `disable`, `delete`.
+- OPNsense: action `delete` uniquement, avec message explicite si action non supportee.
+
+## Page `system_info.php` : sources MVC par type
+
+- **MikroTik**
+  - View: `pages/system_info.php`
+  - Controller/Model: `includes/mikrotik_backend.php`
+  - Source: RouterOS API
+
+- **OPNsense**
+  - View: `pages/system_info.php`
+  - Controller/Model: `includes/opnsense_shaper.php`
+  - Source: OPNsense diagnostics API
+
+- **RADIUS**
+  - View: `pages/system_info.php`
+  - Controller: SQL local
+  - Model: tables `users`, `profiles`, `radacct`

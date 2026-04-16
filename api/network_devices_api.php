@@ -11,32 +11,23 @@ function post_string_or_null(string $key): ?string
     return $value === '' ? null : $value;
 }
 
-function buildConnectionState(?array $device): array
+function stripDeviceSecretsForPublicApi(?array $device): ?array
 {
-    if (!$device) {
-        return [
-            'supported' => false,
-            'status' => 'not_configured',
-            'label' => 'Aucun device actif',
-        ];
+    if ($device === null) {
+        return null;
     }
 
-    $supported = canProbeDevice($device);
+    $out = $device;
+    unset($out['api_key'], $out['api_secret'], $out['secret']);
 
-    return [
-        'supported' => $supported,
-        'status' => $supported ? 'ready' : 'not_supported',
-        'label' => $supported
-            ? 'Test disponible via backend ' . ($device['backend'] ?? 'generic')
-            : 'Test indisponible pour ce type de device',
-    ];
+    return $out;
 }
 
 if (!isset($_SESSION['logged_in']) || $_SESSION['logged_in'] !== true) {
     http_response_code(403);
     echo json_encode([
         'success' => false,
-        'message' => 'Unauthorized'
+        'message' => 'Non autorisé',
     ]);
     exit;
 }
@@ -61,7 +52,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         if ($id === null) {
             echo json_encode([
                 'success' => false,
-                'message' => 'Missing id'
+                'message' => 'Identifiant manquant',
             ]);
             exit;
         }
@@ -87,7 +78,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         if ($id === null) {
             echo json_encode([
                 'success' => false,
-                'message' => 'Missing id'
+                'message' => 'Identifiant manquant',
             ]);
             exit;
         }
@@ -105,8 +96,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         echo json_encode([
             'success' => true,
             'active_device_id' => $activeDevice['id'],
-            'active_device' => $activeDevice,
-            'connection_state' => buildConnectionState($activeDevice),
+            'active_device' => stripDeviceSecretsForPublicApi($activeDevice),
+            'connection_state' => buildDeviceConnectionState($activeDevice),
         ]);
         exit;
     }
@@ -115,7 +106,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     // SAVE / UPDATE
     // =========================
     $id = post_string_or_null('id');
-    $type = normalizeDeviceType((string)($_POST['type'] ?? 'opnsense'));
+    $rawType = post_string_or_null('type');
     $name = post_string_or_null('device_name');
     $host = post_string_or_null('host');
     $api_key = post_string_or_null('api_key');
@@ -123,14 +114,35 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $verify_ssl = ($_POST['verify_ssl'] ?? 'false') === 'true';
     $setActive = ($_POST['is_active'] ?? '0') === '1';
 
+    if ($rawType === null) {
+        http_response_code(422);
+        echo json_encode([
+            'success' => false,
+            'message' => 'Type de device manquant',
+        ]);
+        exit;
+    }
+
+    try {
+        $type = normalizeDeviceType($rawType);
+    } catch (InvalidArgumentException $e) {
+        http_response_code(422);
+        echo json_encode([
+            'success' => false,
+            'message' => $e->getMessage(),
+        ]);
+        exit;
+    }
+
     $requiresApiCredentials = in_array($type, ['opnsense', 'mikrotik'], true);
     $hasSecret = $api_secret !== null;
     $hasApiKey = $api_key !== null;
 
     if ($name === null || $host === null || ($requiresApiCredentials && (!$hasApiKey || !$hasSecret))) {
+        http_response_code(422);
         echo json_encode([
             'success' => false,
-            'message' => 'Missing fields'
+            'message' => 'Champs obligatoires manquants (nom, hôte et identifiants API si requis).',
         ]);
         exit;
     }
@@ -186,12 +198,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     saveDeviceStore($data);
 
+    $activeAfterSave = findDeviceById($data, (string)($data['active_device_id'] ?? ''));
     echo json_encode([
         'success' => true,
         'id' => $id,
         'active_device_id' => $data['active_device_id'] ?? null,
-        'active_device' => findDeviceById($data, (string)($data['active_device_id'] ?? '')),
-        'connection_state' => buildConnectionState(findDeviceById($data, (string)($data['active_device_id'] ?? ''))),
+        'active_device' => stripDeviceSecretsForPublicApi($activeAfterSave),
+        'connection_state' => buildDeviceConnectionState($activeAfterSave),
     ]);
     exit;
 }
@@ -201,6 +214,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 // =========================
 $activeDevice = getActiveDeviceRecord($data);
 $data['active_device_id'] = $activeDevice['id'] ?? ($data['active_device_id'] ?? null);
-$data['active_device'] = $activeDevice;
-$data['connection_state'] = buildConnectionState($activeDevice);
+$data['active_device'] = stripDeviceSecretsForPublicApi($activeDevice);
+$data['devices'] = array_map(static function (array $device): array {
+    return stripDeviceSecretsForPublicApi($device) ?? $device;
+}, $data['devices'] ?? []);
+$data['connection_state'] = buildDeviceConnectionState($activeDevice);
 echo json_encode($data);

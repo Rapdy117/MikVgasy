@@ -1,5 +1,7 @@
 <?php
 
+require_once __DIR__ . '/mikrotik_backend.php';
+
 function insertReply($pdo, $group, $attribute, $value)
 {
     $stmt = $pdo->prepare("
@@ -18,6 +20,27 @@ function insertUserReply($pdo, $username, $attribute, $value)
     $stmt->execute([$username, $attribute, $value]);
 }
 
+function loadGroupReplyAttributes(PDO $pdo, string $groupname): array
+{
+    $groupname = trim($groupname);
+    if ($groupname === '') {
+        return [];
+    }
+
+    $stmt = $pdo->prepare("SELECT attribute FROM radgroupreply WHERE groupname = ?");
+    $stmt->execute([$groupname]);
+
+    $attributes = [];
+    foreach (($stmt->fetchAll(PDO::FETCH_COLUMN) ?: []) as $attribute) {
+        $name = trim((string)$attribute);
+        if ($name !== '') {
+            $attributes[$name] = true;
+        }
+    }
+
+    return $attributes;
+}
+
 function convertMegabytesToBytes($megabytes)
 {
     return (int)$megabytes * 1024 * 1024;
@@ -30,6 +53,34 @@ function hasCapability(array $capabilities, string $attribute): bool
     }
 
     return in_array($attribute, $capabilities, true);
+}
+
+function canWriteUserReplyAttribute(string $attribute, array $user = []): bool
+{
+    // In this deployment, FreeRADIUS accepts Max-Octets on the profile/group,
+    // but rejects authentication when it is written directly to radreply.
+    if ($attribute === 'Max-Octets') {
+        return false;
+    }
+
+    return true;
+}
+
+function shouldWriteUserReplyAttribute(
+    string $attribute,
+    array $capabilities = [],
+    array $groupReplyAttributes = [],
+    array $user = []
+): bool {
+    if (!hasCapability($capabilities, $attribute)) {
+        return false;
+    }
+
+    if (!canWriteUserReplyAttribute($attribute, $user)) {
+        return false;
+    }
+
+    return !isset($groupReplyAttributes[$attribute]);
 }
 
 function convertToBits($rate)
@@ -46,35 +97,6 @@ function applyRateLimit($pdo, $group, $rateLimit, $nasType, array $capabilities 
 {
     if (empty($rateLimit)) return;
 
-    if ($nasType === 'mikrotik' && hasCapability($capabilities, 'Mikrotik-Rate-Limit')) {
-        insertReply($pdo, $group, 'Mikrotik-Rate-Limit', $rateLimit);
-    } else {
-        if (!hasCapability($capabilities, 'WISPr-Bandwidth-Max-Down') || !hasCapability($capabilities, 'WISPr-Bandwidth-Max-Up')) {
-            return;
-        }
-
-        if (strpos($rateLimit, '/') === false) {
-            return;
-        }
-
-        list($down, $up) = explode('/', $rateLimit);
-
-        insertReply($pdo, $group, 'WISPr-Bandwidth-Max-Down', convertToBits($down));
-        insertReply($pdo, $group, 'WISPr-Bandwidth-Max-Up', convertToBits($up));
-    }
-}
-
-function applyUserRateLimit($pdo, $username, $rateLimit, $nasType, array $capabilities = [])
-{
-    if (empty($rateLimit)) {
-        return;
-    }
-
-    if ($nasType === 'mikrotik' && hasCapability($capabilities, 'Mikrotik-Rate-Limit')) {
-        insertUserReply($pdo, $username, 'Mikrotik-Rate-Limit', $rateLimit);
-        return;
-    }
-
     if (!hasCapability($capabilities, 'WISPr-Bandwidth-Max-Down') || !hasCapability($capabilities, 'WISPr-Bandwidth-Max-Up')) {
         return;
     }
@@ -83,7 +105,30 @@ function applyUserRateLimit($pdo, $username, $rateLimit, $nasType, array $capabi
         return;
     }
 
-    list($down, $up) = explode('/', $rateLimit);
+    [$up, $down] = explode('/', $rateLimit, 2);
+
+    insertReply($pdo, $group, 'WISPr-Bandwidth-Max-Down', convertToBits($down));
+    insertReply($pdo, $group, 'WISPr-Bandwidth-Max-Up', convertToBits($up));
+}
+
+function applyUserRateLimit($pdo, $username, $rateLimit, $nasType, array $capabilities = [], array $groupReplyAttributes = [])
+{
+    if (empty($rateLimit)) {
+        return;
+    }
+
+    if (
+        !shouldWriteUserReplyAttribute('WISPr-Bandwidth-Max-Down', $capabilities, $groupReplyAttributes)
+        || !shouldWriteUserReplyAttribute('WISPr-Bandwidth-Max-Up', $capabilities, $groupReplyAttributes)
+    ) {
+        return;
+    }
+
+    if (strpos($rateLimit, '/') === false) {
+        return;
+    }
+
+    [$up, $down] = explode('/', $rateLimit, 2);
     insertUserReply($pdo, $username, 'WISPr-Bandwidth-Max-Down', convertToBits($down));
     insertUserReply($pdo, $username, 'WISPr-Bandwidth-Max-Up', convertToBits($up));
 }
@@ -115,24 +160,100 @@ function syncProfileToRadius($pdo, $profile, $nasType, array $capabilities = [])
 
 function syncProfileToNasBackend($pdo, $profile, array $nasContext)
 {
-    $backend = $nasContext['backend'] ?? 'radius';
-    $nasType = $nasContext['nas_type'] ?? 'other';
+    $businessSource = (string)($nasContext['business_source'] ?? '');
+    $nasType = (string)($nasContext['nas_type'] ?? '');
     $capabilities = $nasContext['capabilities'] ?? [];
 
-    if ($backend === 'radius') {
+    if ($businessSource === '' || $nasType === '') {
+        throw new InvalidArgumentException('nas_context incomplet: business_source et nas_type requis');
+    }
+
+    if ($businessSource === 'radius') {
         syncProfileToRadius($pdo, $profile, $nasType, $capabilities);
         return;
     }
 
-    throw new Exception("Backend NAS non supporte pour la synchro profil");
+    if ($businessSource === 'mikrotik_local') {
+        syncProfileToMikrotik($profile, $nasContext);
+        return;
+    }
+
+    throw new Exception("Ce type de NAS ne passe pas par la base metier / FreeRADIUS");
+}
+
+function updateProfileInRadius($pdo, $profile, $nasType, array $capabilities = [])
+{
+    $group = $profile['name'];
+    $oldGroup = trim((string)($profile['old_name'] ?? ''));
+    if ($oldGroup === '') {
+        $oldGroup = $group;
+    }
+
+    if ($oldGroup !== $group) {
+        $stmt = $pdo->prepare("
+            UPDATE radusergroup
+            SET groupname = ?
+            WHERE groupname = ?
+        ");
+        $stmt->execute([$group, $oldGroup]);
+
+        $pdo->prepare("DELETE FROM radgroupreply WHERE groupname = ?")
+            ->execute([$oldGroup]);
+    }
+
+    syncProfileToRadius($pdo, $profile, $nasType, $capabilities);
+}
+
+function updateProfileToNasBackend($pdo, $profile, array $nasContext)
+{
+    $businessSource = (string)($nasContext['business_source'] ?? '');
+    $nasType = (string)($nasContext['nas_type'] ?? '');
+    $capabilities = $nasContext['capabilities'] ?? [];
+
+    if ($businessSource === '' || $nasType === '') {
+        throw new InvalidArgumentException('nas_context incomplet: business_source et nas_type requis');
+    }
+
+    if ($businessSource === 'radius') {
+        updateProfileInRadius($pdo, $profile, $nasType, $capabilities);
+        return;
+    }
+
+    if ($businessSource === 'mikrotik_local') {
+        updateProfileInMikrotik($profile, $nasContext);
+        return;
+    }
+
+    throw new Exception("Ce type de NAS ne passe pas par la base metier / FreeRADIUS");
+}
+
+function deleteProfileFromRadius($pdo, string $groupname): void
+{
+    $groupname = trim($groupname);
+    if ($groupname === '') {
+        return;
+    }
+
+    $stmt = $pdo->prepare("DELETE FROM radgroupreply WHERE groupname = ?");
+    $stmt->execute([$groupname]);
+
+    $stmt = $pdo->prepare("DELETE FROM radgroupcheck WHERE groupname = ?");
+    $stmt->execute([$groupname]);
 }
 
 function syncUserToRadius($pdo, array $user, string $groupname): void
 {
     $username = $user['username'];
     $password = $user['password'];
-    $nasType = $user['nas_type'] ?? 'other';
+    $nasType = (string)($user['nas_type'] ?? '');
+    if ($nasType === '') {
+        throw new InvalidArgumentException('nas_type requis pour syncUserToRadius');
+    }
     $capabilities = $user['capabilities'] ?? [];
+    $groupReplyAttributes = loadGroupReplyAttributes($pdo, $groupname);
+
+    $stmt = $pdo->prepare("DELETE FROM radcheck WHERE username = ? AND attribute = 'Auth-Type'");
+    $stmt->execute([$username]);
 
     $stmt = $pdo->prepare("
         INSERT INTO radcheck (username, attribute, op, value)
@@ -146,19 +267,22 @@ function syncUserToRadius($pdo, array $user, string $groupname): void
     ");
     $stmt->execute([$username, $groupname]);
 
-    if (($user['session_timeout'] ?? 0) > 0 && hasCapability($capabilities, 'Session-Timeout')) {
+    if (($user['session_timeout'] ?? 0) > 0 && shouldWriteUserReplyAttribute('Session-Timeout', $capabilities, $groupReplyAttributes, $user)) {
         insertUserReply($pdo, $username, 'Session-Timeout', $user['session_timeout']);
     }
 
-    if (($user['simultaneous_use'] ?? 0) > 0 && hasCapability($capabilities, 'Simultaneous-Use')) {
+    if (($user['simultaneous_use'] ?? 0) > 0 && shouldWriteUserReplyAttribute('Simultaneous-Use', $capabilities, $groupReplyAttributes, $user)) {
         insertUserReply($pdo, $username, 'Simultaneous-Use', $user['simultaneous_use']);
     }
 
-    if (($user['idle_timeout'] ?? 0) > 0 && hasCapability($capabilities, 'Idle-Timeout')) {
+    if (($user['idle_timeout'] ?? 0) > 0 && shouldWriteUserReplyAttribute('Idle-Timeout', $capabilities, $groupReplyAttributes, $user)) {
         insertUserReply($pdo, $username, 'Idle-Timeout', $user['idle_timeout']);
     }
 
-    if (($user['data_limit'] ?? 0) > 0 && hasCapability($capabilities, 'Max-Octets')) {
+    if (
+        ($user['data_limit'] ?? 0) > 0
+        && shouldWriteUserReplyAttribute('Max-Octets', $capabilities, $groupReplyAttributes, $user)
+    ) {
         insertUserReply($pdo, $username, 'Max-Octets', convertMegabytesToBytes($user['data_limit']));
     }
 
@@ -166,15 +290,25 @@ function syncUserToRadius($pdo, array $user, string $groupname): void
         insertUserReply($pdo, $username, 'Expiration', $user['expiration_date']);
     }
 
-    applyUserRateLimit($pdo, $username, $user['rate_limit'] ?? null, $nasType, $capabilities);
+    applyUserRateLimit($pdo, $username, $user['rate_limit'] ?? null, $nasType, $capabilities, $groupReplyAttributes);
 }
 
 function updateUserInRadius($pdo, array $user, string $groupname): void
 {
     $username = $user['username'];
     $oldUsername = $user['old_username'] ?? $username;
-    $nasType = $user['nas_type'] ?? 'other';
+    $nasType = (string)($user['nas_type'] ?? '');
+    if ($nasType === '') {
+        throw new InvalidArgumentException('nas_type requis pour updateUserInRadius');
+    }
     $capabilities = $user['capabilities'] ?? [];
+    $groupReplyAttributes = loadGroupReplyAttributes($pdo, $groupname);
+
+    $stmt = $pdo->prepare("DELETE FROM radcheck WHERE username = ? AND attribute = 'Auth-Type'");
+    $stmt->execute([$oldUsername]);
+    if ($oldUsername !== $username) {
+        $stmt->execute([$username]);
+    }
 
     $stmt = $pdo->prepare("
         UPDATE radcheck
@@ -193,19 +327,22 @@ function updateUserInRadius($pdo, array $user, string $groupname): void
     $stmt = $pdo->prepare("DELETE FROM radreply WHERE username = ?");
     $stmt->execute([$oldUsername]);
 
-    if (($user['session_timeout'] ?? 0) > 0 && hasCapability($capabilities, 'Session-Timeout')) {
+    if (($user['session_timeout'] ?? 0) > 0 && shouldWriteUserReplyAttribute('Session-Timeout', $capabilities, $groupReplyAttributes, $user)) {
         insertUserReply($pdo, $username, 'Session-Timeout', $user['session_timeout']);
     }
 
-    if (($user['simultaneous_use'] ?? 0) > 0 && hasCapability($capabilities, 'Simultaneous-Use')) {
+    if (($user['simultaneous_use'] ?? 0) > 0 && shouldWriteUserReplyAttribute('Simultaneous-Use', $capabilities, $groupReplyAttributes, $user)) {
         insertUserReply($pdo, $username, 'Simultaneous-Use', $user['simultaneous_use']);
     }
 
-    if (($user['idle_timeout'] ?? 0) > 0 && hasCapability($capabilities, 'Idle-Timeout')) {
+    if (($user['idle_timeout'] ?? 0) > 0 && shouldWriteUserReplyAttribute('Idle-Timeout', $capabilities, $groupReplyAttributes, $user)) {
         insertUserReply($pdo, $username, 'Idle-Timeout', $user['idle_timeout']);
     }
 
-    if (($user['data_limit'] ?? 0) > 0 && hasCapability($capabilities, 'Max-Octets')) {
+    if (
+        ($user['data_limit'] ?? 0) > 0
+        && shouldWriteUserReplyAttribute('Max-Octets', $capabilities, $groupReplyAttributes, $user)
+    ) {
         insertUserReply($pdo, $username, 'Max-Octets', convertMegabytesToBytes($user['data_limit']));
     }
 
@@ -213,33 +350,57 @@ function updateUserInRadius($pdo, array $user, string $groupname): void
         insertUserReply($pdo, $username, 'Expiration', $user['expiration_date']);
     }
 
-    applyUserRateLimit($pdo, $username, $user['rate_limit'] ?? null, $nasType, $capabilities);
+    applyUserRateLimit($pdo, $username, $user['rate_limit'] ?? null, $nasType, $capabilities, $groupReplyAttributes);
 }
 
 function syncUserToNasBackend($pdo, array $user, string $groupname, array $nasContext): void
 {
-    $backend = $nasContext['backend'] ?? 'radius';
+    $businessSource = (string)($nasContext['business_source'] ?? '');
 
-    if ($backend === 'radius') {
-        $user['nas_type'] = $nasContext['nas_type'] ?? 'other';
+    if ($businessSource === '') {
+        throw new InvalidArgumentException('business_source requis dans nasContext');
+    }
+
+    if ($businessSource === 'radius') {
+        $user['nas_type'] = (string)($nasContext['nas_type'] ?? '');
         $user['capabilities'] = $nasContext['capabilities'] ?? [];
+        if ($user['nas_type'] === '') {
+            throw new InvalidArgumentException('nas_type requis dans nasContext pour sync RADIUS');
+        }
         syncUserToRadius($pdo, $user, $groupname);
         return;
     }
 
-    throw new Exception("Backend NAS non supporte pour la synchro utilisateur");
+    if ($businessSource === 'mikrotik_local') {
+        syncUserToMikrotik($user, $groupname, $nasContext);
+        return;
+    }
+
+    throw new Exception("Ce type de NAS ne passe pas par la base metier / FreeRADIUS");
 }
 
 function updateUserToNasBackend($pdo, array $user, string $groupname, array $nasContext): void
 {
-    $backend = $nasContext['backend'] ?? 'radius';
+    $businessSource = (string)($nasContext['business_source'] ?? '');
 
-    if ($backend === 'radius') {
-        $user['nas_type'] = $nasContext['nas_type'] ?? 'other';
+    if ($businessSource === '') {
+        throw new InvalidArgumentException('business_source requis dans nasContext');
+    }
+
+    if ($businessSource === 'radius') {
+        $user['nas_type'] = (string)($nasContext['nas_type'] ?? '');
         $user['capabilities'] = $nasContext['capabilities'] ?? [];
+        if ($user['nas_type'] === '') {
+            throw new InvalidArgumentException('nas_type requis dans nasContext pour sync RADIUS');
+        }
         updateUserInRadius($pdo, $user, $groupname);
         return;
     }
 
-    throw new Exception("Backend NAS non supporte pour la mise a jour utilisateur");
+    if ($businessSource === 'mikrotik_local') {
+        updateUserInMikrotik($user, $groupname, $nasContext);
+        return;
+    }
+
+    throw new Exception("Ce type de NAS ne passe pas par la base metier / FreeRADIUS");
 }

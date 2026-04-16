@@ -2,7 +2,7 @@
 
 ## Vue D'Ensemble
 
-L'application est une interface web PHP pour administrer un environnement Hotspot base sur FreeRADIUS et des equipements OPNsense. Elle combine :
+L'application est une interface web PHP pour administrer un environnement Hotspot multi-backend base sur FreeRADIUS et des equipements reseau de type `opnsense`, `mikrotik` et `radius`. Elle combine :
 
 - un frontend PHP rendu serveur dans `pages/`
 - des scripts JavaScript dans `js/` pour les appels AJAX
@@ -13,6 +13,18 @@ L'application est une interface web PHP pour administrer un environnement Hotspo
 Le projet suit une architecture simple de type :
 
 `UI PHP -> JS frontend -> API PHP -> DB / fichiers JSON / API externes`
+
+Regle directrice retenue :
+
+- `nas.type` = source de verite metier
+- `device.type` = source d'execution technique
+
+Ce que cela implique :
+
+- les actions metier utilisateur, profil, session et provisioning partent de `nas_id`
+- `nas_id` permet de charger `nas.type`, puis de resoudre le backend logique
+- si ce backend a besoin d'un equipement physique ou d'une API, l'execution passe ensuite par le `device` associe
+- le `device` actif en session ne doit pas choisir a lui seul le backend metier
 
 ## Couches Principales
 
@@ -82,10 +94,11 @@ Important : le schema fourni dans [config/schema.sql](/var/www/html/config/schem
 
 ### 5. Couche integration externe
 
-Le projet dialogue avec deux systemes externes :
+Le projet dialogue avec trois branches techniques externes :
 
 - FreeRADIUS
 - OPNsense
+- MikroTik / Mikhmon
 
 Nouvelle directive documentaire :
 
@@ -101,14 +114,33 @@ FreeRADIUS est utilise via :
 - ecriture directe en base SQL (`radcheck`, `radreply`, `radusergroup`, `radgroupreply`)
 - test de connexion avec `radclient` dans [api/test_radius.php](/var/www/html/api/test_radius.php)
 
+Portee documentaire retenue :
+
+- `radius` designe la branche standard basee sur FreeRADIUS
+- cette branche ne doit pas etre confondue avec la branche `mikrotik`
+- un device `mikrotik` ne doit pas etre gere comme un simple NAS RADIUS si la communication FreeRADIUS est instable
+
 OPNsense est utilise via :
 
 - appels cURL vers l'API REST
 - configuration stockee localement dans `config/opnsense.json`
-- test d'etat et de connectivite depuis [api/test_opnsense.php](/var/www/html/api/test_opnsense.php)
+- test d'etat et de connectivite depuis [api/test_device.php](/var/www/html/api/test_device.php)
 - metriques trafic du dashboard via [api/get_traffic_stats.php](/var/www/html/api/get_traffic_stats.php) puis stream live via [api/traffic_stream.php](/var/www/html/api/traffic_stream.php)
 - metriques CPU live du dashboard via [api/cpu_stream.php](/var/www/html/api/cpu_stream.php)
 - type CPU via [api/get_cpu_type.php](/var/www/html/api/get_cpu_type.php)
+
+MikroTik est utilise via :
+
+- une branche API de management distincte
+- la reference fonctionnelle locale [docs/mikhmon](/var/www/html/docs/mikhmon/index.php)
+- une logique de gestion hotspot locale au routeur, au lieu d'un provisioning via les tables FreeRADIUS
+
+Regle de travail retenue pour la suite :
+
+- pour les ecrans et APIs MikroTik, on se base d'abord sur le comportement deja present dans `docs/mikhmon`
+- on reprend autant que possible le format et les workflows existants de Mikhmon
+- la source de verite des donnees reste le routeur MikroTik interroge via RouterOS API
+- Mikhmon sert donc de reference de presentation et de logique, pas de substitut a la lecture reelle du routeur
 
 ## Modules Fonctionnels
 
@@ -140,8 +172,11 @@ Composants :
 Architecture metier :
 
 - la table `users` stocke les informations applicatives
-- les tables RADIUS stockent les attributs d'authentification et de service
-- `radacct` sert a l'historique de sessions
+- la persistance technique depend du backend resolu par `nas_id`
+- pour `radius`, les attributs d'authentification et de service sont stockes dans les tables FreeRADIUS
+- pour `mikrotik`, la gestion hotspot doit suivre la logique locale MikroTik / Mikhmon
+- `radacct` reste une source d'historique pour la branche RADIUS
+- le type de `device` n'intervient qu'au moment d'executer un appel technique concret
 
 ### Gestion des profils
 
@@ -155,8 +190,10 @@ Composants :
 Architecture metier :
 
 - un profil applicatif est cree en base
-- il est converti en attributs RADIUS de groupe
-- le type de NAS influence le format des limitations de debit
+- sa traduction technique depend du backend resolu par `nas_id`
+- pour `radius`, il est converti en attributs RADIUS de groupe
+- pour `mikrotik`, il doit suivre une branche de gestion locale distincte de FreeRADIUS
+- le `device` associe n'est pas la source de verite du backend, seulement son support d'execution si necessaire
 
 ### Gestion des NAS et equipements reseau
 
@@ -165,6 +202,12 @@ La cible documentaire retenue est maintenant la suivante :
 - `opnsense` : device gere via API
 - `mikrotik` : device gere via API
 - `radius` : NAS standard sans API projet
+
+Contrainte operationnelle retenue :
+
+- a la suite des tests terrain, les devices `mikrotik` ne doivent plus etre consideres comme une simple branche FreeRADIUS
+- leur gestion hotspot doit s'appuyer sur leur logique locale / Mikhmon
+- la base FreeRADIUS reste reservee a la branche `radius`
 
 Dans l'etat actuel du code, deux blocs coexistent encore :
 
@@ -176,13 +219,14 @@ Composants :
 - [api/nas.php](/var/www/html/api/nas.php)
 - [pages/network_devices.php](/var/www/html/pages/network_devices.php)
 - [api/network_devices_api.php](/var/www/html/api/network_devices_api.php)
-- [api/test_opnsense.php](/var/www/html/api/test_opnsense.php)
+- [api/test_device.php](/var/www/html/api/test_device.php)
 
 Direction de convergence :
 
 - `pages/network_devices.php` doit devenir le point d'entree de configuration des trois types de devices
 - les champs affiches, les tests proposes et les pages accessibles doivent dependre du type de device
 - le dashboard doit etre reserve aux devices qui exposent reellement des metriques live, donc pas au `radius` standard
+- cette couche `device` ne doit pas porter la decision metier principale, qui reste sur `nas.type`
 
 ### Sessions et suivi
 
@@ -197,6 +241,7 @@ Source des sessions :
 
 - table `radacct` pour l'historique RADIUS
 - API OPNsense pour certaines actions de deconnexion
+- logique locale MikroTik / Mikhmon pour la branche `mikrotik` lorsqu'une vue session depend du routeur
 
 ### Dashboard hotspot/commercial
 
@@ -262,7 +307,7 @@ Limites connues du dashboard :
 1. [pages/network_devices.php](/var/www/html/pages/network_devices.php) affiche le formulaire
 2. [js/network_device.js](/var/www/html/js/network_device.js) lit/ecrit via [api/network_devices_api.php](/var/www/html/api/network_devices_api.php)
 3. Les donnees sont stockees dans [config/opnsense.json](/var/www/html/config/opnsense.json)
-4. Les tests de connectivite passent par [api/test_opnsense.php](/var/www/html/api/test_opnsense.php)
+4. Les tests de connectivite passent par [api/test_device.php](/var/www/html/api/test_device.php)
 
 ### Flux 6 : configuration FreeRADIUS
 

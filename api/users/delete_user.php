@@ -1,7 +1,10 @@
 <?php
 require '../../config/db.php';
+require_once '../../includes/auth.php';
+require_once '../../includes/operation_history.php';
 
 session_start();
+header('Content-Type: application/json');
 
 function post_int_or_default(string $key, int $default = 0): ?int
 {
@@ -17,10 +20,37 @@ function post_int_or_default(string $key, int $default = 0): ?int
     return (int)$value;
 }
 
+function require_valid_csrf(): void
+{
+    $token = trim((string)($_POST['csrf_token'] ?? ''));
+    if ($token === '' || !hash_equals($_SESSION['csrf_token'] ?? '', $token)) {
+        http_response_code(403);
+        echo json_encode([
+            'success' => false,
+            'message' => 'La session du formulaire a expire. Rechargez la page puis reessayez.',
+        ]);
+        exit;
+    }
+}
+
 if (!isset($_SESSION['logged_in'])) {
     http_response_code(403);
-    exit("Unauthorized");
+    echo json_encode([
+        'success' => false,
+        'message' => 'Votre session a expire. Reconnectez-vous puis reessayez.',
+    ]);
+    exit;
 }
+if (!isAdministrator()) {
+    http_response_code(403);
+    echo json_encode([
+        'success' => false,
+        'message' => 'Accès réservé à l administrateur',
+    ]);
+    exit;
+}
+
+require_valid_csrf();
 
 /* =========================
    INPUT
@@ -28,10 +58,16 @@ if (!isset($_SESSION['logged_in'])) {
 $id = post_int_or_default('id', 0);
 
 if ($id === null || $id <= 0) {
-    exit("ID manquant");
+    http_response_code(400);
+    echo json_encode([
+        'success' => false,
+        'message' => 'ID manquant',
+    ]);
+    exit;
 }
 
 try {
+    ensureOperationHistoryTable($pdo);
     $pdo->beginTransaction();
 
     /* =========================
@@ -50,16 +86,12 @@ try {
     /* =========================
        2. DELETE RADIUS
     ========================= */
-
-    // radcheck
     $stmt = $pdo->prepare("DELETE FROM radcheck WHERE username = ?");
     $stmt->execute([$username]);
 
-    // radreply
     $stmt = $pdo->prepare("DELETE FROM radreply WHERE username = ?");
     $stmt->execute([$username]);
 
-    // radusergroup
     $stmt = $pdo->prepare("DELETE FROM radusergroup WHERE username = ?");
     $stmt->execute([$username]);
 
@@ -79,15 +111,36 @@ try {
     $stmt = $pdo->prepare("DELETE FROM users WHERE id = ?");
     $stmt->execute([$id]);
 
+    recordOperationHistory($pdo, [
+        'operation_scope' => 'admin',
+        'operation_type' => 'user_delete',
+        'actor_username' => (string)($_SESSION['username'] ?? ''),
+        'actor_role' => (string)($_SESSION['user_role'] ?? 'administrator'),
+        'target_type' => 'user',
+        'target_name' => $username,
+        'target_ref' => (string)$id,
+        'summary' => 'Utilisateur supprimé',
+        'details_json' => [
+            'business_source' => 'radius',
+            'backend_driver' => 'radius',
+            'radacct_deleted' => false,
+        ],
+    ]);
+
     $pdo->commit();
 
     echo json_encode([
         "success" => true,
-        "message" => "Utilisateur supprimé + sync OK"
+        "message" => "Utilisateur supprime avec succes."
     ]);
 
 } catch (Exception $e) {
-    $pdo->rollBack();
-    http_response_code(500);
-    echo $e->getMessage();
+    if ($pdo->inTransaction()) {
+        $pdo->rollBack();
+    }
+    http_response_code(trim((string)$e->getMessage()) === 'Utilisateur introuvable' ? 404 : 500);
+    echo json_encode([
+        'success' => false,
+        'message' => $e->getMessage(),
+    ]);
 }

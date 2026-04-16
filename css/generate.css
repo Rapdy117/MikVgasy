@@ -1,5 +1,302 @@
-/* =====================================================
-   GENERATE
-   Cette page s'appuie sur dashboard.css + theme.css.
-   Garder ce fichier pour les overrides futurs specifiques.
-===================================================== */
+.generate-shell {
+    padding-top: 0.6rem;
+    padding-bottom: 0.6rem;
+}
+
+.generate-page-title {
+    font-size: calc(0.875rem + 2px);
+}
+
+.generate-page .generate-card {
+    border: 1px solid rgba(125, 172, 255, 0.2) !important;
+    border-radius: 12px;
+    overflow: hidden;
+    box-shadow: 0 10px 24px rgba(2, 10, 22, 0.28);
+    backdrop-filter: blur(4px);
+}
+
+.generate-page .generate-card > .card-body {
+    background: linear-gradient(180deg, rgba(10, 17, 29, 0.82), rgba(7, 12, 22, 0.9));
+    padding: 0.72rem;
+}
+
+.generate-card .card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: linear-gradient(90deg, rgba(27, 42, 70, 0.9), rgba(16, 28, 48, 0.9)) !important;
+    color: var(--theme-primary) !important;
+    border-bottom: 1px solid rgba(125, 172, 255, 0.22) !important;
+    padding: 0.55rem 0.72rem;
+    font-size: 0.82rem;
+    font-weight: 600;
+}
+
+.generate-note {
+    color: var(--theme-text);
+    font-size: 13px;
+    line-height: 1.6;
+}
+
+.generate-note-muted {
+    color: rgba(255, 255, 255, 0.62);
+    font-size: 12px;
+    line-height: 1.65;
+}
+
+.generate-actions {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+.generate-profile-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 8px 10px;
+}
+
+.generate-profile-col {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.generate-profile-grid .input-group {
+    margin-bottom: 0;
+}
+
+.generate-profile-grid .input-group-text {
+    width: 138px;
+    min-width: 138px;
+    font-size: 0.75rem;
+}
+
+.generate-profile-grid .form-control[readonly] {
+    background-color: rgba(255, 255, 255, 0.1) !important;
+    color: var(--theme-text) !important;
+    font-size: 0.8rem;
+}
+
+.generate-ticket-summary {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-bottom: 10px;
+}
+
+.generate-ticket-summary-item {
+    display: inline-flex;
+    align-items: center;
+    padding: 3px 8px;
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.06);
+    color: rgba(255, 255, 255, 0.88);
+    font-size: 0.72rem;
+}
+
+.generate-ticket-preview-empty {
+    min-height: 180px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+}
+
+.generate-preview-stage {
+    background: linear-gradient(160deg, rgba(17, 30, 52, 0.64), rgba(10, 18, 30, 0.72));
+    border: 1px solid rgba(125, 172, 255, 0.22);
+    border-radius: 14px;
+    padding: 11px;
+    box-shadow: 0 16px 36px rgba(4, 9, 18, 0.28);
+}
+
+.generate-preview-stage-empty {
+    min-height: 205px;
+}
+
+.generate-preview-stage-toolbar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 8px;
+    flex-wrap: wrap;
+}
+
+.generate-preview-stage-title,
+.generate-preview-stage-meta {
+    font-size: 0.78rem;
+    color: rgba(255, 255, 255, 0.9);
+}
+
+.generate-ticket-preview-wrap {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 165px;
+    padding: 11px;
+    border-radius: 12px;
+    background: transparent;
+    box-shadow: none;
+    overflow: auto;
+}
+
+.generate-ticket-preview-wrap .voucher-card,
+.generate-ticket-preview-wrap .voucher-card-wide {
+    margin: 0 auto;
+    box-shadow: none;
+}
+
+.generate-preview-batch-summary {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-top: 8px;
+}
+
+.generate-preview-batch-item {
+    display: inline-flex;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 88px;
+    padding: 6px 8px;
+    border-radius: 8px;
+    background: rgba(255, 255, 255, 0.06);
+}
+
+.generate-preview-batch-label {
+    font-size: 0.68rem;
+    color: rgba(255, 255, 255, 0.64);
+}
+
+.generate-preview-batch-value {
+    font-size: 0.76rem;
+    color: rgba(255, 255, 255, 0.94);
+    font-weight: 600;
+}
+
+.voucher-grid-preview {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(290px, 410px));
+    gap: 6px;
+    justify-content: flex-start;
+}
+
+.generate-ticket-options {
+    border-top: none;
+    padding-top: 0;
+}
+
+.generate-card-ticket-config .card-body,
+.generate-card-ticket-preview .card-body {
+    background: linear-gradient(180deg, rgba(12, 19, 32, 0.7), rgba(8, 14, 26, 0.84));
+}
+
+.generate-ticket-options-modern {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.generate-ticket-control-grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 10px;
+}
+
+.generate-ticket-control {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.generate-ticket-control-label {
+    font-size: 0.72rem;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: rgba(173, 204, 255, 0.9);
+    font-weight: 700;
+}
+
+.generate-ticket-control .form-select {
+    background: rgba(255, 255, 255, 0.12);
+    border-color: rgba(125, 172, 255, 0.3);
+    color: #eaf2ff;
+    font-size: 0.8rem;
+    min-height: calc(1.45em + 0.6rem + 2px);
+}
+
+.generate-ticket-control .form-select:focus {
+    border-color: rgba(125, 172, 255, 0.6);
+    box-shadow: 0 0 0 0.2rem rgba(81, 137, 255, 0.18);
+}
+
+.generate-logo-uploader {
+    border: 1px solid rgba(125, 172, 255, 0.26);
+    border-radius: 12px;
+    background: rgba(255, 255, 255, 0.04);
+    padding: 10px;
+}
+
+.generate-logo-uploader.generate-logo-uploader-disabled {
+    opacity: 0.55;
+}
+
+.generate-logo-upload-actions {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+.generate-logo-upload-meta {
+    margin-top: 6px;
+    font-size: 0.72rem;
+    color: rgba(214, 228, 255, 0.88);
+}
+
+.generate-ticket-hidden-flags {
+    display: none !important;
+}
+
+/* Placeholder uniquement (inspiration teinte navbar search), sans toucher aux valeurs saisies */
+.generate-page .network-device-form .form-control::placeholder {
+    color: rgba(186, 196, 212, 0.68) !important;
+    opacity: 1;
+}
+
+#messageArea {
+    position: fixed !important;
+    left: 50%;
+    bottom: 14px;
+    transform: translateX(-50%);
+    z-index: 1065;
+    width: min(92vw, 760px);
+    margin: 0;
+    border-radius: 10px;
+    border: 1px solid rgba(255, 255, 255, 0.18);
+    box-shadow: 0 12px 32px rgba(0, 0, 0, 0.32);
+    backdrop-filter: blur(5px);
+    font-size: 0.86rem;
+    opacity: 1;
+    transition: opacity 260ms ease, transform 260ms ease;
+}
+
+#messageArea.generate-flash-hide {
+    opacity: 0;
+    transform: translate(-50%, 18px);
+}
+
+@media (max-width: 991.98px) {
+    .generate-profile-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .generate-ticket-control-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .generate-profile-grid .input-group-text {
+        width: 132px;
+        min-width: 132px;
+    }
+}

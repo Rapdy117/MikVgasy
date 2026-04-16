@@ -23,10 +23,19 @@ if (isset($_SESSION['logged_in']) && $_SESSION['logged_in'] === true) {
     <title>Connexion</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
 </head>
 <body>
     <div class="container container-custom">
-        <img src="assets/images/logo.png" alt="Logo Androndra" class="logo">
+        <div class="login-brand">
+            <span class="login-brand-icon">
+                <i class="fas fa-network-wired"></i>
+            </span>
+            <div>
+                <div class="login-brand-title">Radius Manager</div>
+                <div class="login-brand-subtitle">Connexion locale administrateur / revendeur</div>
+            </div>
+        </div>
         <h1>Connexion</h1>
         
         <?php
@@ -48,7 +57,7 @@ if (isset($_SESSION['logged_in']) && $_SESSION['logged_in'] === true) {
         }
         ?>
 
-        <form action="api_proxy.php" method="POST">
+        <form action="api_proxy.php" method="POST" autocomplete="off">
             <div class="mb-3">
                 <input type="text" class="form-control form-field-half" id="username" name="username" placeholder="Identifiant" required>
             </div>

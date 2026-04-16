@@ -1,0 +1,250 @@
+/* =====================================================
+   RECOUVREMENT — viewport + tableau scroll + en-tête sticky
+===================================================== */
+
+html.recouvrement-page,
+html.recouvrement-page body.recouvrement-page {
+    height: 100%;
+}
+
+html.recouvrement-page {
+    height: 100dvh;
+    max-height: 100dvh;
+    overflow: hidden;
+}
+
+html.recouvrement-page body.recouvrement-page {
+    margin: 0;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+
+html.recouvrement-page #wrapper {
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow: hidden;
+    display: flex;
+    flex-direction: row;
+    align-items: stretch;
+}
+
+html.recouvrement-page #page-content-wrapper {
+    flex: 1 1 auto;
+    min-width: 0;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+
+html.recouvrement-page #page-content-wrapper > .container-fluid {
+    flex: 1 1 auto;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+
+html.recouvrement-page .recouvrement-page-layout-row {
+    flex: 1 1 auto;
+    min-height: 0;
+    align-items: stretch;
+}
+
+html.recouvrement-page .recouvrement-main-col {
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+}
+
+@media (min-width: 992px) {
+    html.recouvrement-page .recouvrement-main-col > .administration-card.recouvrement-main-card {
+        flex: 1 1 auto;
+        min-height: 0;
+    }
+}
+
+html.recouvrement-page .recouvrement-main-card {
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    margin-bottom: 0 !important;
+}
+
+html.recouvrement-page .recouvrement-main-card > .card-header {
+    flex-shrink: 0;
+}
+
+html.recouvrement-page .recouvrement-main-card > .card-body {
+    flex: 1 1 auto;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+
+html.recouvrement-page .recouvrement-side-col {
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+}
+
+@media (min-width: 992px) {
+    html.recouvrement-page .recouvrement-side-col > .administration-card {
+        flex: 1 1 auto;
+        min-height: 0;
+        display: flex;
+        flex-direction: column;
+        overflow: hidden;
+    }
+
+    html.recouvrement-page .recouvrement-side-col > .administration-card > .card-header {
+        flex-shrink: 0;
+    }
+
+    html.recouvrement-page .recouvrement-side-col .card-body {
+        flex: 1 1 auto;
+        min-height: 0;
+        overflow-y: auto;
+    }
+}
+
+.recouvrement-table-scroll {
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow-x: auto;
+    overflow-y: auto;
+    position: relative;
+    border-radius: 8px;
+    overscroll-behavior: contain;
+    scrollbar-width: thin;
+    scrollbar-color: var(--theme-scrollbar-thumb) var(--theme-scrollbar-track);
+}
+
+.recouvrement-table-scroll::-webkit-scrollbar {
+    width: var(--theme-scrollbar-size);
+    height: var(--theme-scrollbar-size);
+}
+
+.recouvrement-table-scroll::-webkit-scrollbar-track {
+    background: var(--theme-scrollbar-track);
+    border-radius: 999px;
+}
+
+.recouvrement-table-scroll::-webkit-scrollbar-thumb {
+    background-image:
+        linear-gradient(180deg, rgba(148, 163, 184, 0.55), rgba(94, 234, 212, 0.45)),
+        radial-gradient(circle at 50% 90%, var(--theme-scrollbar-glow), transparent 60%);
+    border-radius: 999px;
+    border: 2px solid transparent;
+    background-clip: padding-box;
+    box-shadow: 0 0 6px rgba(78, 220, 255, 0.35);
+}
+
+html.recouvrement-page .recouvrement-table-scroll table {
+    border-collapse: separate;
+    border-spacing: 0;
+}
+
+html.recouvrement-page .recouvrement-table-scroll thead {
+    position: sticky;
+    top: 0;
+    z-index: 6;
+}
+
+html.recouvrement-page .recouvrement-table-scroll thead th {
+    position: sticky;
+    top: 0;
+    z-index: 7;
+    font-size: calc(0.78rem + 1px);
+    font-weight: 600;
+    vertical-align: middle;
+    background-color: rgba(18, 24, 41, 0.58) !important;
+    backdrop-filter: blur(2px);
+    -webkit-backdrop-filter: blur(2px);
+    border-bottom: 1px solid var(--theme-border) !important;
+    color: var(--theme-primary) !important;
+}
+
+/* ----- Styles page (ex inline) ----- */
+
+.recouvrement-page-title {
+    font-size: calc(0.875rem + 2px);
+}
+
+.administration-card .card-header {
+    background-color: var(--theme-card-soft) !important;
+    color: var(--theme-primary) !important;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08) !important;
+}
+
+.user-logs-filter-select {
+    background: rgba(12, 20, 34, 0.82);
+    border-color: rgba(148, 163, 184, 0.18);
+    color: var(--theme-text);
+}
+
+.user-logs-filter-select:focus {
+    border-color: rgba(59, 130, 246, 0.45);
+    box-shadow: 0 0 0 0.2rem rgba(59, 130, 246, 0.12);
+    background: rgba(12, 20, 34, 0.9);
+    color: var(--theme-text);
+}
+
+.administration-table thead th {
+    font-size: 14px;
+    text-align: center;
+    vertical-align: middle;
+    color: var(--theme-text);
+}
+
+.administration-table tbody td {
+    font-size: 14px;
+    vertical-align: middle;
+}
+
+.administration-table tbody td:nth-child(2),
+.administration-table tbody td:nth-child(3),
+.administration-table tbody td:nth-child(4),
+.administration-table tbody td:nth-child(6),
+.administration-table tbody td:nth-child(7) {
+    text-align: left;
+}
+
+.administration-table tbody td:nth-child(8) {
+    text-align: right;
+}
+
+.administration-table tbody td:not(:nth-child(2)):not(:nth-child(3)):not(:nth-child(4)):not(:nth-child(6)):not(:nth-child(7)):not(:nth-child(8)) {
+    text-align: center;
+}
+
+.administration-status-badge {
+    min-width: 88px;
+    font-size: 11px;
+}
+
+.recouvrement-detail-actions {
+    margin-top: 12px;
+    display: flex;
+    justify-content: flex-end;
+}
+
+.recouvrement-select-col {
+    text-align: center !important;
+    width: 42px;
+    padding-left: 0.35rem !important;
+    padding-right: 0.35rem !important;
+}
+
+.recouvrement-summary-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
+}
+
+.recouvrement-summary-grid .form-control {
+    text-align: right;
+}

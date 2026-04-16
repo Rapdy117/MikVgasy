@@ -14,6 +14,34 @@ Les anciens points historiques sur :
 
 ne sont plus des problemes actifs dans l'etat actuel du code.
 
+## 0. Compatibilite runtime recente a clarifier sur certaines pages SQL
+
+Fichiers impactes :
+
+- [pages/reports.php](/var/www/html/pages/reports.php)
+- [docs/RUNTIME_COMPATIBILITY.md](/var/www/html/docs/RUNTIME_COMPATIBILITY.md)
+
+Probleme :
+
+- certaines pages historiques ont ete ecrites avec des hypotheses implicites sur PDO et MySQL
+- ces hypotheses deviennent fragiles avec :
+  - PHP 8.3
+  - MySQL 9.1
+- les sujets principaux identifies sont :
+  - `execute([])` sur requete sans placeholder
+  - parsing date multiple dans une meme page
+  - dependance a `strftime()`
+
+Effet :
+
+- une page peut fonctionner sur un environnement et casser sur un autre
+- les correctifs opportunistes risquent d ajouter plusieurs strategies concurrentes
+
+Correction a envisager :
+
+- appliquer les regles de [docs/RUNTIME_COMPATIBILITY.md](/var/www/html/docs/RUNTIME_COMPATIBILITY.md)
+- reduire chaque page a une seule strategie SQL/PDO/date
+
 ## 1. Hauteur et scroll du bloc `Derniers Evenements` encore fragiles
 
 Fichiers impactes :
@@ -39,28 +67,33 @@ Correction a envisager :
 - fixer une hauteur de carte explicite ou une grille parent stricte
 - garder le scroll uniquement sur un wrapper unique
 
-## 2. `Derniers Evenements` ne montre encore que les sessions en cours OPNsense
+## 2. `Derniers Evenements` reste a valider sur MikroTik en conditions reelles
 
 Fichiers impactes :
 
 - [api/get_stats.php](/var/www/html/api/get_stats.php)
+- [api/dashboard_stream.php](/var/www/html/api/dashboard_stream.php)
 - [pages/dashboard.php](/var/www/html/pages/dashboard.php)
 
 Probleme :
 
-- le tableau est maintenant centre sur les logs utilisateur OPNsense
-- il utilise les donnees de `/api/captiveportal/session/search`
-- cela donne une vue "utilisateurs connectes" plus qu'un vrai journal historise d'evenements
+- la source MikroTik a ete réalignee sur le log principal `/log/print`
+- l affichage est maintenant volontairement brut, sans parseur metier
+- il faut encore confirmer sur routeur reel que les evenements attendus remontent tous :
+  - `logged in`
+  - `logged out: keepalive timeout`
+  - `login failed`
+  - evenements `account` type `user admin ... via api`
 
 Effet :
 
-- pas d'historique complet de connexions/deconnexions
-- les evenements disparaissent quand les sessions ne sont plus presentes dans la source live
+- si la source MikroTik reelle diverge encore de Winbox, le dashboard peut afficher moins d evenements que prevu
+- un ecart entre Winbox et l UI doit maintenant etre traite comme ecart de source ou de lecture, pas comme ecart de parseur
 
 Correction a envisager :
 
-- brancher un vrai journal utilisateur historise
-- ou stocker localement les evenements hotspot/OPNsense dans une table dediee
+- valider sur routeur reel les lignes visibles dans Winbox contre celles du dashboard
+- si besoin, documenter un filtrage d affichage, mais garder le log principal comme source
 
 ## 3. Le bloc `Bilan` repose encore sur des compteurs, pas sur un vrai chiffre d'affaires
 

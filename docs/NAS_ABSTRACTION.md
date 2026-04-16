@@ -16,19 +16,32 @@ Le but est de tendre vers l'architecture suivante :
 
 Ce document ne modifie pas le code existant. Il deduit un plan et une structure a partir du projet actuel.
 
+## Modele implemente (alignement 2026)
+
+Champs stabilises dans le code actif :
+
+- `device.type` : uniquement `opnsense`, `mikrotik`, `radius` (plus de `other` / `generic` implicites).
+- `business_source` : `radius` ou `mikrotik_local` ; OPNsense partage la base metier `radius` avec la branche FreeRADIUS et se distingue par le driver API.
+- `backend` cote device JSON = driver technique : `opnsense_api`, `mikrotik_api`, `radius` (voir [includes/device_manager.php](/var/www/html/includes/device_manager.php)).
+- [api/nas.php](/var/www/html/api/nas.php) : ne renvoie que des couples valides `device_id` + `nas_id` alignes sur la meme `business_source`, avec `label`, `device_type`, `nas_type`, `capabilities` ; acces reserve a une session authentifiee.
+
 ## Orientation Cible Retenue
 
 Cette documentation retient maintenant les principes suivants :
 
 - le projet doit rester multi-NAS
 - `nas_id` devient la cle de routage centrale
-- le `type` du NAS selectionne definit le backend a utiliser
+- `nas.type` devient la source de verite metier et definit le backend logique a utiliser
+- `device.type` devient la source d'execution technique
 - le perimetre fonctionnel des devices est volontairement limite a `opnsense`, `mikrotik`, `radius`
 - FreeRADIUS reste le backend standard pour la branche `radius`
 - OPNsense doit etre consomme via une API projet dediee a venir
 - MikroTik doit suivre une branche API dediee plutot qu'une simple etiquette vendor
 - la logique metier doit rester commune quel que soit le backend
 - les pages et fonctions UI doivent dependre des capacites du type de device
+- le `device` actif seul ne doit pas choisir le backend d'une operation metier
+- pour la branche `mikrotik`, le code source `docs/mikhmon` sert de reference de comportement, de format et de workflow
+- la source reelle des donnees MikroTik reste toujours RouterOS API
 
 Lecture cible :
 
@@ -39,8 +52,47 @@ service metier charge nas.type
   ->
 service selectionne l'adaptateur
   ->
+service retrouve le device associe si necessaire
+  ->
 adaptateur traduit le modele interne vers le backend reel
 ```
+
+Lecture complementaire pour MikroTik :
+
+```text
+RouterOS API = source reelle des donnees
+Mikhmon = reference de format, de parsing et de workflow
+Projet = adaptation de cette reference dans l'architecture actuelle
+```
+
+Modele fonctionnel deja retenu :
+
+```text
+user    = identite + overrides + etat
+profile = offre heritee
+state   = session / consommation / uptime / IP / MAC
+```
+
+Interpretation deja retenue :
+
+- le `user` porte les limites effectives et l'etat courant
+- le `profile` porte les regles d'offre
+- la couche d'affichage doit reconstruire une valeur finale a partir des deux
+
+## Etat D'Avancement Observe Au 27 Mars 2026
+
+Estimation fonctionnelle :
+
+- `mikrotik` : 85%
+- `opnsense` : 70%
+- `radius` : 78%
+
+Lecture de cet etat :
+
+- l'abstraction reste incomplete conceptuellement
+- mais la branche `mikrotik` est deja fortement materialisee dans les ecrans et endpoints
+- `opnsense` reste plus mature pour le monitoring que pour le provisioning
+- `radius` reste la branche historique la plus stable, meme si elle n'est pas encore totalement nettoyee selon le nouveau modele
 
 ## Perimetre Observe Dans Le Code Actuel
 
@@ -80,7 +132,7 @@ Points du code qui ecrivent ou lisent directement les tables FreeRADIUS :
 - [includes/radius_sync.php](/var/www/html/includes/radius_sync.php)
   - `radgroupreply`
   - attributs `Session-Timeout`, `Idle-Timeout`, `Simultaneous-Use`, `Max-Octets`
-  - attributs `Mikrotik-Rate-Limit`, `WISPr-Bandwidth-Max-Down`, `WISPr-Bandwidth-Max-Up`
+  - attributs `WISPr-Bandwidth-Max-Down`, `WISPr-Bandwidth-Max-Up`
 - [api/nas.php](/var/www/html/api/nas.php)
   - lecture de la table `nas`
 - [config/schema.sql](/var/www/html/config/schema.sql)
@@ -95,7 +147,7 @@ Conclusion :
 
 Points du code qui utilisent directement OPNsense :
 
-- [api/test_opnsense.php](/var/www/html/api/test_opnsense.php)
+- [api/test_device.php](/var/www/html/api/test_device.php)
   - appel cURL sur `/api/core/system/status`
 - [api/disconnect_session.php](/var/www/html/api/disconnect_session.php)
   - appel cURL sur `/api/captiveportal/session/disconnect`
@@ -105,12 +157,38 @@ Points du code qui utilisent directement OPNsense :
   - constantes globales `OPN_SENSE_URL`, `OPN_SENSE_API_KEY`, `OPN_SENSE_API_SECRET`
 - [js/network_device.js](/var/www/html/js/network_device.js)
   - appelle `network_devices_api.php`
-  - appelle `test_opnsense.php`
+  - appelle `test_device.php`
 
 Conclusion :
 
 - OPNsense est aujourd'hui utilise pour la gestion des devices et certaines actions reseau
 - il n'existe pas encore de logique de provisionnement utilisateur OPNsense dans le code
+
+### 1.3 Dependances directes a MikroTik
+
+Points du code qui utilisent directement RouterOS API :
+
+- [includes/mikrotik_backend.php](/var/www/html/includes/mikrotik_backend.php)
+- [pages/profile_list.php](/var/www/html/pages/profile_list.php)
+- [pages/add_profile.php](/var/www/html/pages/add_profile.php)
+- [pages/add_hotspot_user.php](/var/www/html/pages/add_hotspot_user.php)
+- [pages/users_list.php](/var/www/html/pages/users_list.php)
+- [pages/sessions_list.php](/var/www/html/pages/sessions_list.php)
+- [api/users/profile_options.php](/var/www/html/api/users/profile_options.php)
+- [api/profiles/mikrotik_options.php](/var/www/html/api/profiles/mikrotik_options.php)
+
+Conclusion :
+
+- la branche `mikrotik` dispose deja de plusieurs points d'acces directs a RouterOS
+- l'abstraction finale n'est pas encore centralisee derriere une interface unique, mais le comportement fonctionnel est bien present
+
+Lecture metier deja deduite de Mikhmon :
+
+- `comment` user = expiration effective
+- `on-login` = traduction RouterOS des regles d'offre
+- scheduler de profil = enforcement de l'expiration
+- `limit-uptime` = limite temps effective
+- `limit-bytes-total` = limite data effective
 
 ## 2. Probleme Architectural Actuel
 
@@ -196,6 +274,7 @@ Fonctions generiques ciblees :
 - `getSessions(userRef, nasContext)`
 - `disconnectSession(sessionRef, nasContext)`
 - `testNasConnection(nasContext)`
+- `applyRecharge(userRef, profileRef, mode, nasContext)`
 
 Contexte cible minimal :
 
@@ -203,10 +282,26 @@ Contexte cible minimal :
 NasContext {
   nas_id: int
   nas_type: string
-  backend: 'radius' | 'opnsense_api' | 'mikrotik_api'
+  backend: 'radius' | 'opnsense_api' | 'mikrotik_local'
   capabilities: string[]
 }
 ```
+
+Regles metier deja retenues pour `applyRecharge(...)` :
+
+- `replace_offer`
+  - applique les valeurs du profil choisi
+- `extend_offer`
+  - garde le profil courant
+  - ajoute `Time Limit`
+  - ajoute `Data Limit`
+  - retient la plus grande date entre l'ancienne expiration et `aujourd hui + validite`
+- `accumulate_offer`
+  - garde le profil courant
+  - ajoute `Time Limit`
+  - ajoute `Data Limit`
+  - ajoute la validite a l'expiration existante
+  - exige le meme profil et un compte non expire
 
 ## 4.3 Couche adaptateur NAS
 
@@ -299,7 +394,6 @@ Attributs potentiels a supporter selon le NAS :
 - `Expiration`
 - `WISPr-Bandwidth-Max-Down`
 - `WISPr-Bandwidth-Max-Up`
-- `Mikrotik-Rate-Limit`
 - `Max-Octets`
 - `Max-Data`
 
@@ -324,7 +418,7 @@ Nom propose :
 
 Etat reel du code :
 
-- `testConnectionOPNsense` existe deja partiellement via [api/test_opnsense.php](/var/www/html/api/test_opnsense.php)
+- `testConnectionOPNsense` existe deja partiellement via [api/test_device.php](/var/www/html/api/test_device.php)
 - `disconnectSessionOPNsense` existe deja partiellement via [api/disconnect_session.php](/var/www/html/api/disconnect_session.php)
 - `createUserOPNsense` n'existe pas aujourd'hui dans le code reel
 
@@ -396,7 +490,7 @@ NasCapability {
 Exemples :
 
 - un NAS RADIUS standard peut supporter `Session-Timeout`, `Idle-Timeout`, `WISPr-*`
-- un NAS MikroTik peut supporter `Mikrotik-Rate-Limit`
+- un NAS MikroTik local peut exposer ses propres parametres via sa branche technique dediee
 - un NAS OPNsense API peut exposer d'autres champs via API projet
 
 ## 8. Regle Directrice
@@ -412,7 +506,7 @@ Principe :
 
 - reutiliser le modele commun
 - choisir les attributs RADIUS selon les capacites du NAS cible
-- ne pas supposer par defaut `Mikrotik-Rate-Limit`
+- ne pas melanger les attributs RADIUS standards avec la branche locale MikroTik
 
 ## 6. Mapping De Donnees Unique Base Sur DATA_MODEL.md
 
@@ -520,13 +614,13 @@ Mapping propose :
 - `Profile.simultaneous_use` -> `Simultaneous-Use`
 - `Profile.data_quota_mb` -> `Max-Octets`
 - `Profile.rate_limit` :
-  - `Mikrotik-Rate-Limit` si backend explicitement MikroTik legacy
-  - sinon `WISPr-Bandwidth-Max-Down` / `WISPr-Bandwidth-Max-Up`
+  - `WISPr-Bandwidth-Max-Down` / `WISPr-Bandwidth-Max-Up` pour la branche RADIUS
+  - logique locale dediee pour la branche MikroTik
 
 Strategie recommandee :
 
-- isoler la logique legacy MikroTik dans une branche de compatibilite
-- ne pas la laisser dans le coeur metier commun
+- isoler la logique MikroTik locale dans sa propre branche
+- ne pas la laisser dans le coeur metier commun RADIUS
 
 ## 7.2 OpnSenseNasAdapter
 

@@ -30,9 +30,11 @@ Le but est de :
 - `session_timeout: int`
 - `idle_timeout: int`
 - `timeout: int`
+- `validity_time: int`
 
 Convention de reference recommandee a partir du code :
 
+- `validity_time = duree commerciale de l offre`
 - `session_timeout = 0` -> illimite
 - `idle_timeout = 0` -> pas de coupure pour inactivite
 
@@ -96,6 +98,22 @@ Contraintes deduites :
 - `profile_id` attendu comme obligatoire meme si le code ne le valide pas strictement avant SQL
 - `status` doit rester dans les trois valeurs observees cote UI
 
+Observation au 27 mars 2026 :
+
+- pour la branche `mikrotik`, la source de selection de profil dans l'UI peut maintenant etre RouterOS
+- l'application resout ensuite ou cree un `profile_id` local minimal pour garder la coherence des tables applicatives
+
+Interpretation fonctionnelle deja retenue :
+
+- `User` porte en priorite :
+  - `username`
+  - `password`
+  - `profile_id` ou `profile` courant
+  - `session_timeout` / `limit-uptime`
+  - `data_limit` / `limit-bytes-total`
+  - `expiration_date` ou `comment` selon backend
+- un user peut donc porter des overrides sur l'offre
+
 ## Objet Profile
 
 Structure deduite du code :
@@ -123,8 +141,164 @@ Observation :
 Contraintes deduites :
 
 - `name` obligatoire et fonctionnellement unique
-- `rate_limit` suit le format texte `down/up`, exemple `2M/2M`
+- `rate_limit` suit maintenant le format texte `upload/download` pour la branche MikroTik, exemple `2M/10M`
 - `session_timeout`, `idle_timeout`, `data_quota_mb`, `simultaneous_use` sont fonctionnellement entiers
+
+Observation au 27 mars 2026 :
+
+- le formulaire [add_profile.php](/var/www/html/pages/add_profile.php) manipule maintenant aussi des champs avances :
+  - `expired_mode`
+  - `grace_period`
+  - `price`
+  - `selling_price`
+  - `address_pool`
+  - `lock_user`
+  - `parent_queue`
+- tous ces champs ne sont pas encore persistés completement dans le schema SQL local
+- une partie de leur effet est deja traduite directement vers RouterOS via `on-login` et scheduler
+
+Interpretation fonctionnelle deja retenue :
+
+- `Profile` porte en priorite :
+  - `rate_limit`
+  - `data_quota_mb`
+  - `simultaneous_use`
+  - `validity_time`
+  - `expired_mode`
+  - `grace_period`
+  - `price`
+  - `selling_price`
+  - `ip_pool`
+  - `lock_user`
+  - `parent_queue`
+
+Regle de lecture :
+
+- le profil represente l'offre heritee
+- le user represente la surcharge et l'etat
+- l'UI finale doit calculer une valeur affichee a partir des deux
+
+Regle semantique complementaire :
+
+- `validity_time` = duree commerciale
+- `session_timeout` = time limit technique
+- `data_quota_mb` = data limit du profil
+- `data_limit` = data limit effectivement appliquee a l utilisateur
+
+## Regles Metier De Recharge Deja Definies
+
+## Regle Desormais Fixee Pour Data Limit
+
+- `Data Limit` est un champ metier du `Profile`
+- il est stocke localement dans `profiles.data_quota_mb`
+- l'unite de reference retenue est `MB`
+- cote `mikrotik`, ce quota est traduit au niveau `User` via `limit-bytes-total`
+
+Regle d'interpretation :
+
+- `Profile` = offre theorique
+- `User` = limite effectivement appliquee
+- `reste` = limite user moins consommation observee
+
+Consequences fonctionnelles :
+
+- a la creation user :
+  - `data_quota_mb` du profil devient `limit-bytes-total`
+- en `Changement d'offre` :
+  - la data du user est remplacee par celle du profil choisi
+- en `Rechargement` :
+  - la data du profil s'ajoute a la limite existante
+- en `Reabonnement` :
+  - la data du profil s'ajoute aussi, mais seulement dans le cadre des regles de meme profil / compte non expire
+### Remplacer l'offre
+
+- applique les valeurs du profil choisi
+- repart des valeurs d'offre
+
+### Rajout d'offre
+
+- garde le profil courant
+- ajoute `Time Limit`
+- ajoute `Data Limit`
+- retient la plus grande date entre l'expiration actuelle et `aujourd hui + validite`
+
+### Cumuler l'offre
+
+- garde le profil courant
+- ajoute `Time Limit`
+- ajoute `Data Limit`
+- ajoute la validite a l'expiration existante
+- n'est valable que pour le meme profil et pour un compte non expire
+
+## Ce Qui Reste Encore Ouvert
+
+- source exacte du quota data d'offre cote MikroTik
+- modele commercial complet :
+  - client
+  - abonnement
+  - paiement
+  - recharge
+- equivalence finale de ces regles dans la branche `opnsense`
+
+## Historique De Recharge
+
+La base locale porte maintenant une trace minimale commune :
+
+```text
+recharge_history {
+  id
+  device_id
+  device_type
+  username
+  profile_name
+  mode
+  operator_username
+  effect_summary
+  current_profile
+  current_time_limit
+  current_data_limit
+  current_expiration
+  projected_profile
+  projected_time_limit
+  projected_data_limit
+  projected_expiration
+  created_at
+}
+```
+
+Role retenu :
+
+- historique durable commun pour le reporting de recharge
+- compatible avec une trace courte RouterOS cote `mikrotik`
+
+## Objet Voucher
+
+Structure locale actuellement observee :
+
+```text
+Voucher {
+  id: int
+  code: string
+  profile_id: int
+  used: bool
+  used_by: string | null
+  used_at: datetime | null
+  created_at: datetime | null
+}
+```
+
+Regle metier retenue :
+
+- `created_at` = date de generation
+- `used_at` = date du premier login du ticket
+- la comptabilisation d'un voucher demarre a `used_at`
+- un voucher non utilise n'entre pas encore dans le volume commercial realise
+
+- historique commercial commun au projet
+- support du tableau `Historique de recharge`
+- base future pour les rapports
+
+Pour `mikrotik`, cette trace SQL est completee par un historique court dans RouterOS, limite en taille.
 
 ## Objet NAS
 
@@ -157,21 +331,22 @@ Structure cible recommandee pour le systeme multi-NAS :
 NasContext {
   nas_id: int
   nas_type: string
-  backend: 'radius' | 'opnsense_api' | 'mikrotik_api'
+  backend: 'radius' | 'opnsense_api' | 'mikrotik_local'
   capabilities: string[]
 }
 ```
 
 Regle de reference :
 
-- `nas_id` doit definir le backend technique
-- `nas_type` doit definir le traducteur a utiliser
+- `nas_id` doit definir le contexte metier a resoudre
+- `nas_type` doit definir le backend logique et le traducteur a utiliser
 - `capabilities` doit definir les attributs et operations supportes
+- le backend ne doit pas etre deduit du seul `device` actif
 
 Exemples :
 
 - `nas_type = 'opnsense'` -> `backend = 'opnsense_api'`
-- `nas_type = 'mikrotik'` -> `backend = 'mikrotik_api'`
+- `nas_type = 'mikrotik'` -> `backend = 'mikrotik_local'`
 - `nas_type = 'radius'` -> `backend = 'radius'`
 
 ## Objet NasCapability
@@ -195,7 +370,6 @@ Exemples d'attributs :
 - `Expiration`
 - `WISPr-Bandwidth-Max-Down`
 - `WISPr-Bandwidth-Max-Up`
-- `Mikrotik-Rate-Limit`
 - `Max-Octets`
 - `Max-Data`
 
@@ -212,10 +386,16 @@ NetworkDevice {
 }
 ```
 
+Regle d'usage :
+
+- `NetworkDevice.type` decrit le mode d'execution technique du device
+- il ne constitue pas la source de verite metier du provisioning
+- le lien attendu est `nas_id -> nas.type -> backend logique -> device associe -> execution technique`
+
 Capacites UI de reference :
 
 - `opnsense` -> dashboard possible, test API possible
-- `mikrotik` -> test API possible, dashboard dedie non garanti
+- `mikrotik` -> test API possible, dashboard branche, profils/sessions/utilisateurs partiellement ou totalement branches
 - `radius` -> pas de dashboard, pas de test API OPNsense/MikroTik
 
 ## Objet NetworkDevice (OPNsense JSON)

@@ -14,21 +14,29 @@ function normalizeDeviceType(string $type): string
     return match ($normalized) {
         'opnsense' => 'opnsense',
         'mikrotik' => 'mikrotik',
-        'radius', 'other', 'autre' => 'other',
-        default => 'other',
+        'radius', 'freeradius' => 'radius',
+        default => throw new InvalidArgumentException(sprintf(
+            'Type de device invalide: %s',
+            $type !== '' ? $type : '(vide)'
+        )),
     };
 }
 
 function deriveDeviceType(array $device): string
 {
-    $vendor = strtolower(trim((string)($device['vendor'] ?? '')));
-    $type = normalizeDeviceType((string)($device['type'] ?? 'opnsense'));
-
-    if ($type === 'other' && $vendor === 'mikrotik') {
-        return 'mikrotik';
+    $rawType = trim((string)($device['type'] ?? ''));
+    if ($rawType !== '') {
+        return normalizeDeviceType($rawType);
     }
 
-    return $type;
+    $vendor = strtolower(trim((string)($device['vendor'] ?? '')));
+
+    return match ($vendor) {
+        'mikrotik' => 'mikrotik',
+        'opnsense' => 'opnsense',
+        'radius', 'freeradius' => 'radius',
+        default => throw new InvalidArgumentException('Type de device manquant ou invalide'),
+    };
 }
 
 function normalizeDeviceHost(string $host): string
@@ -66,7 +74,79 @@ function resolveDeviceBackend(string $type): string
     return match (normalizeDeviceType($type)) {
         'opnsense' => 'opnsense_api',
         'mikrotik' => 'mikrotik_api',
-        default => 'generic',
+        'radius' => 'radius',
+    };
+}
+
+/**
+ * Driver d'exécution API pour un device (clé canonique : backend_driver ; backend = alias rétrocompat).
+ */
+function resolveDeviceRecordBackendDriver(array $device): string
+{
+    $raw = trim((string)($device['backend_driver'] ?? $device['backend'] ?? ''));
+    if ($raw !== '') {
+        return $raw;
+    }
+
+    return resolveDeviceBackend((string)($device['type'] ?? ''));
+}
+
+/**
+ * Type device pour réponses API : opnsense | mikrotik | radius, ou null si indéterminé (jamais other / generic / unknown).
+ */
+function deviceTypeLabelForApiResponse(array $device): ?string
+{
+    $raw = trim((string)($device['type'] ?? ''));
+    if ($raw === '') {
+        return null;
+    }
+    try {
+        return normalizeDeviceType($raw);
+    } catch (InvalidArgumentException $e) {
+        return null;
+    }
+}
+
+/**
+ * Driver API pour réponses JSON : opnsense_api | mikrotik_api | radius, ou null si indéterminé.
+ */
+function deviceBackendDriverForApiResponse(array $device): ?string
+{
+    $raw = trim((string)($device['backend_driver'] ?? $device['backend'] ?? ''));
+    if ($raw !== '') {
+        return $raw;
+    }
+    $type = trim((string)($device['type'] ?? ''));
+    if ($type === '') {
+        return null;
+    }
+    try {
+        return resolveDeviceBackend($type);
+    } catch (InvalidArgumentException $e) {
+        return null;
+    }
+}
+
+/**
+ * Source métier (radius | mikrotik_local) dérivée du type device normalisé.
+ */
+function deviceBusinessSourceForApiResponse(?string $normalizedDeviceType): ?string
+{
+    if ($normalizedDeviceType === null || $normalizedDeviceType === '') {
+        return null;
+    }
+    try {
+        return resolveDeviceBusinessSource($normalizedDeviceType);
+    } catch (InvalidArgumentException $e) {
+        return null;
+    }
+}
+
+function resolveDeviceBusinessSource(string $type): string
+{
+    return match (normalizeDeviceType($type)) {
+        'mikrotik' => 'mikrotik_local',
+        'opnsense', 'radius' => 'radius',
     };
 }
 
@@ -74,6 +154,8 @@ function normalizeDeviceRecord(array $device): array
 {
     $type = deriveDeviceType($device);
     $host = normalizeDeviceHost((string)($device['host'] ?? ''));
+    $merged = array_merge($device, ['type' => $type, 'host' => $host]);
+    $backendDriver = resolveDeviceRecordBackendDriver($merged);
 
     return [
         'id' => (string)($device['id'] ?? ''),
@@ -81,7 +163,9 @@ function normalizeDeviceRecord(array $device): array
         'type' => $type,
         'host' => $host,
         'ip' => extractDeviceAddress($host),
-        'backend' => resolveDeviceBackend($type),
+        'backend_driver' => $backendDriver,
+        'backend' => $backendDriver,
+        'business_source' => resolveDeviceBusinessSource($type),
         'api_key' => trim((string)($device['api_key'] ?? '')),
         'api_secret' => trim((string)($device['api_secret'] ?? ($device['secret'] ?? ''))),
         'secret' => trim((string)($device['secret'] ?? ($device['api_secret'] ?? ''))),
@@ -128,7 +212,15 @@ function loadDeviceStore(): array
 function saveDeviceStore(array $store): void
 {
     $normalized = ensureDeviceStore($store);
-    file_put_contents(deviceConfigFilePath(), json_encode($normalized, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES), LOCK_EX);
+    $forSave = $normalized;
+    $forSave['devices'] = array_map(static function (array $device): array {
+        $out = $device;
+        unset($out['backend']);
+
+        return $out;
+    }, $normalized['devices']);
+
+    file_put_contents(deviceConfigFilePath(), json_encode($forSave, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES), LOCK_EX);
 }
 
 function findDeviceById(array $store, ?string $deviceId): ?array
@@ -146,25 +238,52 @@ function findDeviceById(array $store, ?string $deviceId): ?array
     return null;
 }
 
-function pickDefaultDevice(array $store): ?array
+function findDeviceByAddress(array $store, ?string $address, ?string $type = null): ?array
 {
-    return $store['devices'][0] ?? null;
+    $needle = trim((string)$address);
+    if ($needle === '') {
+        return null;
+    }
+
+    $needle = strtolower(extractDeviceAddress($needle));
+    $expectedType = $type !== null ? normalizeDeviceType($type) : null;
+
+    foreach ($store['devices'] as $device) {
+        $deviceType = normalizeDeviceType((string)($device['type'] ?? ''));
+        if ($expectedType !== null && $deviceType !== $expectedType) {
+            continue;
+        }
+
+        $deviceAddress = strtolower(trim((string)($device['ip'] ?? '')));
+        if ($deviceAddress === '') {
+            $deviceAddress = strtolower(extractDeviceAddress((string)($device['host'] ?? '')));
+        }
+
+        if ($deviceAddress !== '' && $deviceAddress === $needle) {
+            return $device;
+        }
+    }
+
+    return null;
 }
 
 function getActiveDeviceRecord(array $store): ?array
 {
-    $sessionDeviceId = isset($_SESSION['active_device_id']) ? (string)$_SESSION['active_device_id'] : null;
     $storedDeviceId = isset($store['active_device_id']) ? (string)$store['active_device_id'] : null;
 
-    $device = findDeviceById($store, $sessionDeviceId)
-        ?? findDeviceById($store, $storedDeviceId)
-        ?? pickDefaultDevice($store);
-
-    if ($device) {
-        $_SESSION['active_device_id'] = $device['id'];
-    } else {
+    if ($storedDeviceId === null || $storedDeviceId === '') {
         unset($_SESSION['active_device_id']);
+        return null;
     }
+
+    $device = findDeviceById($store, $storedDeviceId);
+    if (!$device) {
+        unset($_SESSION['active_device_id']);
+        return null;
+    }
+
+    // Cache technique de la session: la source de vérité reste le store.
+    $_SESSION['active_device_id'] = $device['id'];
 
     return $device;
 }
@@ -191,23 +310,27 @@ function getNavbarDeviceInfo(): array
     $device = getActiveDeviceRecord($store);
 
     if ($device) {
+        $driver = resolveDeviceRecordBackendDriver($device);
+
         return [
             'id' => $device['id'],
             'name' => $device['name'] !== '' ? $device['name'] : strtoupper($device['type']),
             'type' => $device['type'],
             'host' => $device['host'],
             'ip' => $device['ip'],
-            'backend' => $device['backend'],
+            'backend_driver' => $driver,
+            'business_source' => $device['business_source'] ?? resolveDeviceBusinessSource((string)$device['type']),
         ];
     }
 
     return [
         'id' => null,
         'name' => 'Aucun device',
-        'type' => 'other',
+        'type' => null,
         'host' => '',
         'ip' => '',
-        'backend' => 'generic',
+        'backend_driver' => null,
+        'business_source' => null,
     ];
 }
 
@@ -226,6 +349,31 @@ function getActiveDeviceContext(): array
     return [
         'device' => $activeDevice,
         'source' => 'active_device',
+    ];
+}
+
+function getDeviceContextCapabilities(?array $device): array
+{
+    if (!$device) {
+        return [
+            'is_mikrotik' => false,
+            'is_opnsense' => false,
+            'is_radius' => false,
+            'supports_live_traffic' => false,
+            'supports_hotspot_logs' => false,
+            'supports_radius_sync' => false,
+        ];
+    }
+
+    $type = normalizeDeviceType((string)($device['type'] ?? ''));
+
+    return [
+        'is_mikrotik' => $type === 'mikrotik',
+        'is_opnsense' => $type === 'opnsense',
+        'is_radius' => $type === 'radius',
+        'supports_live_traffic' => in_array($type, ['mikrotik', 'opnsense'], true),
+        'supports_hotspot_logs' => $type === 'mikrotik',
+        'supports_radius_sync' => in_array($type, ['opnsense', 'radius'], true),
     ];
 }
 
@@ -249,7 +397,7 @@ function requireActiveDeviceType(string $expectedType): array
         throw new RuntimeException(sprintf(
             'Le device actif "%s" est de type %s. Backend %s requis.',
             $device['name'] !== '' ? $device['name'] : ($device['ip'] !== '' ? $device['ip'] : 'inconnu'),
-            strtoupper((string)($device['type'] ?? 'other')),
+            strtoupper((string)($device['type'] ?? 'inconnu')),
             strtoupper(normalizeDeviceType($expectedType))
         ));
     }
@@ -259,7 +407,7 @@ function requireActiveDeviceType(string $expectedType): array
 
 function canProbeDevice(array $device): bool
 {
-    $type = (string)($device['type'] ?? 'other');
+    $type = normalizeDeviceType((string)($device['type'] ?? ''));
 
     if ($type === 'opnsense') {
         return !empty($device['host']) && !empty($device['api_key']) && !empty($device['api_secret']);
@@ -272,11 +420,92 @@ function canProbeDevice(array $device): bool
     return false;
 }
 
+function connectionStateBackendLabel(string $backendDriver): string
+{
+    return match ($backendDriver) {
+        'opnsense_api' => 'API OPNsense',
+        'mikrotik_api' => 'API MikroTik',
+        'radius' => 'RADIUS',
+        default => $backendDriver !== '' ? $backendDriver : '—',
+    };
+}
+
+function connectionStateBusinessSourceLabel(string $businessSource): string
+{
+    return match ($businessSource) {
+        'mikrotik_local' => 'Profils locaux (MikroTik)',
+        'radius' => 'RADIUS (FreeRADIUS / intégration)',
+        default => $businessSource !== '' ? $businessSource : '—',
+    };
+}
+
+/**
+ * État d’affichage « connexion / test » aligné sur canProbeDevice et les champs normalisés.
+ *
+ * @return array{
+ *   supported: bool,
+ *   status: string,
+ *   label: string,
+ *   backend_driver: string|null,
+ *   business_source: string|null,
+ *   label_backend: string|null,
+ *   label_business_source: string|null
+ * }
+ */
+function buildDeviceConnectionState(?array $device): array
+{
+    if (!$device) {
+        return [
+            'supported' => false,
+            'status' => 'not_configured',
+            'label' => 'Aucun device actif',
+            'backend_driver' => null,
+            'business_source' => null,
+            'label_backend' => null,
+            'label_business_source' => null,
+        ];
+    }
+
+    $type = normalizeDeviceType((string)($device['type'] ?? ''));
+    $backendDriver = resolveDeviceRecordBackendDriver($device);
+
+    $businessSource = trim((string)($device['business_source'] ?? ''));
+    if ($businessSource === '') {
+        $businessSource = resolveDeviceBusinessSource($type);
+    }
+
+    $labelBackend = connectionStateBackendLabel($backendDriver);
+    $labelBusiness = connectionStateBusinessSourceLabel($businessSource);
+
+    $supported = canProbeDevice($device);
+
+    if ($supported) {
+        $label = 'Test de connexion disponible (bouton « Tester »).';
+    } elseif ($type === 'radius') {
+        $label = 'Le test de connexion API ne s’applique pas aux serveurs RADIUS.';
+    } else {
+        $label = 'Configuration incomplète : renseignez l’hôte et les identifiants API pour activer le test.';
+    }
+
+    return [
+        'supported' => $supported,
+        'status' => $supported ? 'ready' : 'not_supported',
+        'label' => $label,
+        'backend_driver' => $backendDriver,
+        'business_source' => $businessSource,
+        'label_backend' => $labelBackend,
+        'label_business_source' => $labelBusiness,
+    ];
+}
+
 function getDeviceDisplayLabel(array $device): string
 {
     $name = trim((string)($device['name'] ?? ''));
     $ip = trim((string)($device['ip'] ?? ''));
-    $type = strtoupper((string)($device['type'] ?? 'other'));
+    $type = strtoupper(trim((string)($device['type'] ?? '')));
+    if ($type === '') {
+        $type = 'INCONNU';
+    }
 
     if ($name !== '' && $ip !== '') {
         return sprintf('%s (%s, %s)', $name, $ip, $type);

@@ -1,6 +1,8 @@
 <?php
 require_once __DIR__ . '/../config/config.php';
 require_once __DIR__ . '/../includes/device_manager.php';
+require_once __DIR__ . '/../includes/mikrotik_backend.php';
+require_once __DIR__ . '/../includes/opnsense_shaper.php';
 
 if (session_status() === PHP_SESSION_NONE) {
     session_start();
@@ -18,62 +20,62 @@ if (!isset($_SESSION['logged_in']) || $_SESSION['logged_in'] !== true) {
 
 session_write_close();
 
-function opnsenseGet(array $device, string $path): array
-{
-    $ch = curl_init();
-
-    curl_setopt_array($ch, [
-        CURLOPT_URL => $device['host'] . $path,
-        CURLOPT_RETURNTRANSFER => true,
-        CURLOPT_HTTPAUTH => CURLAUTH_BASIC,
-        CURLOPT_USERPWD => $device['api_key'] . ':' . $device['api_secret'],
-        CURLOPT_SSL_VERIFYPEER => (bool)$device['verify_ssl'],
-        CURLOPT_SSL_VERIFYHOST => !empty($device['verify_ssl']) ? 2 : 0,
-        CURLOPT_TIMEOUT => 5,
-        CURLOPT_HTTPHEADER => ['Accept: application/json'],
-    ]);
-
-    $raw = curl_exec($ch);
-    $error = curl_error($ch);
-    $httpCode = (int)curl_getinfo($ch, CURLINFO_HTTP_CODE);
-
-    curl_close($ch);
-
-    if ($raw === false || $error !== '') {
-        return ['success' => false, 'error' => $error !== '' ? $error : 'Erreur cURL inconnue'];
-    }
-
-    $decoded = json_decode($raw, true);
-    if ($httpCode < 200 || $httpCode >= 300 || !is_array($decoded)) {
-        return ['success' => false, 'error' => 'Reponse OPNsense invalide sur ' . $path];
-    }
-
-    return ['success' => true, 'data' => $decoded];
-}
-
 try {
     $device = requireActiveDevice();
+
+    if (($device['type'] ?? '') === 'mikrotik') {
+        $resource = getMikrotikSystemResource();
+        $routerboard = getMikrotikRouterboardInfo();
+        $parts = array_filter([
+            trim((string)($resource['architecture-name'] ?? '')),
+            trim((string)($resource['cpu'] ?? '')),
+            trim((string)($routerboard['model'] ?? '')),
+        ], static fn($value) => $value !== '');
+
+        echo json_encode([
+            'label' => $parts !== [] ? implode(' | ', $parts) : 'MikroTik CPU',
+            'device_type' => 'mikrotik',
+            'business_source' => resolveDeviceBusinessSource('mikrotik'),
+            'backend_driver' => deviceBackendDriverForApiResponse($device),
+            'supported' => true,
+        ]);
+        exit;
+    }
 
     if (($device['type'] ?? '') !== 'opnsense') {
         echo json_encode([
             'label' => 'CPU indisponible',
-            'device_type' => (string)($device['type'] ?? 'other'),
-            'backend' => (string)($device['backend'] ?? 'generic'),
+            'device_type' => deviceTypeLabelForApiResponse($device),
+            'business_source' => deviceBusinessSourceForApiResponse(deviceTypeLabelForApiResponse($device)),
+            'backend_driver' => deviceBackendDriverForApiResponse($device),
             'supported' => false,
         ]);
         exit;
     }
 
-    $response = opnsenseGet($device, '/api/diagnostics/cpu_usage/getcputype');
+    $response = opnsenseApiRequest($device, '/api/diagnostics/cpu_usage/getcputype');
 
-    if (!$response['success']) {
-        throw new Exception($response['error']);
+    if (!($response['success'] ?? false)) {
+        echo json_encode([
+            'label' => 'CPU OPNsense indisponible',
+            'device_type' => 'opnsense',
+            'business_source' => resolveDeviceBusinessSource('opnsense'),
+            'backend_driver' => deviceBackendDriverForApiResponse($device),
+            'supported' => false,
+            'message' => (string)($response['message'] ?? 'CPU indisponible'),
+        ]);
+        exit;
     }
 
     echo json_encode($response['data']);
 } catch (Exception $e) {
-    http_response_code(500);
+    $safeDevice = isset($device) && is_array($device) ? $device : ['type' => 'opnsense'];
     echo json_encode([
-        'error' => $e->getMessage(),
+        'label' => 'CPU OPNsense indisponible',
+        'device_type' => deviceTypeLabelForApiResponse($safeDevice),
+        'business_source' => deviceBusinessSourceForApiResponse(deviceTypeLabelForApiResponse($safeDevice)),
+        'backend_driver' => deviceBackendDriverForApiResponse($safeDevice),
+        'supported' => false,
+        'message' => $e->getMessage(),
     ]);
 }

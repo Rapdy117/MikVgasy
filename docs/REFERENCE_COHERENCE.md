@@ -1,7 +1,28 @@
 # Cohérence Des Références Techniques
 
 ## Objet
+## Contraintes D Architecture (Obligatoire)
 
+Ce document doit etre lu conjointement avec `project_rules.md`.
+
+Toute interpretation des references techniques doit respecter strictement :
+
+- un attribut = une seule source de verite
+- aucune lecture mixte entre :
+  - profil
+  - utilisateur
+  - backend
+- aucune projection ne doit redefinir une valeur metier
+
+Avant toute utilisation d une reference :
+
+1. identifier si elle est :
+   - source de verite
+   - projection
+   - reference documentaire
+2. verifier qu elle ne cree pas de duplication avec le code actif
+
+Toute integration qui viole ces regles est interdite.
 Ce document relie les sources techniques embarquées dans `docs/` au code applicatif actif dans `/var/www/html`.
 
 Il couvre :
@@ -52,9 +73,23 @@ Cohérent avec le code actif :
 
 Conclusion :
 
-- `docs/radius_manager.sql` est une bonne référence métier pour `nas`, `profiles` et FreeRADIUS
-- ce n’est pas la source exacte de persistance des devices réseau dans l’état courant du projet
+Conclusion :
 
+- `docs/radius_manager.sql` est une reference metier pour :
+  - `nas`
+  - `profiles`
+  - tables FreeRADIUS
+
+Contraintes :
+
+- ne pas utiliser ce fichier comme source runtime
+- ne pas supposer que toutes les tables sont actives
+- ne pas introduire de nouvelles dependances basees sur `devices` ou `opnsense_profiles`
+
+Regle :
+
+- seule la base active doit etre consideree comme source de verite
+- toute divergence doit etre resolue dans le code, pas dans la documentation
 ## 2. `docs/www/`
 
 ### Ce que la référence décrit
@@ -95,6 +130,16 @@ Conclusion :
 - `docs/www/` est une référence utile pour comprendre la structure UI et les assets OPNsense
 - ce n’est pas le moteur de routage utilisé par l’application active
 
+Contraintes :
+
+- ne pas utiliser `docs/www/index.php` comme routeur applicatif
+- ne pas reproduire la logique UI OPNsense dans le projet actif
+
+Regle :
+
+- `docs/www` = reference UI + assets uniquement
+- toute logique metier doit rester dans `pages/` et `api/`
+
 ## 3. `docs/mvc/`
 
 ### Ce que la référence décrit
@@ -131,6 +176,8 @@ Conclusion :
 - utile pour comprendre la forme des endpoints et le modèle de contrôleurs
 - non intégré comme framework de l’application active
 
+
+
 ## 4. `docs/mikhmon/`
 
 ### Ce que la référence décrit
@@ -163,6 +210,8 @@ Conclusion :
 
 - `docs/mikhmon/` est la meilleure référence locale pour documenter une future couche API MikroTik
 - il sert surtout de base documentaire et d’inspiration d’implémentation
+
+
 
 ## 5. Synthèse De Cohérence Avec Le Code Actif
 
@@ -202,3 +251,36 @@ Pour la suite du projet :
 Le document complémentaire recommandé pour cette dernière partie est :
 
 - [docs/MIKHMON_MIKROTIK_API.md](/var/www/html/docs/MIKHMON_MIKROTIK_API.md)
+
+## 7. Regles Transverses Critiques
+
+### 7.1 Priorite Des Sources
+
+- MikroTik :
+  - source = routeur uniquement
+  - DB = cache uniquement
+
+- RADIUS / OPNsense :
+  - source = DB + RADIUS
+  - projection = rad*
+
+### 7.2 Interdictions
+
+- ne jamais melanger :
+  - reference documentaire
+  - code actif
+  - projection technique
+
+- ne jamais utiliser une reference pour deduire une valeur runtime
+
+### 7.3 Regle De Validation
+
+Avant toute utilisation d une reference :
+
+- verifier son role exact
+- verifier sa coherence avec project_rules.md
+- verifier qu elle ne cree pas de duplication
+
+Si un doute existe :
+
+- la reference doit etre ignoree

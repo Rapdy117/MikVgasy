@@ -1,6 +1,8 @@
 <?php
 require_once __DIR__ . '/../config/config.php';
 require_once __DIR__ . '/../includes/device_manager.php';
+require_once __DIR__ . '/../includes/mikrotik_backend.php';
+require_once __DIR__ . '/../includes/opnsense_shaper.php';
 
 if (session_status() === PHP_SESSION_NONE) {
     session_start();
@@ -16,41 +18,55 @@ if (!isset($_SESSION['logged_in']) || $_SESSION['logged_in'] !== true) {
     exit;
 }
 
-function opnsenseGet(array $device, string $path): array
-{
-    $ch = curl_init();
-
-    curl_setopt_array($ch, [
-        CURLOPT_URL => $device['host'] . $path,
-        CURLOPT_RETURNTRANSFER => true,
-        CURLOPT_HTTPAUTH => CURLAUTH_BASIC,
-        CURLOPT_USERPWD => $device['api_key'] . ':' . $device['api_secret'],
-        CURLOPT_SSL_VERIFYPEER => (bool)$device['verify_ssl'],
-        CURLOPT_SSL_VERIFYHOST => !empty($device['verify_ssl']) ? 2 : 0,
-        CURLOPT_TIMEOUT => 5,
-        CURLOPT_HTTPHEADER => ['Accept: application/json'],
-    ]);
-
-    $raw = curl_exec($ch);
-    $error = curl_error($ch);
-    $httpCode = (int)curl_getinfo($ch, CURLINFO_HTTP_CODE);
-
-    curl_close($ch);
-
-    if ($raw === false || $error !== '') {
-        return ['success' => false, 'error' => $error !== '' ? $error : 'Erreur cURL inconnue'];
-    }
-
-    $decoded = json_decode($raw, true);
-    if ($httpCode < 200 || $httpCode >= 300 || $decoded === null) {
-        return ['success' => false, 'error' => 'Reponse OPNsense invalide sur ' . $path];
-    }
-
-    return ['success' => true, 'data' => $decoded];
-}
-
 try {
     $device = requireActiveDevice();
+    $requestedInterface = trim((string)($_GET['interface'] ?? ''));
+
+    if (($device['type'] ?? '') === 'mikrotik') {
+        $interfaces = listMikrotikInterfaces();
+        $filteredInterfaces = array_values(array_filter($interfaces, static function ($interface): bool {
+            if (!is_array($interface)) {
+                return false;
+            }
+
+            $name = strtolower(trim((string)($interface['name'] ?? '')));
+            return $name !== '' && $name !== 'lo' && $name !== 'loopback';
+        }));
+
+        $selectedInterface = $requestedInterface;
+        if ($selectedInterface === '') {
+            $selected = selectMikrotikDashboardInterface($filteredInterfaces);
+            $selectedInterface = (string)($selected['name'] ?? '');
+        }
+
+        $sample = getMikrotikTrafficSample($selectedInterface);
+        $interfaceOptions = array_map(static function (array $interface): array {
+            return [
+                'name' => (string)($interface['name'] ?? ''),
+                'running' => strtolower((string)($interface['running'] ?? 'false')) === 'true',
+                'disabled' => strtolower((string)($interface['disabled'] ?? 'false')) === 'true',
+                'type' => (string)($interface['type'] ?? ''),
+            ];
+        }, $filteredInterfaces);
+
+        echo json_encode([
+            'time' => microtime(true),
+            'interval' => 2000,
+            'interfaces' => [
+                'wan' => [
+                    'name' => $sample['interface'],
+                    'inbytes' => $sample['rx_bps'],
+                    'outbytes' => $sample['tx_bps'],
+                ],
+            ],
+            'metric_mode' => 'rate',
+            'interface_label' => $sample['interface'],
+            'interface_options' => $interfaceOptions,
+            'selected_interface' => $sample['interface'],
+            'last_update' => date('H:i:s'),
+        ]);
+        exit;
+    }
 
     if (($device['type'] ?? '') !== 'opnsense') {
         echo json_encode([
@@ -59,16 +75,28 @@ try {
             'interfaces' => [],
             'last_update' => date('H:i:s'),
             'supported' => false,
-            'device_type' => (string)($device['type'] ?? 'other'),
-            'backend' => (string)($device['backend'] ?? 'generic'),
+            'device_type' => deviceTypeLabelForApiResponse($device),
+            'business_source' => deviceBusinessSourceForApiResponse(deviceTypeLabelForApiResponse($device)),
+            'backend_driver' => deviceBackendDriverForApiResponse($device),
         ]);
         exit;
     }
 
-    $trafficResponse = opnsenseGet($device, '/api/diagnostics/traffic/interface');
+    $trafficResponse = opnsenseApiRequest($device, '/api/diagnostics/traffic/interface');
 
-    if (!$trafficResponse['success']) {
-        throw new Exception($trafficResponse['error']);
+    if (!($trafficResponse['success'] ?? false)) {
+        echo json_encode([
+            'time' => microtime(true),
+            'interval' => 2000,
+            'interfaces' => [],
+            'last_update' => date('H:i:s'),
+            'supported' => false,
+            'device_type' => 'opnsense',
+            'business_source' => resolveDeviceBusinessSource('opnsense'),
+            'backend_driver' => deviceBackendDriverForApiResponse($device),
+            'message' => (string)($trafficResponse['message'] ?? 'Trafic indisponible'),
+        ]);
+        exit;
     }
 
     $interfaces = $trafficResponse['data']['interfaces'] ?? [];
@@ -92,10 +120,22 @@ try {
         'interval' => 2000,
         'interfaces' => $filteredInterfaces,
         'last_update' => date('H:i:s'),
+        'device_type' => 'opnsense',
+        'business_source' => resolveDeviceBusinessSource('opnsense'),
+        'backend_driver' => deviceBackendDriverForApiResponse($device),
     ]);
 } catch (Exception $e) {
-    http_response_code(500);
     echo json_encode([
-        'error' => $e->getMessage(),
+        'time' => microtime(true),
+        'interval' => 2000,
+        'interfaces' => [],
+        'last_update' => date('H:i:s'),
+        'supported' => false,
+        'device_type' => isset($device) && is_array($device) ? deviceTypeLabelForApiResponse($device) : null,
+        'business_source' => isset($device) && is_array($device)
+            ? deviceBusinessSourceForApiResponse(deviceTypeLabelForApiResponse($device))
+            : null,
+        'backend_driver' => isset($device) && is_array($device) ? deviceBackendDriverForApiResponse($device) : null,
+        'message' => $e->getMessage(),
     ]);
 }

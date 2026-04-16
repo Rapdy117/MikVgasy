@@ -1,11 +1,41 @@
 <?php
 require '../../config/db.php'; // ta connexion PDO
-require_once '../../includes/nas_resolver.php';
-require_once '../../includes/radius_sync.php';
+require_once '../../includes/auth.php';
+require_once '../../includes/user_provisioning.php';
+require_once '../../includes/opnsense_shaper.php';
+require_once '../../includes/operation_history.php';
+require_once '../../includes/user_schema.php';
 
 session_start();
 
 header('Content-Type: application/json');
+
+function publicCreateUserErrorMessage(Throwable $error): string
+{
+    $message = trim((string)$error->getMessage());
+
+    if ($error instanceof PDOException) {
+        $sqlState = (string)($error->getCode() ?? '');
+        $driverCode = (string)($error->errorInfo[1] ?? '');
+
+        if ($sqlState === '23000' || $driverCode === '1062') {
+            return 'Ce nom d utilisateur existe deja. Choisissez-en un autre.';
+        }
+    }
+
+    return match ($message) {
+        'Profil introuvable' => 'Le profil choisi est introuvable.',
+        'Profil MikroTik introuvable sur le routeur.' => 'Le profil choisi est introuvable sur le routeur.',
+        'Profil MikroTik introuvable sur le routeur. Nom requis.' => 'Le profil choisi est introuvable sur le routeur.',
+        'Device introuvable' => 'Le serveur choisi est introuvable.',
+        'Aucun NAS correspondant au device selectionne' => 'Le serveur choisi n est pas encore relie au systeme.',
+        'NAS introuvable' => 'Le serveur choisi est introuvable.',
+        'NAS incoherent avec le serveur choisi' => 'Le NAS ne correspond pas au serveur choisi.',
+        'Serveur incoherent avec le NAS choisi' => 'Le serveur ne correspond pas au NAS choisi.',
+        'Utilisateur deja present sur MikroTik.' => 'Cet utilisateur existe deja sur le serveur MikroTik.',
+        default => 'La creation a echoue. Verifiez les informations saisies puis reessayez.',
+    };
+}
 
 function post_string_or_null(string $key): ?string
 {
@@ -27,32 +57,18 @@ function post_int_or_default(string $key, int $default = 0): ?int
     return (int)$value;
 }
 
-function post_float_or_default(string $key, float $default = 0.0): ?float
+function post_int_or_null(string $key): ?int
 {
     $value = trim((string)($_POST[$key] ?? ''));
     if ($value === '') {
-        return $default;
-    }
-
-    if (!is_numeric($value)) {
         return null;
     }
 
-    return (float)$value;
-}
-
-function post_bool_int_or_default(string $key, int $default = 0): ?int
-{
-    $value = trim((string)($_POST[$key] ?? ''));
-    if ($value === '') {
-        return $default;
+    if (filter_var($value, FILTER_VALIDATE_INT) === false) {
+        return null;
     }
 
-    if ($value === '0' || $value === '1') {
-        return (int)$value;
-    }
-
-    return null;
+    return (int)$value;
 }
 
 function require_valid_csrf(): void
@@ -80,6 +96,14 @@ if (!isset($_SESSION['logged_in'])) {
     ]);
     exit;
 }
+if (!isAdministrator()) {
+    http_response_code(403);
+    echo json_encode([
+        'success' => false,
+        'message' => 'Accès réservé à l administrateur'
+    ]);
+    exit;
+}
 
 require_valid_csrf();
 
@@ -89,22 +113,12 @@ require_valid_csrf();
 $username = post_string_or_null('username');
 $password = post_string_or_null('password');
 $profile_id = post_int_or_default('profile_id', 0);
-$status = post_string_or_null('status') ?? 'active';
-
-$fullname = post_string_or_null('fullname');
-$phone = post_string_or_null('phone');
-$email = post_string_or_null('email');
-$address = post_string_or_null('address');
-$balance = post_float_or_default('balance', 0.0);
-$expiration_date = post_string_or_null('expiration_date');
-$auto_renewal = post_bool_int_or_default('auto_renewal', 0);
+$profile_name = post_string_or_null('profile_name');
+$device_id = post_string_or_null('device_id');
 
 /* RADIUS */
-$rate_limit = post_string_or_null('rate_limit');
-$session_timeout = post_int_or_default('session_timeout', 0);
-$simultaneous_use = post_int_or_default('simultaneous_use', 0);
-$idle_timeout = post_int_or_default('idle_timeout', 0);
-$data_limit = post_int_or_default('data_limit', 0);
+$session_timeout = post_int_or_null('session_timeout');
+$data_limit = post_int_or_null('data_limit');
 $nas_id = post_int_or_default('nas_id', 0);
 
 /* =========================
@@ -114,25 +128,34 @@ if ($username === null || $password === null) {
     http_response_code(400);
     echo json_encode([
         'success' => false,
-        'message' => 'Username & password required'
+        'message' => 'Le nom d utilisateur et le mot de passe sont obligatoires.'
     ]);
     exit;
 }
 
-if ($profile_id === null || $balance === null || $auto_renewal === null || $session_timeout === null || $simultaneous_use === null || $idle_timeout === null || $data_limit === null || $nas_id === null) {
+if ($profile_id === null || $nas_id === null) {
     http_response_code(400);
     echo json_encode([
         'success' => false,
-        'message' => 'Invalid numeric input'
+        'message' => 'Une valeur numerique saisie est invalide.'
     ]);
     exit;
 }
 
-if ($profile_id <= 0) {
+if ($profile_id <= 0 && $profile_name === null) {
     http_response_code(400);
     echo json_encode([
         'success' => false,
-        'message' => 'Profile required'
+        'message' => 'Veuillez choisir un profil.'
+    ]);
+    exit;
+}
+
+if ($device_id === null || $device_id === '') {
+    http_response_code(400);
+    echo json_encode([
+        'success' => false,
+        'message' => 'Serveur requis',
     ]);
     exit;
 }
@@ -141,95 +164,105 @@ if ($nas_id <= 0) {
     http_response_code(400);
     echo json_encode([
         'success' => false,
-        'message' => 'NAS required'
+        'message' => 'NAS requis',
     ]);
     exit;
 }
 
-if (!in_array($status, ['active', 'disabled', 'expired'], true)) {
+if (($session_timeout !== null && $session_timeout < 0) || ($data_limit !== null && $data_limit < 0)) {
     http_response_code(400);
     echo json_encode([
         'success' => false,
-        'message' => 'Invalid status'
-    ]);
-    exit;
-}
-
-if ($session_timeout < 0 || $data_limit < 0 || $simultaneous_use < 0 || $idle_timeout < 0) {
-    http_response_code(400);
-    echo json_encode([
-        'success' => false,
-        'message' => 'Negative values are not allowed'
+        'message' => 'Les limites ne peuvent pas etre negatives.'
     ]);
     exit;
 }
 
 try {
+    ensureOperationHistoryTable($pdo);
+    ensureAdminNotificationsTable($pdo);
     $pdo->beginTransaction();
-
-    $nasContext = loadNasContext($pdo, $nas_id);
-
-    /* =========================
-       1. INSERT USERS
-    ========================= */
-    $stmt = $pdo->prepare("
-        INSERT INTO users 
-        (username, password, profile_id, status, fullname, phone, email, address, balance, expiration_date, auto_renewal)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-    ");
-
-    $stmt->execute([
-        $username,
-        $password,
-        $profile_id,
-        $status,
-        $fullname,
-        $phone,
-        $email,
-        $address,
-        $balance,
-        $expiration_date,
-        $auto_renewal
-    ]);
-
-    /* =========================
-       2. GET PROFILE NAME
-    ========================= */
-    $stmt = $pdo->prepare("SELECT name FROM profiles WHERE id = ?");
-    $stmt->execute([$profile_id]);
-    $profile = $stmt->fetch(PDO::FETCH_ASSOC);
-
-    if (!$profile) {
-        throw new Exception("Profil introuvable");
-    }
-
-    $groupname = $profile['name'];
-
-    syncUserToNasBackend($pdo, [
+    $result = provisionUserWithProfile($pdo, [
         'username' => $username,
         'password' => $password,
-        'rate_limit' => $rate_limit,
+        'profile_id' => $profile_id,
+        'profile_name' => $profile_name,
+        'device_id' => $device_id,
+        'nas_id' => $nas_id,
         'session_timeout' => $session_timeout,
-        'simultaneous_use' => $simultaneous_use,
-        'idle_timeout' => $idle_timeout,
         'data_limit' => $data_limit,
-        'expiration_date' => $expiration_date,
-    ], $groupname, $nasContext);
+    ]);
 
-    $pdo->commit();
+    $nc = $result['nas_context'];
+    if ((int)($nc['nas_id'] ?? 0) !== (int)$nas_id) {
+        throw new RuntimeException('NAS incoherent avec le serveur choisi');
+    }
+    $resolvedDeviceId = trim((string)($nc['device']['id'] ?? ''));
+    if ($resolvedDeviceId !== '' && $resolvedDeviceId !== trim((string)$device_id)) {
+        throw new RuntimeException('Serveur incoherent avec le NAS choisi');
+    }
+
+    $createdBusinessSource = nasContextRequireBusinessSource($result['nas_context']);
+
+    recordOperationHistory($pdo, [
+        'operation_scope' => 'admin',
+        'operation_type' => 'user_create',
+        'actor_username' => (string)($_SESSION['username'] ?? ''),
+        'actor_role' => (string)($_SESSION['user_role'] ?? 'administrator'),
+        'target_type' => 'user',
+        'target_name' => $username,
+        'target_ref' => isset($result['user_id']) ? (string)$result['user_id'] : null,
+        'device_id' => trim((string)($device_id ?? '')) ?: null,
+        'profile_name' => trim((string)($result['profile']['name'] ?? $profile_name ?? '')) ?: null,
+        'amount_value' => $result['profile']['commercial_amount'] ?? null,
+        'summary' => 'Utilisateur créé et synchronisé',
+        'details_json' => [
+            'business_source' => $createdBusinessSource,
+            'backend_driver' => nasContextRequireBackendDriver($result['nas_context']),
+            'nas_type' => (string)($result['nas_context']['nas_type'] ?? ''),
+            'storage_scope' => (string)($result['storage_scope'] ?? 'local_database'),
+            'session_timeout' => $session_timeout,
+            'data_limit' => $data_limit,
+            'profile_price' => $result['profile']['price'] ?? null,
+            'profile_selling_price' => $result['profile']['selling_price'] ?? null,
+            'commercial_amount' => $result['profile']['commercial_amount'] ?? null,
+        ],
+    ]);
+
+    if ($pdo->inTransaction()) {
+        $pdo->commit();
+    } else {
+        error_log('[create_user] Transaction lost before commit.');
+    }
+
+    $shaperSync = null;
+    if (($result['nas_context']['nas_type'] ?? '') === 'opnsense') {
+        $shaperSync = trySyncOpnsenseUserShaper($pdo, $username);
+    }
+
+    $createdMessage = ($createdBusinessSource === 'mikrotik_local')
+        ? 'Utilisateur cree sur le routeur MikroTik'
+        : 'Utilisateur créé + synchronisé';
 
     echo json_encode([
         "success" => true,
-        "message" => "Utilisateur créé + synchronisé",
-        "nas_backend" => $nasContext['backend'],
-        "nas_type" => $nasContext['nas_type']
+        "message" => $createdMessage,
+        "business_source" => $createdBusinessSource,
+        "backend_driver" => nasContextRequireBackendDriver($result['nas_context']),
+        "nas_type" => (string)($result['nas_context']['nas_type'] ?? ''),
+        "storage_scope" => $result['storage_scope'] ?? 'local_database',
+        "shaper_sync" => $shaperSync,
     ]);
 
-} catch (Exception $e) {
-    $pdo->rollBack();
+} catch (Throwable $e) {
+    if ($pdo->inTransaction()) {
+        $pdo->rollBack();
+    }
+
+    error_log('[create_user] ' . $e->getMessage());
     http_response_code(500);
     echo json_encode([
         'success' => false,
-        'message' => $e->getMessage()
+        'message' => publicCreateUserErrorMessage($e)
     ]);
 }

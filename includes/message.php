@@ -1,40 +1,40 @@
 <?php
-// C:\wamp64\www\androndra\includes\message.php
 
 /**
  * Définit un message de session à afficher à l'utilisateur.
- *
- * @param string $message Le texte du message.
- * @param string $type Le type de message (ex: 'success', 'error', 'warning', 'info').
+ * La session doit être démarrée par la page appelante.
  */
-function set_message($message, $type = 'info') {
-    // Si la session n'est pas déjà démarrée, on la démarre
-    if (session_status() == PHP_SESSION_NONE) {
-        session_start();
+function set_message($message, $type = 'info')
+{
+    if (session_status() !== PHP_SESSION_ACTIVE) {
+        throw new RuntimeException('set_message() requiert une session PHP active.');
     }
+
     $_SESSION['message'] = [
         'text' => $message,
-        'type' => $type
+        'type' => $type,
     ];
 }
 
 /**
  * Affiche un message de session s'il existe et le supprime de la session.
+ * La session doit être démarrée par la page appelante.
  */
-function display_message() {
-    // Si la session n'est pas déjà démarrée, on la démarre
-    if (session_status() == PHP_SESSION_NONE) {
-        session_start();
+function display_message()
+{
+    if (session_status() !== PHP_SESSION_ACTIVE) {
+        return;
     }
 
-    if (isset($_SESSION['message'])) {
-        $message = $_SESSION['message'];
-        // Utilise l'ID 'messageArea' que dashboard.js peut aussi cibler
-        echo '<div class="alert alert-' . htmlspecialchars($message['type']) . '" role="alert" id="messageArea" style="display: block;">';
-        echo htmlspecialchars($message['text']);
-        echo '</div>';
-        // Supprime le message de la session après l'avoir affiché
-        unset($_SESSION['message']);
+    if (!isset($_SESSION['message'])) {
+        return;
     }
+
+    $message = $_SESSION['message'];
+
+    echo '<div class="alert alert-' . htmlspecialchars($message['type']) . '" role="alert" id="messageArea" style="display: block;">';
+    echo htmlspecialchars($message['text']);
+    echo '</div>';
+
+    unset($_SESSION['message']);
 }
-?>

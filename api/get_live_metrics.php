@@ -1,6 +1,7 @@
 <?php
 require_once __DIR__ . '/../config/config.php';
 require_once __DIR__ . '/../includes/device_manager.php';
+require_once __DIR__ . '/../includes/opnsense_shaper.php';
 
 if (session_status() === PHP_SESSION_NONE) {
     session_start();
@@ -19,73 +20,6 @@ if (!isset($_SESSION['logged_in']) || $_SESSION['logged_in'] !== true) {
 session_write_close();
 
 const DASHBOARD_LIVE_TRAFFIC_CACHE = '/tmp/opnsense_dashboard_live_traffic_cache.json';
-
-function decodeOpnsenseResponse(string $path, $raw, string $error, int $httpCode): array
-{
-    if ($raw === false || $error !== '') {
-        return ['success' => false, 'error' => $error !== '' ? $error : 'Erreur cURL inconnue'];
-    }
-
-    $decoded = json_decode($raw, true);
-    if ($httpCode < 200 || $httpCode >= 300 || !is_array($decoded)) {
-        return ['success' => false, 'error' => 'Reponse OPNsense invalide sur ' . $path];
-    }
-
-    return ['success' => true, 'data' => $decoded];
-}
-
-function opnsenseGetMulti(array $device, array $paths): array
-{
-    $multiHandle = curl_multi_init();
-    $handles = [];
-
-    foreach ($paths as $key => $path) {
-        $ch = curl_init();
-        curl_setopt_array($ch, [
-            CURLOPT_URL => $device['host'] . $path,
-            CURLOPT_RETURNTRANSFER => true,
-            CURLOPT_HTTPAUTH => CURLAUTH_BASIC,
-            CURLOPT_USERPWD => $device['api_key'] . ':' . $device['api_secret'],
-            CURLOPT_SSL_VERIFYPEER => (bool)$device['verify_ssl'],
-            CURLOPT_SSL_VERIFYHOST => !empty($device['verify_ssl']) ? 2 : 0,
-            CURLOPT_TIMEOUT => 3,
-            CURLOPT_CONNECTTIMEOUT => 2,
-            CURLOPT_HTTPHEADER => ['Accept: application/json'],
-        ]);
-
-        curl_multi_add_handle($multiHandle, $ch);
-        $handles[$key] = [
-            'path' => $path,
-            'handle' => $ch,
-        ];
-    }
-
-    $running = null;
-    do {
-        $status = curl_multi_exec($multiHandle, $running);
-        if ($running > 0) {
-            curl_multi_select($multiHandle, 1.0);
-        }
-    } while ($running > 0 && $status === CURLM_OK);
-
-    $results = [];
-
-    foreach ($handles as $key => $item) {
-        $ch = $item['handle'];
-        $results[$key] = decodeOpnsenseResponse(
-            $item['path'],
-            curl_multi_getcontent($ch),
-            curl_error($ch),
-            (int)curl_getinfo($ch, CURLINFO_HTTP_CODE)
-        );
-        curl_multi_remove_handle($multiHandle, $ch);
-        curl_close($ch);
-    }
-
-    curl_multi_close($multiHandle);
-
-    return $results;
-}
 
 function chooseTrafficInterface(array $interfaces): ?string
 {
@@ -155,16 +89,21 @@ function saveTrafficCache(array $cache): void
     file_put_contents(DASHBOARD_LIVE_TRAFFIC_CACHE, json_encode($cache, JSON_PRETTY_PRINT), LOCK_EX);
 }
 
+$device = [];
 try {
     $device = requireActiveDevice();
 
     if (($device['type'] ?? '') !== 'opnsense') {
+        $deviceTypeLabel = deviceTypeLabelForApiResponse($device);
+        $driver = deviceBackendDriverForApiResponse($device);
+        $businessSource = deviceBusinessSourceForApiResponse($deviceTypeLabel);
         echo json_encode([
             'time' => microtime(true),
             'last_update' => date('H:i:s'),
             'supported' => false,
-            'device_type' => (string)($device['type'] ?? 'other'),
-            'backend' => (string)($device['backend'] ?? 'generic'),
+            'device_type' => $deviceTypeLabel,
+            'business_source' => $businessSource,
+            'backend_driver' => $driver,
             'cpu' => [
                 'total' => 0,
                 'user' => 0,
@@ -180,19 +119,35 @@ try {
         exit;
     }
 
-    $responses = opnsenseGetMulti($device, [
-        'traffic' => '/api/diagnostics/traffic/interface',
-        'cpu' => '/api/diagnostics/activity/get_activity',
-    ]);
-    $trafficResponse = $responses['traffic'];
-    $cpuResponse = $responses['cpu'];
+    $trafficResponse = opnsenseApiRequest($device, '/api/diagnostics/traffic/interface');
+    $cpuResponse = opnsenseApiRequest($device, '/api/diagnostics/activity/get_activity');
 
-    if (!$trafficResponse['success']) {
-        throw new Exception($trafficResponse['error']);
-    }
-
-    if (!$cpuResponse['success']) {
-        throw new Exception($cpuResponse['error']);
+    if (!($trafficResponse['success'] ?? false) || !($cpuResponse['success'] ?? false)) {
+        $driver = deviceBackendDriverForApiResponse($device);
+        echo json_encode([
+            'time' => microtime(true),
+            'last_update' => date('H:i:s'),
+            'supported' => false,
+            'device_type' => 'opnsense',
+            'business_source' => resolveDeviceBusinessSource('opnsense'),
+            'backend_driver' => $driver,
+            'cpu' => [
+                'total' => 0,
+                'user' => 0,
+                'system' => 0,
+                'idle' => 0,
+            ],
+            'traffic' => [
+                'rx_bps' => 0,
+                'tx_bps' => 0,
+                'interfaces' => 'N/A',
+            ],
+            'message' => implode(' | ', array_filter([
+                !($trafficResponse['success'] ?? false) ? (string)($trafficResponse['message'] ?? 'Trafic indisponible') : '',
+                !($cpuResponse['success'] ?? false) ? (string)($cpuResponse['message'] ?? 'CPU indisponible') : '',
+            ])),
+        ]);
+        exit;
     }
 
     $interfaces = $trafficResponse['data']['interfaces'] ?? [];
@@ -242,6 +197,9 @@ try {
     echo json_encode([
         'time' => $timestamp,
         'last_update' => date('H:i:s'),
+        'device_type' => 'opnsense',
+        'business_source' => resolveDeviceBusinessSource('opnsense'),
+        'backend_driver' => deviceBackendDriverForApiResponse($device),
         'cpu' => [
             'total' => $cpu['total'],
             'user' => $cpu['user'],
@@ -255,8 +213,28 @@ try {
         ],
     ]);
 } catch (Exception $e) {
-    http_response_code(500);
+    $safe = is_array($device) && $device !== [] ? $device : [];
+    $deviceTypeLabel = $safe !== [] ? deviceTypeLabelForApiResponse($safe) : null;
+    $driver = $safe !== [] ? deviceBackendDriverForApiResponse($safe) : null;
+    $businessSource = deviceBusinessSourceForApiResponse($deviceTypeLabel);
     echo json_encode([
-        'error' => $e->getMessage(),
+        'time' => microtime(true),
+        'last_update' => date('H:i:s'),
+        'supported' => false,
+        'device_type' => $deviceTypeLabel,
+        'business_source' => $businessSource,
+        'backend_driver' => $driver,
+        'cpu' => [
+            'total' => 0,
+            'user' => 0,
+            'system' => 0,
+            'idle' => 0,
+        ],
+        'traffic' => [
+            'rx_bps' => 0,
+            'tx_bps' => 0,
+            'interfaces' => 'N/A',
+        ],
+        'message' => $e->getMessage(),
     ]);
 }

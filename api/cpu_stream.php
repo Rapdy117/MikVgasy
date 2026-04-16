@@ -1,6 +1,7 @@
 <?php
 require_once __DIR__ . '/../config/config.php';
 require_once __DIR__ . '/../includes/device_manager.php';
+require_once __DIR__ . '/../includes/mikrotik_backend.php';
 
 if (session_status() === PHP_SESSION_NONE) {
     session_start();
@@ -38,12 +39,64 @@ header('X-Accel-Buffering: no');
 
 $device = requireActiveDevice();
 
+if (($device['type'] ?? '') === 'mikrotik') {
+    while (!connection_aborted()) {
+        try {
+            $cacheKey = trim((string)($device['id'] ?? $device['host'] ?? 'active'));
+            $cacheFile = sys_get_temp_dir() . '/mikrotik_cpu_stream_' . md5($cacheKey) . '.json';
+            $cacheTtl = 2;
+            $cpuLoad = null;
+            if (is_file($cacheFile)) {
+                $cached = json_decode((string)file_get_contents($cacheFile), true);
+                if (is_array($cached) && isset($cached['time'], $cached['cpu'])) {
+                    if ((time() - (int)$cached['time']) <= $cacheTtl) {
+                        $cpuLoad = (float)$cached['cpu'];
+                    }
+                }
+            }
+
+            if ($cpuLoad === null) {
+                $resource = getMikrotikSystemResource();
+                $cpuLoad = (float)($resource['cpu-load'] ?? 0);
+                file_put_contents($cacheFile, json_encode([
+                    'time' => time(),
+                    'cpu' => $cpuLoad,
+                ], JSON_UNESCAPED_SLASHES));
+            }
+
+            emitSse([
+                'total' => round($cpuLoad, 2),
+                'user' => round($cpuLoad, 2),
+                'system' => 0,
+                'idle' => round(max(0, 100 - $cpuLoad), 2),
+                'last_update' => date('H:i:s'),
+                'supported' => true,
+                'device_type' => 'mikrotik',
+            ]);
+        } catch (Throwable $e) {
+            emitSse([
+                'error' => $e->getMessage(),
+                'supported' => false,
+                'device_type' => 'mikrotik',
+                'business_source' => resolveDeviceBusinessSource('mikrotik'),
+                'backend_driver' => deviceBackendDriverForApiResponse($device),
+            ]);
+            exit;
+        }
+
+        sleep(2);
+    }
+
+    exit;
+}
+
 if (($device['type'] ?? '') !== 'opnsense') {
     emitSse([
         'error' => 'Flux CPU indisponible pour le device actif ' . getDeviceDisplayLabel($device),
         'supported' => false,
-        'device_type' => (string)($device['type'] ?? 'other'),
-        'backend' => (string)($device['backend'] ?? 'generic'),
+        'device_type' => deviceTypeLabelForApiResponse($device),
+        'business_source' => deviceBusinessSourceForApiResponse(deviceTypeLabelForApiResponse($device)),
+        'backend_driver' => deviceBackendDriverForApiResponse($device),
     ]);
     exit;
 }

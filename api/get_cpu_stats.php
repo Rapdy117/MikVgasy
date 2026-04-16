@@ -1,6 +1,7 @@
 <?php
 require_once __DIR__ . '/../config/config.php';
 require_once __DIR__ . '/../includes/device_manager.php';
+require_once __DIR__ . '/../includes/opnsense_shaper.php';
 
 if (session_status() === PHP_SESSION_NONE) {
     session_start();
@@ -17,39 +18,6 @@ if (!isset($_SESSION['logged_in']) || $_SESSION['logged_in'] !== true) {
 }
 
 const DASHBOARD_CPU_CACHE = '/tmp/opnsense_dashboard_cpu_cache.json';
-
-function opnsenseGet(array $device, string $path): array
-{
-    $ch = curl_init();
-
-    curl_setopt_array($ch, [
-        CURLOPT_URL => $device['host'] . $path,
-        CURLOPT_RETURNTRANSFER => true,
-        CURLOPT_HTTPAUTH => CURLAUTH_BASIC,
-        CURLOPT_USERPWD => $device['api_key'] . ':' . $device['api_secret'],
-        CURLOPT_SSL_VERIFYPEER => (bool)$device['verify_ssl'],
-        CURLOPT_SSL_VERIFYHOST => !empty($device['verify_ssl']) ? 2 : 0,
-        CURLOPT_TIMEOUT => 5,
-        CURLOPT_HTTPHEADER => ['Accept: application/json'],
-    ]);
-
-    $raw = curl_exec($ch);
-    $error = curl_error($ch);
-    $httpCode = (int)curl_getinfo($ch, CURLINFO_HTTP_CODE);
-
-    curl_close($ch);
-
-    if ($raw === false || $error !== '') {
-        return ['success' => false, 'error' => $error !== '' ? $error : 'Erreur cURL inconnue'];
-    }
-
-    $decoded = json_decode($raw, true);
-    if ($httpCode < 200 || $httpCode >= 300 || !is_array($decoded)) {
-        return ['success' => false, 'error' => 'Reponse OPNsense invalide sur ' . $path];
-    }
-
-    return ['success' => true, 'data' => $decoded];
-}
 
 function extractCpuTotals(array $activity): array
 {
@@ -128,19 +96,38 @@ try {
             ],
             'last_update' => date('H:i:s'),
             'supported' => false,
-            'device_type' => (string)($device['type'] ?? 'other'),
-            'backend' => (string)($device['backend'] ?? 'generic'),
+            'device_type' => deviceTypeLabelForApiResponse($device),
+            'business_source' => deviceBusinessSourceForApiResponse(deviceTypeLabelForApiResponse($device)),
+            'backend_driver' => deviceBackendDriverForApiResponse($device),
         ]);
         exit;
     }
 
-    $activityResponse = opnsenseGet($device, '/api/diagnostics/activity/get_activity');
+    $activityResponse = opnsenseApiRequest($device, '/api/diagnostics/activity/get_activity');
 
-    if (!$activityResponse['success']) {
-        throw new Exception($activityResponse['error']);
+    if (!($activityResponse['success'] ?? false)) {
+        echo json_encode([
+            'current_cpu_total' => 0,
+            'current_cpu_user' => 0,
+            'current_cpu_system' => 0,
+            'current_cpu_idle' => 0,
+            'cpu_history' => [
+                'labels' => [],
+                'total' => [],
+                'user' => [],
+                'system' => [],
+            ],
+            'last_update' => date('H:i:s'),
+            'supported' => false,
+            'device_type' => 'opnsense',
+            'business_source' => resolveDeviceBusinessSource('opnsense'),
+            'backend_driver' => deviceBackendDriverForApiResponse($device),
+            'message' => (string)($activityResponse['message'] ?? 'CPU indisponible'),
+        ]);
+        exit;
     }
 
-    $cpu = extractCpuTotals($activityResponse['data']);
+    $cpu = extractCpuTotals($activityResponse['data'] ?? []);
     $history = loadCpuCache();
 
     $history['labels'][] = date('H:i:s');
@@ -162,10 +149,29 @@ try {
         'current_cpu_idle' => $cpu['idle'],
         'cpu_history' => $history,
         'last_update' => date('H:i:s'),
+        'device_type' => 'opnsense',
+        'business_source' => resolveDeviceBusinessSource('opnsense'),
+        'backend_driver' => deviceBackendDriverForApiResponse($device),
     ]);
 } catch (Exception $e) {
-    http_response_code(500);
     echo json_encode([
-        'error' => $e->getMessage(),
+        'current_cpu_total' => 0,
+        'current_cpu_user' => 0,
+        'current_cpu_system' => 0,
+        'current_cpu_idle' => 0,
+        'cpu_history' => [
+            'labels' => [],
+            'total' => [],
+            'user' => [],
+            'system' => [],
+        ],
+        'last_update' => date('H:i:s'),
+        'supported' => false,
+        'device_type' => isset($device) && is_array($device) ? deviceTypeLabelForApiResponse($device) : null,
+        'business_source' => isset($device) && is_array($device)
+            ? deviceBusinessSourceForApiResponse(deviceTypeLabelForApiResponse($device))
+            : null,
+        'backend_driver' => isset($device) && is_array($device) ? deviceBackendDriverForApiResponse($device) : null,
+        'message' => $e->getMessage(),
     ]);
 }

@@ -2,7 +2,7 @@
 
 /* Styles généraux pour le corps de la page (arrière-plan, alignement global) */
 body {
-    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; /* Police moderne et lisible */
+    font-family: 'Roboto', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; /* Police moderne et lisible */
     margin: 0; /* Supprime les marges par défaut du navigateur */
     padding: 0; /* Supprime le padding par défaut du navigateur */
     color: #333; /* Couleur de texte par défaut, sera surchargée pour le container pour un meilleur contraste */
@@ -13,32 +13,36 @@ body {
     text-align: center; /* Centre le texte à l'intérieur du body (utile pour le contenu direct) */
     overflow: hidden; /* Empêche les barres de défilement si le contenu dépasse */
 
-    /* Dégradé de fond comme base */
-    background: linear-gradient(135deg, #e0f2f7 0%, #b2ebf2 50%, #80deea 100%); /* Dégradé de bleus clairs */
-    /* Ajout de l'image de vague par-dessus le dégradé */
-    background-image: url('assets/images/background_wave.png'); /* Chemin vers l'image de la vague */
+    background: radial-gradient(circle at top, rgba(23, 162, 184, 0.12), transparent 34%),
+                linear-gradient(160deg, rgba(6, 12, 24, 0.98) 0%, rgba(14, 22, 40, 0.96) 42%, rgba(9, 24, 44, 0.98) 100%);
+    background-image: url('assets/images/background_wave.png');
     background-size: cover; /* L'image couvre toute la zone, sans être déformée */
     background-repeat: no-repeat; /* Empêche la répétition de l'image */
     background-position: center center; /* Centrer l'image de fond */
-    background-blend-mode: overlay; /* Mélange l'image de vague avec le dégradé en dessous pour un effet plus doux */
+    background-blend-mode: soft-light;
 }
 
 /* Styles pour le conteneur principal (la "boîte" de connexion ou d'accueil) */
 .container-custom {
-    /* Fond noir avec transparence pour l'effet "verre dépoli" */
-    background-color: rgba(0, 0, 0, 0.4); /* Noir avec 40% d'opacité */
-    padding: 40px; /* Espace interne autour du contenu */
-    border-radius: 15px; /* Bords très arrondis pour un look moderne */
-    box-shadow: 0 15px 40px rgba(0,0,0,0.2); /* Ombre prononcée pour donner de la profondeur */
-    max-width: 700px; /* Largeur maximale du conteneur */
+    background-color: rgba(16, 24, 40, 0.64);
+    padding: 42px 38px 34px;
+    border-radius: 18px;
+    box-shadow: 0 20px 45px rgba(0,0,0,0.28);
+    max-width: 460px;
     width: 90%; /* Prend 90% de la largeur disponible, utile pour la responsivité */
     z-index: 1; /* Assure que le conteneur est au-dessus du fond */
     position: relative; /* Nécessaire pour que z-index fonctionne */
-    /* Effet "verre dépoli" (frosted glass) */
-    backdrop-filter: blur(30px); /* Applique un flou important à l'arrière-plan du conteneur */
-    -webkit-backdrop-filter: blur(30px); /* Compatibilité pour les navigateurs basés sur WebKit (ex: Safari) */
-    border: 1px solid rgba(255, 255, 255, 0.2); /* Bordure subtile et très transparente */
-    transform: translateY(-20px); /* Déplace légèrement le conteneur vers le haut pour un effet flottant */
+    backdrop-filter: blur(24px);
+    -webkit-backdrop-filter: blur(24px);
+    border: 1px solid rgba(148, 163, 184, 0.14);
+    transform: translateY(-10px);
+    transition: transform 0.25s ease, box-shadow 0.25s ease, border-color 0.25s ease;
+}
+
+.container-custom:hover {
+    transform: translateY(-12px);
+    box-shadow: 0 24px 56px rgba(0,0,0,0.34);
+    border-color: rgba(23, 162, 184, 0.24);
 }
 
 /* Styles pour les éléments de texte à l'intérieur du conteneur personnalisé pour assurer la visibilité sur fond sombre */
@@ -48,24 +52,54 @@ body {
     color: #fff; /* Définit le texte en blanc pour un bon contraste avec le fond noir transparent */
 }
 
-/* Styles pour le logo */
-.logo {
-    margin-bottom: 30px; /* Espace en dessous du logo */
-    max-width: 280px; /* Largeur maximale du logo */
-    height: auto; /* Maintient le ratio d'aspect */
-    display: block; /* Permet d'appliquer les marges auto pour le centrage */
-    margin-left: auto; /* Centre le logo horizontalement */
-    margin-right: auto; /* Centre le logo horizontalement */
-    filter: drop-shadow(0 0 5px rgba(255,255,255,0.1)); /* Ajoute une légère ombre blanche au logo pour le faire ressortir */
+.login-brand {
+    display: inline-flex;
+    align-items: center;
+    gap: 14px;
+    margin-bottom: 24px;
+    text-align: left;
+}
+
+.login-brand-icon {
+    width: 52px;
+    height: 52px;
+    border-radius: 14px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.35rem;
+    color: #7fe7f7;
+    background: rgba(23, 162, 184, 0.12);
+    border: 1px solid rgba(23, 162, 184, 0.18);
+    box-shadow: 0 0 0 1px rgba(23, 162, 184, 0.08) inset;
+    transition: transform 0.2s ease, background 0.2s ease, box-shadow 0.2s ease;
+}
+
+.container-custom:hover .login-brand-icon {
+    transform: translateY(-1px);
+    background: rgba(23, 162, 184, 0.18);
+    box-shadow: 0 0 0 1px rgba(23, 162, 184, 0.16) inset, 0 0 18px rgba(23, 162, 184, 0.16);
+}
+
+.login-brand-title {
+    color: #f4f7fb;
+    font-size: 1.02rem;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+}
+
+.login-brand-subtitle {
+    color: rgba(255, 255, 255, 0.62);
+    font-size: 0.78rem;
 }
 
 /* Styles pour le titre principal (h1) */
 h1 {
     color: #fff; /* Couleur blanche pour le titre sur fond noir transparent */
-    margin-bottom: 20px; /* Espace en dessous du titre */
-    font-size: 2.0em; /* Taille de la police du titre */
+    margin-bottom: 22px;
+    font-size: 1.35rem;
     font-weight: 700; /* Gras pour le titre */
-    letter-spacing: +0.03em; /* Espacement léger entre les lettres */
+    letter-spacing: 0.04em;
 }
 
 /* Styles pour les paragraphes */
@@ -79,26 +113,25 @@ p {
 /* Styles pour les champs de saisie (inputs) avec la nouvelle classe personnalisée */
 /* Cela cible les éléments avec la classe 'form-field-half' (input et select) */
 .form-field-half {
-    padding: 0.75rem; /* Padding interne */
-    margin: 0.5rem auto; /* Marge autour des champs, 'auto' pour centrer horizontalement */
-    border: none; /* Supprime la bordure par défaut de Bootstrap */
-    border-radius: 0.5rem; /* Bords légèrement arrondis */
-    font-size: 1.02rem; /* Taille de police */
-    width: 50%; /* Largeur réduite à 50% du conteneur parent */
+    padding: 0 12px;
+    margin: 0.5rem auto;
+    border-radius: 10px;
+    font-size: 0.92rem;
+    width: 100%;
+    max-width: 320px;
     display: block; /* Nécessaire pour que 'margin: auto' fonctionne et centre l'élément */
     box-sizing: border-box; /* S'assure que padding et border sont inclus dans la largeur */
-    /* Fond du champ de texte : blanc avec 15% d'opacité */
-    background: rgba(255, 255, 255, 0.2);
-    /* Couleur du texte saisi : blanc avec 90% d'opacité (suffisamment visible) */
+    height: 42px;
+    background: rgba(255, 255, 255, 0.08);
     color: rgba(255, 255, 255, 0.96);
-    /* Ajout d'une bordure subtile pour mieux délimiter le champ */
-    border: 1px solid rgba(255, 255, 255, 0.28); /* Bordure blanche avec 28% d'opacité */
+    border: 1px solid rgba(148, 163, 184, 0.2);
     line-height: 1.35;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease, background 0.2s ease, transform 0.2s ease;
 }
 
 /* Styles pour le placeholder (texte d'aide) des champs de saisie */
 .form-field-half::placeholder {
-    color: rgba(255, 255, 255, 0.82); /* Couleur du texte de placeholder : blanc plus lisible */
+    color: rgba(255, 255, 255, 0.68);
 }
 
 .form-field-half option {
@@ -108,50 +141,56 @@ p {
 
 /* Style au focus des champs de texte pour une meilleure indication */
 .form-field-half:focus {
-    border-color: rgba(255, 255, 255, 0.58); /* Bordure un peu plus opaque au focus */
-    box-shadow: 0 0 0 0.2rem rgba(255, 255, 255, 0.16); /* Légère ombre pour le focus */
-    outline: none; /* Supprime l'outline par défaut du navigateur */
+    border-color: rgba(23, 162, 184, 0.58);
+    background: rgba(255, 255, 255, 0.12);
+    box-shadow: 0 0 0 0.2rem rgba(23, 162, 184, 0.14);
+    outline: none;
+    transform: translateY(-1px);
+}
+
+.form-field-half:hover {
+    border-color: rgba(23, 162, 184, 0.34);
+    background: rgba(255, 255, 255, 0.1);
 }
 
 /* Styles pour les boutons principaux (utilisant la classe Bootstrap .btn-primary) */
 .btn-primary {
-    /* Nouvelle apparence pour harmoniser avec les champs de saisie */
-    background-color: rgba(0, 0, 0, 0.6); /* Fond noir avec 60% d'opacité (plus sombre que les inputs) */
-    border-color: rgba(255, 255, 255, 0.3); /* Bordure légèrement plus visible que les inputs */
-    color: #fff;
-    padding: 15px 45px;
-    font-size: 1.4em;
-    border-radius: 50px;
+    background: rgba(23, 162, 184, 0.14);
+    border-color: rgba(23, 162, 184, 0.72);
+    color: #17a2b8;
+    padding: 11px 24px;
+    font-size: 0.9rem;
+    border-radius: 10px;
     transition: all 0.3s ease;
-    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.3);
-    text-transform: uppercase;
+    box-shadow: 0 12px 24px rgba(0, 0, 0, 0.18);
+    text-transform: none;
     font-weight: 600;
-    /* Ajout de l'effet de verre dépoli pour le bouton */
-    backdrop-filter: blur(8px); /* Applique un flou modéré */
-    -webkit-backdrop-filter: blur(8px); /* Compatibilité WebKit */
-    border: 1px solid rgba(255, 255, 255, 0.3); /* Bordure blanche semi-transparente */
+    letter-spacing: 0.02em;
+    min-width: 168px;
 }
 
 /* Styles au survol (hover) des boutons principaux */
 .btn-primary:hover {
-    background-color: rgba(0, 0, 0, 0.7); /* Plus sombre au survol */
-    border-color: rgba(255, 255, 255, 0.5); /* Bordure plus opaque au survol */
-    transform: translateY(-3px);
-    box-shadow: 0 12px 25px rgba(0, 0, 0, 0.4);
+    background: #17a2b8;
+    border-color: #17a2b8;
+    color: #fff;
+    transform: translateY(-2px);
+    box-shadow: 0 16px 28px rgba(23, 162, 184, 0.22);
 }
 
 .btn-primary:focus,
 .btn-primary:focus-visible {
-    border-color: rgba(255, 255, 255, 0.58);
-    box-shadow: 0 0 0 0.2rem rgba(255, 255, 255, 0.16), 0 12px 25px rgba(0, 0, 0, 0.4);
+    border-color: #17a2b8;
+    box-shadow: 0 0 0 0.2rem rgba(23, 162, 184, 0.16), 0 16px 28px rgba(23, 162, 184, 0.18);
     outline: none;
+    color: #fff;
 }
 
 /* Styles pour le pied de page */
 .footer {
-    margin-top: 80px; /* Espace en dessous du bouton pour le pousser plus bas */
-    font-size: 0.9em; /* Taille de police du footer */
-    color: #ccc; /* Couleur du texte du footer */
+    margin-top: 40px;
+    font-size: 0.82rem;
+    color: rgba(255, 255, 255, 0.54);
     text-align: center; /* Centre le texte du footer */
     width: 100%; /* S'assure qu'il prend toute la largeur pour centrer correctement */
     padding-bottom: 20px; /* Ajoute un padding en bas de la page */
@@ -160,8 +199,8 @@ p {
 
 .footer p {
     margin-bottom: 0; /* Supprime la marge par défaut du paragraphe pour éviter un double espacement */
-    font-size: 0.8em; /* Ajustement de la taille de police si 0.9em était trop grand/petit sur le p du footer */
-    color: #ccc; /* Assure la couleur correcte pour le paragraphe du footer, au cas où .container-custom p l'ait surchargé */
+    font-size: 0.8em;
+    color: rgba(255, 255, 255, 0.54);
 }
 
 
@@ -220,4 +259,41 @@ p {
 
 .top-nav .nav-icons img:hover {
     opacity: 1;
+}
+
+.alert {
+    max-width: 420px;
+    margin: 0 auto 18px;
+    text-align: left;
+    border-radius: 10px;
+    background: rgba(127, 29, 29, 0.34);
+    border: 1px solid rgba(248, 113, 113, 0.24);
+    color: #fee2e2;
+}
+
+@media (max-width: 576px) {
+    .container-custom {
+        padding: 30px 22px 24px;
+        max-width: 94%;
+    }
+
+    .login-brand {
+        gap: 12px;
+        margin-bottom: 20px;
+    }
+
+    .login-brand-icon {
+        width: 46px;
+        height: 46px;
+        font-size: 1.1rem;
+    }
+
+    h1 {
+        font-size: 1.22rem;
+    }
+
+    .btn-primary {
+        width: 100%;
+        max-width: 320px;
+    }
 }

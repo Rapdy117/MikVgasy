@@ -32,12 +32,90 @@
     color: #ffffff;
 }
 
-.network-device-form .validity-unit {
-    max-width: 90px;
-    padding: 0 6px !important;
-    border-left: none;
+.network-device-form .row {
+    --bs-gutter-x: 0.8rem;
 }
 
-.network-device-form .validity-unit:focus {
+.network-device-form .card {
+    margin-bottom: 0;
+}
+
+.network-device-form .profile-unit-select {
+    max-width: 110px;
+    padding: 0 6px !important;
+    border-left: none;
+    background-color: var(--theme-primary-soft) !important;
+    border: 1px solid var(--theme-primary) !important;
+    color: var(--theme-primary) !important;
+    background-image: none !important;
+}
+
+.network-device-form .profile-unit-select:focus {
     border-color: var(--theme-primary) !important;
+    box-shadow: none !important;
+}
+
+.network-device-form .input-group .profile-unit-select {
+    border-radius: 0 4px 4px 0 !important;
+}
+
+.network-device-form .profile-unit-select option {
+    background-color: var(--theme-card) !important;
+    color: var(--theme-text) !important;
+}
+
+.network-device-form .profile-number-input {
+    text-align: right;
+    appearance: textfield;
+    -webkit-appearance: none;
+    -moz-appearance: textfield;
+}
+
+.network-device-form .profile-number-input::-webkit-outer-spin-button,
+.network-device-form .profile-number-input::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+}
+
+.profile-advanced-card {
+    background: rgba(12, 28, 48, 0.45);
+}
+
+.profile-flow-alert {
+    border: 1px solid rgba(56, 189, 248, 0.28);
+    background: rgba(14, 116, 144, 0.14);
+    color: var(--theme-text);
+}
+
+.network-device-form .rate-part-label {
+    min-width: 88px;
+    justify-content: center;
+    font-size: 0.78rem;
+    letter-spacing: 0.04em;
+}
+
+.network-device-form .rate-value-input {
+    max-width: 92px;
+}
+
+.network-device-form .rate-unit-select {
+    max-width: 74px;
+    background-color: var(--theme-primary-soft) !important;
+    border: 1px solid var(--theme-primary) !important;
+    color: var(--theme-primary) !important;
+    background-image: none !important;
+}
+
+.network-device-form .rate-unit-select:focus {
+    border-color: var(--theme-primary) !important;
+    box-shadow: none !important;
+}
+
+.network-device-form .input-group .rate-unit-select {
+    border-radius: 0 4px 4px 0 !important;
+}
+
+.network-device-form .rate-unit-select option {
+    background-color: var(--theme-card) !important;
+    color: var(--theme-text) !important;
 }

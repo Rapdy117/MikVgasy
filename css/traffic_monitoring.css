@@ -1,0 +1,59 @@
+.traffic-toolbar {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex-wrap: wrap;
+    margin-left: auto;
+}
+
+.traffic-source-group .input-group-text {
+    width: 120px;
+    min-width: 120px;
+    height: var(--theme-control-height);
+    display: flex;
+    align-items: center;
+    padding: 0 8px;
+    font-size: var(--theme-control-font-size);
+    background-color: var(--theme-primary-soft) !important;
+    border: 1px solid var(--theme-primary) !important;
+    border-right: none;
+    color: var(--theme-primary) !important;
+    border-radius: 4px 0 0 4px !important;
+}
+
+.traffic-source-group {
+    width: min(100%, 360px);
+    max-width: 360px;
+    flex: 0 1 360px;
+}
+
+.traffic-source-group .form-select,
+.traffic-source-group .form-control {
+    height: var(--theme-control-height);
+    font-size: var(--theme-control-font-size);
+    padding: 0 var(--theme-control-padding-x);
+    max-width: 250px;
+    background-color: rgba(255, 255, 255, 0.14) !important;
+    border: 1px solid var(--theme-border) !important;
+    border-left: none;
+    color: var(--theme-text) !important;
+    border-radius: 0 4px 4px 0 !important;
+}
+
+.traffic-source-group .form-control::placeholder {
+    color: rgba(226, 232, 240, 0.6);
+}
+
+.traffic-source-group .form-select:focus,
+.traffic-source-group .form-control:focus {
+    border-color: var(--theme-primary) !important;
+    box-shadow: 0 0 0 0.18rem rgba(23, 162, 184, 0.22), 0 0 8px rgba(23, 162, 184, 0.45) !important;
+    background-color: rgba(255, 255, 255, 0.18) !important;
+}
+
+@media (max-width: 991.98px) {
+    .traffic-source-group {
+        max-width: 100%;
+        flex: 1 1 260px;
+    }
+}

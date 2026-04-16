@@ -1,0 +1,168 @@
+/* =====================================================
+   SUIVI FACTURE — viewport + tableau scroll + en-tête sticky
+===================================================== */
+
+html.recouvrement-invoices-page,
+html.recouvrement-invoices-page body.recouvrement-invoices-page {
+    height: 100%;
+}
+
+html.recouvrement-invoices-page {
+    height: 100dvh;
+    max-height: 100dvh;
+    overflow: hidden;
+}
+
+html.recouvrement-invoices-page body.recouvrement-invoices-page {
+    margin: 0;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+
+html.recouvrement-invoices-page #wrapper {
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow: hidden;
+    display: flex;
+    flex-direction: row;
+    align-items: stretch;
+}
+
+html.recouvrement-invoices-page #page-content-wrapper {
+    flex: 1 1 auto;
+    min-width: 0;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+
+html.recouvrement-invoices-page #page-content-wrapper > .container-fluid {
+    flex: 1 1 auto;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+
+html.recouvrement-invoices-page .recouvrement-invoices-main-card {
+    flex: 1 1 auto;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    margin-bottom: 0 !important;
+}
+
+html.recouvrement-invoices-page .recouvrement-invoices-main-card > .card-header {
+    flex-shrink: 0;
+}
+
+html.recouvrement-invoices-page .recouvrement-invoices-main-card > .card-body {
+    flex: 1 1 auto;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+
+.recouvrement-invoices-table-scroll {
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow-x: auto;
+    overflow-y: auto;
+    position: relative;
+    border-radius: 8px;
+    overscroll-behavior: contain;
+    scrollbar-width: thin;
+    scrollbar-color: var(--theme-scrollbar-thumb) var(--theme-scrollbar-track);
+}
+
+.recouvrement-invoices-table-scroll::-webkit-scrollbar {
+    width: var(--theme-scrollbar-size);
+    height: var(--theme-scrollbar-size);
+}
+
+.recouvrement-invoices-table-scroll::-webkit-scrollbar-track {
+    background: var(--theme-scrollbar-track);
+    border-radius: 999px;
+}
+
+.recouvrement-invoices-table-scroll::-webkit-scrollbar-thumb {
+    background-image:
+        linear-gradient(180deg, rgba(148, 163, 184, 0.55), rgba(94, 234, 212, 0.45)),
+        radial-gradient(circle at 50% 90%, var(--theme-scrollbar-glow), transparent 60%);
+    border-radius: 999px;
+    border: 2px solid transparent;
+    background-clip: padding-box;
+    box-shadow: 0 0 6px rgba(78, 220, 255, 0.35);
+}
+
+html.recouvrement-invoices-page .recouvrement-invoices-table-scroll table {
+    border-collapse: separate;
+    border-spacing: 0;
+}
+
+html.recouvrement-invoices-page .recouvrement-invoices-table-scroll thead {
+    position: sticky;
+    top: 0;
+    z-index: 6;
+}
+
+html.recouvrement-invoices-page .recouvrement-invoices-table-scroll thead th {
+    position: sticky;
+    top: 0;
+    z-index: 7;
+    font-size: calc(0.78rem + 1px);
+    font-weight: 600;
+    vertical-align: middle;
+    background-color: rgba(18, 24, 41, 0.58) !important;
+    backdrop-filter: blur(2px);
+    -webkit-backdrop-filter: blur(2px);
+    border-bottom: 1px solid var(--theme-border) !important;
+    color: var(--theme-primary) !important;
+}
+
+/* ----- Ex styles inline ----- */
+
+.administration-card .card-header {
+    background-color: var(--theme-card-soft) !important;
+    color: var(--theme-primary) !important;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08) !important;
+}
+
+.administration-table thead th {
+    font-size: 14px;
+    text-align: center;
+    vertical-align: middle;
+    color: var(--theme-text);
+}
+
+.administration-table tbody td {
+    font-size: 14px;
+    vertical-align: middle;
+}
+
+.administration-status-badge {
+    min-width: 88px;
+    font-size: 11px;
+}
+
+.recouvrement-invoice-table tbody td:nth-child(1),
+.recouvrement-invoice-table tbody td:nth-child(2),
+.recouvrement-invoice-table tbody td:nth-child(3),
+.recouvrement-invoice-table tbody td:nth-child(4),
+.recouvrement-invoice-table tbody td:nth-child(7),
+.recouvrement-invoice-table tbody td:nth-child(8) {
+    text-align: left;
+}
+
+.recouvrement-invoice-table tbody td:nth-child(5) {
+    text-align: right;
+}
+
+.recouvrement-invoice-table tbody td:not(:nth-child(1)):not(:nth-child(2)):not(:nth-child(3)):not(:nth-child(4)):not(:nth-child(5)):not(:nth-child(7)):not(:nth-child(8)) {
+    text-align: center;
+}

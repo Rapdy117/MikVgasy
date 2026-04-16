@@ -1,0 +1,9 @@
+# .codex/config.toml
+# Config spécifique à ce projet PHP - override la config utilisateur si besoin
+
+model = "gpt-4o-mini"
+model_reasoning_effort = "low"
+model_verbosity = "low"
+
+# Pour les tâches simples : court et efficace
+# Pour debug compliqué seulement : passe manuellement à "medium" en Agent mode
