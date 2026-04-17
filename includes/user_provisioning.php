@@ -3,10 +3,37 @@
 require_once __DIR__ . '/nas_resolver.php';
 require_once __DIR__ . '/radius_sync.php';
 require_once __DIR__ . '/user_schema.php';
-require_once __DIR__ . '/mikrotik_backend.php';
+require_once __DIR__ . '/profile_catalog.php';
 
 function resolveProvisioningNasContext(PDO $pdo, ?int $nasId = null, ?string $deviceId = null): array
 {
+    $resolvedDeviceId = trim((string)($deviceId ?? ''));
+    $explicitNas = $nasId !== null && (int)$nasId > 0;
+
+    if ($resolvedDeviceId !== '' && !$explicitNas) {
+        $store = loadDeviceStore();
+        $device = findDeviceById($store, $resolvedDeviceId);
+        if (!$device) {
+            throw new RuntimeException('Device introuvable');
+        }
+
+        $deviceType = normalizeDeviceType((string)($device['type'] ?? ''));
+        $businessSource = resolveDeviceBusinessSource($deviceType);
+        if ($businessSource === 'mikrotik_local') {
+            return [
+                'nas_id' => 0,
+                'nasname' => (string)($device['host'] ?? ''),
+                'shortname' => (string)($device['name'] ?? ''),
+                'nas_type' => $deviceType,
+                'business_source' => $businessSource,
+                'backend_driver' => resolveDeviceBackend($deviceType),
+                'capabilities' => resolveNasCapabilities($deviceType),
+                'device' => $device,
+                'device_type' => $deviceType,
+            ];
+        }
+    }
+
     return resolveNasContextFromInputs($pdo, $nasId, $deviceId);
 }
 
@@ -45,33 +72,26 @@ function resolveProvisioningProfile(PDO $pdo, array $nasContext, int $profileId 
             throw new RuntimeException('Profil MikroTik introuvable sur le routeur. Nom requis.');
         }
 
-        $api = connectToMikrotikApiForNasContext($nasContext);
-        try {
-            $routerProfile = findMikrotikProfileByName($api, $resolvedProfileName);
-        } finally {
-            $api->disconnect();
+        $device = $nasContext['device'] ?? null;
+        if (!is_array($device)) {
+            throw new RuntimeException('Device introuvable');
         }
 
-        if (!$routerProfile) {
+        $catalog = loadProfileCatalogForDevice($pdo, $device, ['sort' => 'none']);
+        $routerProfile = findProfileCatalogEntryByName($catalog, $resolvedProfileName);
+        if (!is_array($routerProfile)) {
             throw new RuntimeException('Profil MikroTik introuvable sur le routeur.');
         }
-
-        $metadata = parseMikrotikOnLoginMetadata((string)($routerProfile['on-login'] ?? ''));
-        $validitySeconds = parseRouterosIntervalToSeconds((string)($metadata['validity'] ?? ''));
-        $sessionTimeoutSeconds = parseRouterosIntervalToSeconds((string)($routerProfile['session-timeout'] ?? ''));
-        $limitBytes = trim((string)($routerProfile['limit-bytes-total'] ?? ''));
-        $limitBytesValue = $limitBytes !== '' ? (float)$limitBytes : 0;
-        $dataQuotaMb = $limitBytesValue > 0 ? (int)round($limitBytesValue / 1024 / 1024) : 0;
 
         $profile = [
             'id' => 0,
             'name' => $resolvedProfileName,
-            'rate_limit' => trim((string)($routerProfile['rate-limit'] ?? '')) ?: null,
-            'session_timeout' => $sessionTimeoutSeconds,
+            'rate_limit' => trim((string)($routerProfile['rate_limit'] ?? '')) ?: null,
+            'session_timeout' => isset($routerProfile['session_timeout']) ? (int)$routerProfile['session_timeout'] : 0,
             'idle_timeout' => 0,
-            'validity_time' => $validitySeconds,
-            'data_quota_mb' => $dataQuotaMb,
-            'simultaneous_use' => (int)($routerProfile['shared-users'] ?? 0),
+            'validity_time' => isset($routerProfile['validity_time']) ? (int)$routerProfile['validity_time'] : 0,
+            'data_quota_mb' => isset($routerProfile['data_quota_mb']) ? (int)$routerProfile['data_quota_mb'] : 0,
+            'simultaneous_use' => (int)($routerProfile['simultaneous_use'] ?? 0),
         ];
     }
 
@@ -174,7 +194,7 @@ function provisionUserWithProfile(PDO $pdo, array $input): array
 
     $businessSource = (string)($nasContext['business_source'] ?? '');
     $resolvedNasId = (int)($nasContext['nas_id'] ?? 0);
-    if ($resolvedNasId <= 0) {
+    if ($resolvedNasId <= 0 && $businessSource !== 'mikrotik_local') {
         throw new RuntimeException('NAS introuvable');
     }
 

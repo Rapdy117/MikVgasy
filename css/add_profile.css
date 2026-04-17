@@ -87,6 +87,37 @@
     color: var(--theme-text);
 }
 
+.profile-message-flyover {
+    position: fixed !important;
+    left: 50%;
+    bottom: 14px;
+    transform: translateX(-50%);
+    z-index: 1065;
+    display: none;
+    width: min(92vw, 760px);
+    margin: 0;
+    opacity: 1;
+    transition: opacity 260ms ease, transform 260ms ease;
+}
+
+.profile-message-flyover .alert {
+    margin: 0;
+    border-radius: 10px;
+    border: 1px solid rgba(255, 255, 255, 0.18);
+    box-shadow: 0 12px 32px rgba(0, 0, 0, 0.32);
+    backdrop-filter: blur(5px);
+    font-size: 0.86rem;
+}
+
+.profile-message-flyover.is-visible {
+    display: block;
+}
+
+.profile-message-flyover.is-hiding {
+    opacity: 0;
+    transform: translate(-50%, 18px);
+}
+
 .network-device-form .rate-part-label {
     min-width: 88px;
     justify-content: center;

@@ -170,12 +170,11 @@ function syncProfileToNasBackend($pdo, $profile, array $nasContext)
 
     if ($businessSource === 'radius') {
         syncProfileToRadius($pdo, $profile, $nasType, $capabilities);
-        return;
+        return null;
     }
 
     if ($businessSource === 'mikrotik_local') {
-        syncProfileToMikrotik($profile, $nasContext);
-        return;
+        return syncProfileToMikrotik($profile, $nasContext);
     }
 
     throw new Exception("Ce type de NAS ne passe pas par la base metier / FreeRADIUS");
@@ -216,12 +215,11 @@ function updateProfileToNasBackend($pdo, $profile, array $nasContext)
 
     if ($businessSource === 'radius') {
         updateProfileInRadius($pdo, $profile, $nasType, $capabilities);
-        return;
+        return null;
     }
 
     if ($businessSource === 'mikrotik_local') {
-        updateProfileInMikrotik($profile, $nasContext);
-        return;
+        return updateProfileInMikrotik($profile, $nasContext);
     }
 
     throw new Exception("Ce type de NAS ne passe pas par la base metier / FreeRADIUS");

@@ -5,8 +5,8 @@ require __DIR__ . '/../config/db.php';
 require_once __DIR__ . '/../includes/auth.php';
 require_once __DIR__ . '/../includes/app_context.php';
 require_once __DIR__ . '/../includes/formatters.php';
-require_once __DIR__ . '/../includes/mikrotik_backend.php';
 require_once __DIR__ . '/../includes/page_helpers.php';
+require_once __DIR__ . '/../includes/profile_catalog.php';
 require_once __DIR__ . '/../includes/profile_schema.php';
 
 if (!isset($_SESSION['logged_in']) || $_SESSION['logged_in'] !== true) {
@@ -48,53 +48,11 @@ try {
         $profileStorageDescription = 'La liste provient du stockage local puis est synchronisee vers le backend FreeRADIUS du serveur actif.';
     }
 
-    if ($isActiveMikrotik) {
-        foreach (loadMikrotikHotspotProfilesCached($activeDevice, 60) as $routerProfile) {
-            $name = trim((string)($routerProfile['name'] ?? ''));
-            if ($name === '') {
-                continue;
-            }
-
-            $profiles[] = [
-                'id' => (string)($routerProfile['id'] ?? ''),
-                'name' => $name,
-                'service_type' => 'hotspot',
-                'rate_limit' => (string)($routerProfile['rate_limit'] ?? ''),
-                'session_timeout' => $routerProfile['session_timeout'] ?? null,
-                'validity_time' => $routerProfile['validity_time'] ?? null,
-                'simultaneous_use' => $routerProfile['simultaneous_use'] ?? 0,
-                'ip_pool' => (string)($routerProfile['ip_pool'] ?? ''),
-                'expired_mode' => (string)($routerProfile['expired_mode'] ?? ''),
-                'validity' => (string)($routerProfile['validity'] ?? ''),
-                'grace_period' => null,
-                'price' => $routerProfile['price'] ?? null,
-                'selling_price' => $routerProfile['selling_price'] ?? null,
-                'lock_user' => $routerProfile['lock_user'] ?? null,
-                'parent_queue' => (string)($routerProfile['parent_queue'] ?? ''),
-                'data_quota_mb' => $routerProfile['data_quota_mb'] ?? null,
-            ];
-        }
-    } else {
-        $stmt = $pdo->query("
-            SELECT
-                id,
-                name,
-                service_type,
-                rate_limit,
-                session_timeout,
-                validity_time,
-                data_quota_mb,
-                simultaneous_use,
-                ip_pool,
-                expired_mode,
-                price,
-                selling_price,
-                lock_user,
-                parent_queue
-            FROM profiles
-            ORDER BY id DESC
-        ");
-        $profiles = $stmt->fetchAll(PDO::FETCH_ASSOC);
+    if (is_array($activeDevice)) {
+        $catalog = loadProfileCatalogForDevice($pdo, $activeDevice, [
+            'sort' => $isActiveMikrotik ? 'none' : 'id_desc',
+        ]);
+        $profiles = $catalog['profiles'];
     }
 } catch (Throwable $e) {
     $mikrotikProfileLoadError = trim((string)$e->getMessage());
@@ -148,6 +106,18 @@ try {
         <span>Gestion des profils</span>
     </div>
     <div class="d-flex align-items-center gap-2 flex-shrink-0 profiles-table-actions users-table-actions">
+        <div class="profiles-search-box">
+            <div class="input-group input-group-sm profiles-search-group">
+                <span class="input-group-text" id="profilesSearchAddon">
+                    <i class="fa fa-search" aria-hidden="true"></i>
+                </span>
+                <input type="search" class="form-control profiles-search-input" id="profilesSearchInput" placeholder="Rechercher sur tous les critères..." aria-label="Rechercher un profil sur tous les critères" aria-describedby="profilesSearchAddon" autocomplete="off" spellcheck="false">
+                <button type="button" class="btn btn-test d-none" id="profilesSearchClear" aria-label="Effacer la recherche" title="Effacer la recherche">
+                    <i class="fa fa-xmark" aria-hidden="true"></i>
+                </button>
+            </div>
+        </div>
+
         <div class="dropdown">
             <button
                 class="btn btn-test dropdown-toggle"
@@ -258,7 +228,7 @@ try {
 </tr>
 </thead>
 
-<tbody>
+<tbody id="profilesTableBody">
 <?php if (!$profiles): ?>
 <tr>
     <td colspan="16" class="text-center py-4">Aucun profil disponible</td>
@@ -269,7 +239,7 @@ try {
     $name = (string)$profile['name'];
     $serverLabel = $activeDevice['name'] ?? '-';
     $rowIdentifier = $isActiveMikrotik
-        ? (string)($profile['id'] ?? '-')
+        ? (string)($profile['router_id'] ?? '-')
         : (string)((int)($profile['id'] ?? 0));
     $validityLabel = $isActiveMikrotik
         ? formatMikrotikValidity($profile['validity'] ?? null)
@@ -280,6 +250,9 @@ try {
     $gracePeriodLabel = $isActiveMikrotik
         ? '-'
         : formatDurationOrUnlimited($profile['grace_period'] !== null ? (int)$profile['grace_period'] : null);
+    $dataLimitLabel = formatProfileDataQuotaLabel($profile['data_quota_mb'] ?? null);
+    $priceLabel = formatProfileMoneyLabel($profile['price'] ?? null);
+    $sellingPriceLabel = formatProfileMoneyLabel($profile['selling_price'] ?? null);
     $addressPool = (($profile['ip_pool'] ?? '') !== '' ? $profile['ip_pool'] : '-');
     $rateLimitLabel = trim((string)($profile['rate_limit'] ?? ''));
     if ($rateLimitLabel === '') {
@@ -306,8 +279,42 @@ try {
             . '&data_quota_mb=' . rawurlencode((string)((int)($profile['data_quota_mb'] ?? 0)))
             . '&session_timeout=' . rawurlencode((string)$sessionTimeoutForEdit)
         : 'add_profile.php?profile_id=' . (int)$profile['id'];
+
+    $searchTokens = [
+        $rowIdentifier,
+        $name,
+        $serverLabel,
+        $rateLimitLabel,
+        (string)((int)($profile['simultaneous_use'] ?? 0)),
+        $sessionTimeoutLabel,
+        (string)($profile['session_timeout'] ?? ''),
+        $validityLabel,
+        (string)($profile['validity'] ?? ''),
+        (string)($profile['validity_time'] ?? ''),
+        $dataLimitLabel,
+        (string)($profile['data_quota_mb'] ?? ''),
+        $gracePeriodLabel,
+        (string)($profile['grace_period'] ?? ''),
+        $expiredModeLabel,
+        $priceLabel,
+        (string)($profile['price'] ?? ''),
+        $sellingPriceLabel,
+        (string)($profile['selling_price'] ?? ''),
+        $addressPool,
+        $lockUserLabel,
+        $lockUserRaw,
+        $parentQueueLabel,
+    ];
+    $profileSearchParts = [];
+    foreach ($searchTokens as $searchToken) {
+        $searchToken = trim((string)$searchToken);
+        if ($searchToken !== '' && $searchToken !== '-') {
+            $profileSearchParts[] = $searchToken;
+        }
+    }
+    $profileSearchIndex = implode(' ', $profileSearchParts);
 ?>
-<tr>
+<tr data-profile-search="<?= htmlspecialchars($profileSearchIndex, ENT_QUOTES, 'UTF-8') ?>">
     <td data-column-key="id"><?= htmlspecialchars($rowIdentifier !== '' ? $rowIdentifier : '-') ?></td>
     <td data-column-key="name" class="profiles-col-left"><?= htmlspecialchars($name) ?></td>
     <td data-column-key="server" class="profiles-col-left"><?= htmlspecialchars($serverLabel !== '' ? $serverLabel : '-') ?></td>
@@ -315,11 +322,11 @@ try {
     <td data-column-key="shared_users" class="text-end"><?= (int)($profile['simultaneous_use'] ?? 0) ?></td>
     <td data-column-key="time_limit"><?= htmlspecialchars($sessionTimeoutLabel) ?></td>
     <td data-column-key="validity"><?= htmlspecialchars($validityLabel) ?></td>
-    <td data-column-key="data_limit" class="text-end"><?= htmlspecialchars(formatProfileDataQuotaLabel($profile['data_quota_mb'] ?? null)) ?></td>
+    <td data-column-key="data_limit" class="text-end"><?= htmlspecialchars($dataLimitLabel) ?></td>
     <td data-column-key="grace_period"><?= htmlspecialchars($gracePeriodLabel) ?></td>
     <td data-column-key="expired_mode" class="profiles-col-left"><?= htmlspecialchars($expiredModeLabel) ?></td>
-    <td data-column-key="price" class="text-end"><?= htmlspecialchars(formatProfileMoneyLabel($profile['price'] ?? null)) ?></td>
-    <td data-column-key="selling_price" class="text-end"><?= htmlspecialchars(formatProfileMoneyLabel($profile['selling_price'] ?? null)) ?></td>
+    <td data-column-key="price" class="text-end"><?= htmlspecialchars($priceLabel) ?></td>
+    <td data-column-key="selling_price" class="text-end"><?= htmlspecialchars($sellingPriceLabel) ?></td>
     <td data-column-key="address_pool"><?= htmlspecialchars($addressPool) ?></td>
     <td data-column-key="lock_user"><?= htmlspecialchars($lockUserLabel) ?></td>
     <td data-column-key="parent_queue"><?= htmlspecialchars($parentQueueLabel) ?></td>
@@ -332,7 +339,7 @@ try {
             class="btn btn-delete btn-sm profile-action-btn js-delete-profile"
             title="Supprimer ce profil"
             data-profile-id="<?= (int)($profile['id'] ?? 0) ?>"
-            data-router-id="<?= htmlspecialchars((string)($profile['id'] ?? ''), ENT_QUOTES) ?>"
+            data-router-id="<?= htmlspecialchars((string)($profile['router_id'] ?? ''), ENT_QUOTES) ?>"
             data-profile-name="<?= htmlspecialchars($name, ENT_QUOTES) ?>"
         >
             <i class="fas fa-trash"></i>
@@ -340,6 +347,9 @@ try {
     </td>
 </tr>
 <?php endforeach; ?>
+<tr id="profilesSearchEmptyRow" class="d-none">
+    <td colspan="16" class="text-center py-4">Aucun profil ne correspond à la recherche</td>
+</tr>
 <?php endif; ?>
 </tbody>
 

@@ -41,6 +41,54 @@ html.profile-list-page .profiles-list-column .card > .card-header.users-list-car
     flex: 0 0 auto;
 }
 
+html.profile-list-page .profiles-table-actions {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+}
+
+html.profile-list-page .profiles-search-box {
+    flex: 1 1 18rem;
+    min-width: min(24rem, 100%);
+    max-width: 32rem;
+}
+
+html.profile-list-page .profiles-search-group {
+    flex-wrap: nowrap;
+}
+
+html.profile-list-page .profiles-search-group .input-group-text,
+html.profile-list-page .profiles-search-group .form-control,
+html.profile-list-page .profiles-search-group .btn {
+    height: 31px;
+}
+
+html.profile-list-page .profiles-search-group .input-group-text {
+    color: var(--theme-primary);
+    background: rgba(15, 23, 42, 0.72);
+    border-color: rgba(148, 163, 184, 0.24);
+}
+
+html.profile-list-page .profiles-search-input {
+    min-width: 12rem;
+    background: rgba(15, 23, 42, 0.72);
+    color: var(--theme-text);
+    border-color: rgba(148, 163, 184, 0.24);
+}
+
+html.profile-list-page .profiles-search-input::placeholder {
+    color: rgba(226, 232, 240, 0.55);
+}
+
+html.profile-list-page .profiles-search-input:focus {
+    background: rgba(15, 23, 42, 0.88);
+    color: var(--theme-text);
+}
+
+html.profile-list-page #profilesSearchClear {
+    min-width: 31px;
+}
+
 .profiles-list-column .card > .card-header i {
     opacity: 0.95;
 }
@@ -328,4 +376,20 @@ html.profile-list-page .profiles-table .action-cell {
 
 html.profile-list-page .profiles-table .action-cell {
     text-align: center;
+}
+
+@media (max-width: 767.98px) {
+    html.profile-list-page .profiles-list-column .card-header .profiles-table-actions {
+        width: 100%;
+    }
+
+    html.profile-list-page .profiles-search-box {
+        flex: 1 1 100%;
+        min-width: 0;
+        max-width: none;
+    }
+
+    html.profile-list-page .profiles-search-input {
+        min-width: 0;
+    }
 }

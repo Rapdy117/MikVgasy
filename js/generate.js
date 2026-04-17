@@ -469,60 +469,35 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 
     function resetProfiles(placeholder) {
-        if (!profileSelect) {
-            return;
-        }
-
-        profileSelect.innerHTML = '';
-        const option = document.createElement('option');
-        option.value = '';
-        option.textContent = placeholder;
-        profileSelect.appendChild(option);
-        profileSelect.value = '';
+        window.ProfileOptionsLoader?.resetProfileSelect(profileSelect, placeholder);
         syncSelectedProfileName();
     }
 
     function loadProfiles() {
-        if (!deviceSelect || !profileSelect) {
+        if (!deviceSelect || !profileSelect || !window.ProfileOptionsLoader) {
             return;
         }
 
         const deviceId = String(deviceSelect.value || '').trim();
-        if (deviceId === '') {
-            resetProfiles('-- Choisir un profil --');
-            return;
-        }
-
-        resetProfiles('Chargement...');
-
-        fetch(`../api/users/profile_options.php?device_id=${encodeURIComponent(deviceId)}`)
-            .then((response) => response.json())
-            .then((data) => {
-                if (!data.success || !Array.isArray(data.profiles)) {
-                    throw new Error(data.message || 'Profils introuvables');
-                }
-
-                resetProfiles('-- Choisir un profil --');
-
-                data.profiles.forEach((profile) => {
-                    const option = document.createElement('option');
-                    option.value = String(profile.id || '');
-                    option.textContent = String(profile.name || 'Profil');
-                    option.dataset.profileName = String(profile.name || '');
-
-                    option.dataset.rateLimit = profile.rate_limit || '';
-                    option.dataset.price = profile.price != null && profile.price !== '' ? String(profile.price) : '';
-                    option.dataset.sellingPrice = profile.selling_price != null && profile.selling_price !== '' ? String(profile.selling_price) : '';
-                    option.dataset.dataQuota = profile.data_quota_mb ? profile.data_quota_mb + ' MB' : '';
-                    option.dataset.validity = profile.validity_time || '';
-                    option.dataset.sessionTimeout = profile.session_timeout || '';
-                    option.dataset.expiredMode = profile.expired_mode || '';
-
-                    profileSelect.appendChild(option);
-                });
-
+        window.ProfileOptionsLoader.loadProfilesForDevice({
+            deviceId,
+            select: profileSelect,
+            placeholder: '-- Choisir un profil --',
+            loadingPlaceholder: 'Chargement...',
+            onReset: syncSelectedProfileName,
+            onOption(option, profile) {
+                option.dataset.rateLimit = profile.rate_limit || '';
+                option.dataset.price = profile.price != null && profile.price !== '' ? String(profile.price) : '';
+                option.dataset.sellingPrice = profile.selling_price != null && profile.selling_price !== '' ? String(profile.selling_price) : '';
+                option.dataset.dataQuota = profile.data_quota_mb ? profile.data_quota_mb + ' MB' : '';
+                option.dataset.validity = profile.validity_time || '';
+                option.dataset.sessionTimeout = profile.session_timeout || '';
+                option.dataset.expiredMode = profile.expired_mode || '';
+            },
+            onLoaded() {
                 syncSelectedProfileName();
-            })
+            },
+        })
             .catch((error) => {
                 console.error('Erreur chargement profils voucher:', error);
                 resetProfiles('-- Indisponible --');

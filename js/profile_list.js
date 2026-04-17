@@ -3,6 +3,10 @@ document.addEventListener('DOMContentLoaded', () => {
     const csrfToken = String(table?.dataset.csrfToken || '').trim();
     const deleteButtons = Array.from(document.querySelectorAll('.js-delete-profile'));
     const columnToggles = Array.from(document.querySelectorAll('.js-profile-column-toggle'));
+    const searchInput = document.getElementById('profilesSearchInput');
+    const searchClearButton = document.getElementById('profilesSearchClear');
+    const searchEmptyRow = document.getElementById('profilesSearchEmptyRow');
+    const searchableRows = Array.from(document.querySelectorAll('#profilesTableBody tr[data-profile-search]'));
     const storageKey = 'profile_list_visible_columns_v1';
 
     function getStoredColumnMap() {
@@ -26,6 +30,30 @@ document.addEventListener('DOMContentLoaded', () => {
             // ignore persistence errors
         }
     }
+
+    function normalizeSearchValue(value) {
+        const raw = String(value || '').toLowerCase().trim();
+        if (raw === '') {
+            return '';
+        }
+
+        try {
+            return raw
+                .normalize('NFD')
+                .replace(/[\u0300-\u036f]/g, '')
+                .replace(/\s+/g, ' ')
+                .trim();
+        } catch (error) {
+            return raw
+                .replace(/\s+/g, ' ')
+                .trim();
+        }
+    }
+
+    const searchableRowIndex = searchableRows.map((row) => ({
+        row,
+        index: normalizeSearchValue(row.dataset.profileSearch || ''),
+    }));
 
     function setColumnVisibility(columnKey, visible) {
         if (!table || !columnKey) {
@@ -65,6 +93,40 @@ document.addEventListener('DOMContentLoaded', () => {
                 setColumnVisibility(columnKey, toggle.checked);
             });
         });
+    }
+
+    function syncSearchClearButton() {
+        if (!searchClearButton || !searchInput) {
+            return;
+        }
+
+        const hasValue = normalizeSearchValue(searchInput.value) !== '';
+        searchClearButton.classList.toggle('d-none', !hasValue);
+        searchClearButton.disabled = !hasValue;
+    }
+
+    function applySearchFilter() {
+        if (!searchInput) {
+            return;
+        }
+
+        const query = normalizeSearchValue(searchInput.value);
+        let visibleCount = 0;
+
+        searchableRowIndex.forEach(({ row, index }) => {
+            const matches = query === '' || index.includes(query);
+            row.classList.toggle('d-none', !matches);
+            if (matches) {
+                visibleCount += 1;
+            }
+        });
+
+        if (searchEmptyRow) {
+            const shouldShowEmptyRow = searchableRowIndex.length > 0 && visibleCount === 0;
+            searchEmptyRow.classList.toggle('d-none', !shouldShowEmptyRow);
+        }
+
+        syncSearchClearButton();
     }
 
     async function deleteProfile(button) {
@@ -118,6 +180,23 @@ document.addEventListener('DOMContentLoaded', () => {
             deleteProfile(button);
         });
     });
+
+    if (searchInput) {
+        searchInput.addEventListener('input', applySearchFilter);
+        searchInput.addEventListener('search', applySearchFilter);
+    }
+
+    if (searchClearButton) {
+        searchClearButton.addEventListener('click', () => {
+            if (!searchInput) {
+                return;
+            }
+
+            searchInput.value = '';
+            applySearchFilter();
+            searchInput.focus();
+        });
+    }
 
     syncColumnVisibility();
     bindColumnToggles();

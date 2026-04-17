@@ -1,7 +1,7 @@
 <?php
 require '../../config/db.php';
 require_once '../../includes/device_manager.php';
-require_once '../../includes/mikrotik_backend.php';
+require_once '../../includes/profile_catalog.php';
 
 session_start();
 
@@ -64,10 +64,7 @@ try {
         throw new RuntimeException('Device introuvable');
     }
 
-    $businessSource = trim((string)($device['business_source'] ?? ''));
-    if ($businessSource === '') {
-        $businessSource = resolveDeviceBusinessSource((string)($device['type'] ?? ''));
-    }
+    $businessSource = resolveDeviceBusinessSource((string)($device['type'] ?? ''));
     $contextDevice = $device;
     $isMikrotikBackend = ($businessSource === 'mikrotik_local');
 
@@ -140,51 +137,30 @@ try {
     }
 
     if ($action === 'profiles') {
-        if ($isMikrotikBackend) {
-            $cachedItems = rechargeOptionsReadCache($deviceId, 'profiles', 30);
-            if ($cachedItems !== null) {
-                echo json_encode(['success' => true, 'items' => $cachedItems]);
-                exit;
-            }
-
-            $items = [];
-            foreach (loadMikrotikHotspotProfilesCached($contextDevice, 60) as $row) {
-                $name = trim((string)($row['name'] ?? ''));
-                if ($name === '') {
-                    continue;
-                }
-
-                $items[] = [
-                    'value' => $name,
-                    'label' => $name,
-                    'profile_name' => $name,
-                    'profile_id' => null,
-                ];
-            }
-
-            usort($items, static fn(array $a, array $b): int => strcasecmp($a['label'], $b['label']));
-            rechargeOptionsWriteCache($deviceId, 'profiles', $items);
-
-            echo json_encode(['success' => true, 'items' => $items]);
+        $cachedItems = rechargeOptionsReadCache($deviceId, 'profiles', $isMikrotikBackend ? 30 : 10);
+        if ($cachedItems !== null) {
+            echo json_encode(['success' => true, 'items' => $cachedItems]);
             exit;
         }
 
-        $stmt = $pdo->query("
-            SELECT id, name
-            FROM profiles
-            ORDER BY name ASC
-        ");
-
+        $catalog = loadProfileCatalogForDevice($pdo, $contextDevice, ['sort' => 'name_asc']);
         $items = [];
-        foreach ($stmt->fetchAll(PDO::FETCH_ASSOC) as $row) {
+        foreach ($catalog['profiles'] as $row) {
+            $name = trim((string)($row['name'] ?? ''));
+            if ($name === '') {
+                continue;
+            }
+
+            $profileId = (int)($row['id'] ?? 0);
             $items[] = [
-                'value' => (string)($row['id'] ?? ''),
-                'label' => (string)($row['name'] ?? ''),
-                'profile_id' => (string)($row['id'] ?? ''),
-                'profile_name' => (string)($row['name'] ?? ''),
+                'value' => $isMikrotikBackend ? $name : (string)$profileId,
+                'label' => $name,
+                'profile_id' => $isMikrotikBackend ? null : (string)$profileId,
+                'profile_name' => $name,
             ];
         }
 
+        rechargeOptionsWriteCache($deviceId, 'profiles', $items);
         echo json_encode(['success' => true, 'items' => $items]);
         exit;
     }

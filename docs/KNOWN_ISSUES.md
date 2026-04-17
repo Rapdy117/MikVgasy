@@ -14,6 +14,68 @@ Les anciens points historiques sur :
 
 ne sont plus des problemes actifs dans l'etat actuel du code.
 
+## Historique Des Problemes Resolus
+
+### 2026-04-17 - Ecriture profil MikroTik et metadata `on-login`
+
+Fichiers impactes :
+
+- [api/profiles/create_profile.php](/var/www/html/api/profiles/create_profile.php)
+- [includes/mikrotik_backend.php](/var/www/html/includes/mikrotik_backend.php)
+- [includes/profile_catalog.php](/var/www/html/includes/profile_catalog.php)
+- [api/users/profile_options.php](/var/www/html/api/users/profile_options.php)
+- [pages/profile_list.php](/var/www/html/pages/profile_list.php)
+- [pages/add_profile.php](/var/www/html/pages/add_profile.php)
+- [pages/generate.php](/var/www/html/pages/generate.php)
+- [pages/add_hotspot_user.php](/var/www/html/pages/add_hotspot_user.php)
+- [js/profile_options_loader.js](/var/www/html/js/profile_options_loader.js)
+- [js/generate.js](/var/www/html/js/generate.js)
+- [js/add_hotspot_user.js](/var/www/html/js/add_hotspot_user.js)
+
+Probleme rencontre :
+
+- les pages profils ne lisaient pas toutes la meme source selon le device selectionne
+- `generate.php` et `add_hotspot_user.php` pouvaient charger des profils differents de `profile_list.php`
+- `add_profile.php` pouvait viser le mauvais contexte entre `device_id`, `nas_id` et device actif
+- la creation d'un profil MikroTik simple pouvait echouer car le payload envoyait des champs non necessaires ou invalides pour `/ip/hotspot/user/profile`
+- en modification, un mode d'expiration MikroTik sans validite pouvait produire un `on-login` vide et effacer les colonnes derivees : validite, mode d'expiration, prix, prix de vente, verrouillage et quota metadata
+- la creation d'un utilisateur MikroTik pouvait afficher un succes alors que RouterOS avait refuse l'ecriture, car le retour `!trap` de `/ip/hotspot/user/add` n'etait pas verifie
+- apres creation d'un utilisateur MikroTik reussie, la liste pouvait rester stale pendant la duree du cache local `mikrotik_hotspot_users`
+- la creation/modification utilisateur appelait une revalidation de profil qui pouvait reecrire le profil MikroTik alors que le profil avait deja ete resolu
+- dans `add_hotspot_user.php`, les limites heritees du profil etaient calculees pour les champs caches mais n'accompagnaient plus les champs visibles lors de la selection du profil
+
+Cause racine :
+
+- logique metier dupliquee entre pages/API pour charger les profils
+- confusion entre source SQL RADIUS et source RouterOS MikroTik
+- payload MikroTik trop large par rapport au fonctionnement Mikhmon
+- absence de garde-fou avant l'ecriture d'un `on-login` vide
+- absence de verification `!trap` sur l'ecriture utilisateur MikroTik
+- absence d'invalidation du cache utilisateur MikroTik apres creation/modification/suppression
+- separation incomplete entre la valeur heritee postee et les champs visibles `Time Limit` / `Data Limit` de `add_hotspot_user.php`
+
+Solution appliquee :
+
+- introduction d'une source commune de lecture profils par device via `includes/profile_catalog.php`
+- MikroTik lit directement `/ip/hotspot/user/profile` sur le routeur cible par `device_id`
+- RADIUS/OPNsense continuent de lire SQL `profiles`
+- `profile_options.php`, `profile_list.php`, `add_profile.php`, `generate.php` et `add_hotspot_user.php` consomment la meme source de profils
+- le JS commun `profile_options_loader.js` charge les profils avec une valeur non vide pour MikroTik et synchronise `profile_name`
+- l'ecriture MikroTik n'envoie plus `limit-bytes-total` au profil RouterOS et n'envoie plus `session-timeout=0s`
+- les modes d'expiration MikroTik sont normalises avant generation du script `on-login`
+- une validite est maintenant requise lorsqu'un mode d'expiration MikroTik actif est demande
+- le backend bloque l'ecriture plutot que d'envoyer un `on-login` vide
+- la creation/modification utilisateur MikroTik n'appelle plus `ensureMikrotikProfile` et ne modifie plus le profil lors d'une action utilisateur
+- les retours RouterOS `!trap` sont verifies sur creation, modification et suppression utilisateur MikroTik
+- le cache `mikrotik_hotspot_users` est invalide apres creation, modification, renommage credentials ou suppression utilisateur
+- `add_hotspot_user.php` remplit maintenant les champs visibles `Time Limit` et `Data Limit` avec les valeurs heritees du profil selectionne, puis synchronise les champs caches POST correspondants
+
+Etat :
+
+- resolu dans le code courant
+- a surveiller uniquement si une nouvelle option UI ajoute des champs dans `on-login`
+- ne pas reintroduire de fallback SQL pour les profils MikroTik
+
 ## 0. Compatibilite runtime recente a clarifier sur certaines pages SQL
 
 Fichiers impactes :

@@ -138,10 +138,7 @@ function buildProfileTargetContext(PDO $pdo, string $deviceId, ?int $nasId = nul
     }
 
     $deviceType = normalizeDeviceType((string)($device['type'] ?? ''));
-    $businessSource = trim((string)($device['business_source'] ?? ''));
-    if ($businessSource === '') {
-        $businessSource = resolveDeviceBusinessSource($deviceType);
-    }
+    $businessSource = resolveDeviceBusinessSource($deviceType);
 
     if ($businessSource === 'mikrotik_local') {
         return [
@@ -150,7 +147,7 @@ function buildProfileTargetContext(PDO $pdo, string $deviceId, ?int $nasId = nul
             'nas_context' => [
                 'device' => $device,
                 'device_type' => $deviceType,
-                'backend_driver' => (string)($device['backend_driver'] ?? resolveDeviceBackend($deviceType)),
+                'backend_driver' => resolveDeviceBackend($deviceType),
                 'business_source' => $businessSource,
                 'nas_type' => $deviceType,
                 'capabilities' => resolveNasCapabilities($deviceType),
@@ -215,6 +212,10 @@ try {
     $addressPool = post_string_or_null('address_pool');
     $parentQueue = post_string_or_null('parent_queue');
 
+    if (!in_array($expiredMode, ['none', 'remove', 'notice', 'remove_record', 'notice_record'], true)) {
+        throw new Exception("Mode d'expiration invalide");
+    }
+
     if (!in_array($validityUnit, ['hours', 'days', 'months'], true)) {
         throw new Exception("Unite de validite invalide");
     }
@@ -248,6 +249,10 @@ try {
     $hasOldName = $oldProfileName !== null && trim($oldProfileName) !== '';
     $isUpdate = $profileId > 0 || $hasOldName;
 
+    if ($businessSource === 'mikrotik_local' && $expiredMode !== 'none' && $validityTime <= 0) {
+        throw new Exception("Validite profil requise pour ce mode d'expiration MikroTik");
+    }
+
     if ($businessSource !== 'mikrotik_local') {
         $stmt = $pdo->prepare('SELECT id FROM profiles WHERE LOWER(name) = LOWER(?) LIMIT 1');
         $stmt->execute([$name]);
@@ -277,15 +282,17 @@ try {
             'validity_routeros' => $validityRouteros,
         ];
 
-        if ($isUpdate) {
-            updateProfileToNasBackend($pdo, $payload, $nasContext);
-        } else {
-            syncProfileToNasBackend($pdo, $payload, $nasContext);
-        }
+        $confirmedProfile = $isUpdate
+            ? updateProfileToNasBackend($pdo, $payload, $nasContext)
+            : syncProfileToNasBackend($pdo, $payload, $nasContext);
+        $confirmedProfileName = is_array($confirmedProfile) && trim((string)($confirmedProfile['name'] ?? '')) !== ''
+            ? (string)$confirmedProfile['name']
+            : $name;
 
         echo json_encode([
             'success' => true,
             'message' => $isUpdate ? 'Profil mis a jour sur le routeur MikroTik' : 'Profil créé sur le routeur MikroTik',
+            'profile_name' => $confirmedProfileName,
             'device_id' => (string)($device['id'] ?? ''),
             'business_source' => nasContextRequireBusinessSource($nasContext),
             'backend_driver' => nasContextRequireBackendDriver($nasContext),

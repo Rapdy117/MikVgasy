@@ -5,8 +5,8 @@ require_once '../includes/auth.php';
 require_once '../includes/app_context.php';
 require_once '../includes/device_manager.php';
 require_once '../includes/formatters.php';
-require_once '../includes/mikrotik_backend.php';
 require_once '../includes/page_helpers.php';
+require_once '../includes/profile_catalog.php';
 require_once '../includes/profile_schema.php';
 
 /* SECURITY */
@@ -206,13 +206,8 @@ try {
     }
 
     if ($activeDeviceType === 'mikrotik' && $profileFormData['profile_name'] !== '') {
-        $routerProfile = null;
-        foreach (loadMikrotikHotspotProfilesCached($activeDevice, 60) as $candidateProfile) {
-            if ((string)($candidateProfile['name'] ?? '') === (string)$profileFormData['profile_name']) {
-                $routerProfile = $candidateProfile;
-                break;
-            }
-        }
+        $profileCatalog = loadProfileCatalogForDevice($pdo, $activeDevice, ['sort' => 'none']);
+        $routerProfile = findProfileCatalogEntryByName($profileCatalog, (string)$profileFormData['profile_name']);
 
         if (is_array($routerProfile)) {
             $profileFormData['expired_mode'] = trim((string)($routerProfile['expired_mode'] ?? '')) !== '' ? (string)$routerProfile['expired_mode'] : $profileFormData['expired_mode'];
@@ -308,6 +303,8 @@ if ($activeDeviceType === 'mikrotik') {
 
 <div id="page-content-wrapper">
 <div class="container-fluid py-3">
+
+<div id="messageArea" class="profile-message-flyover" role="status" aria-live="polite"></div>
 
 <form id="profileForm" class="network-device-form" method="POST" action="../api/profiles/create_profile.php" autocomplete="off" data-profile-id="<?= (int)$profileFormData['profile_id'] ?>" data-initial-device-id="<?= htmlspecialchars((string)$profileFormData['device_id'], ENT_QUOTES) ?>" data-initial-address-pool="<?= htmlspecialchars((string)$profileFormData['address_pool'], ENT_QUOTES) ?>" data-initial-parent-queue="<?= htmlspecialchars((string)$profileFormData['parent_queue'], ENT_QUOTES) ?>">
 
@@ -414,12 +411,12 @@ if ($activeDeviceType === 'mikrotik') {
 
 <div class="input-group">
 <span class="input-group-text">Prix de base</span>
-<input type="number" class="form-control profile-number-input" name="price" min="0" step="0.01" placeholder="0.00" value="<?= htmlspecialchars((string)$profileFormData['price']) ?>">
+<input type="number" class="form-control profile-number-input" name="price" min="0" step="1" placeholder="0" value="<?= htmlspecialchars((string)$profileFormData['price']) ?>">
 </div>
 
 <div class="input-group">
 <span class="input-group-text">Prix de vente</span>
-<input type="number" class="form-control profile-number-input" name="selling_price" min="0" step="0.01" placeholder="0.00" value="<?= htmlspecialchars((string)$profileFormData['selling_price']) ?>">
+<input type="number" class="form-control profile-number-input" name="selling_price" min="0" step="1" placeholder="0" value="<?= htmlspecialchars((string)$profileFormData['selling_price']) ?>">
 </div>
 
 <div class="card mt-3 profile-advanced-card<?= $showMikrotikHints ? '' : ' d-none' ?>" id="profileAdvancedCard">

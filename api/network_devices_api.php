@@ -113,6 +113,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $api_secret = post_string_or_null('api_secret');
     $verify_ssl = ($_POST['verify_ssl'] ?? 'false') === 'true';
     $setActive = ($_POST['is_active'] ?? '0') === '1';
+    $existingDevice = null;
+
+    if ($id !== null) {
+        foreach ($data['devices'] as $candidateDevice) {
+            if (($candidateDevice['id'] ?? '') === $id) {
+                $existingDevice = $candidateDevice;
+                break;
+            }
+        }
+    }
 
     if ($rawType === null) {
         http_response_code(422);
@@ -135,8 +145,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 
     $requiresApiCredentials = in_array($type, ['opnsense', 'mikrotik'], true);
-    $hasSecret = $api_secret !== null;
-    $hasApiKey = $api_key !== null;
+    $effectiveApiKey = $requiresApiCredentials
+        ? ($api_key ?? (string)($existingDevice['api_key'] ?? ''))
+        : '';
+    $effectiveApiSecret = $api_secret ?? (string)($existingDevice['api_secret'] ?? ($existingDevice['secret'] ?? ''));
+    $hasSecret = trim($effectiveApiSecret) !== '';
+    $hasApiKey = trim($effectiveApiKey) !== '';
 
     if ($name === null || $host === null || ($requiresApiCredentials && (!$hasApiKey || !$hasSecret))) {
         http_response_code(422);
@@ -162,9 +176,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 'name' => $name,
                 'type' => $type,
                 'host' => $host,
-                'api_key' => $requiresApiCredentials ? ($api_key ?? '') : '',
-                'api_secret' => $api_secret ?? '',
-                'secret' => $api_secret ?? '',
+                'api_key' => $requiresApiCredentials ? $effectiveApiKey : '',
+                'api_secret' => $effectiveApiSecret,
+                'secret' => $effectiveApiSecret,
                 'verify_ssl' => $verify_ssl,
                 'port' => $device['port'] ?? null,
                 'vendor' => $device['vendor'] ?? null,
@@ -183,9 +197,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             'name' => $name,
             'type' => $type,
             'host' => $host,
-            'api_key' => $requiresApiCredentials ? ($api_key ?? '') : '',
-            'api_secret' => $api_secret ?? '',
-            'secret' => $api_secret ?? '',
+            'api_key' => $requiresApiCredentials ? $effectiveApiKey : '',
+            'api_secret' => $effectiveApiSecret,
+            'secret' => $effectiveApiSecret,
             'verify_ssl' => $verify_ssl,
             'created_at' => date('Y-m-d H:i:s')
         ]);

@@ -9,7 +9,7 @@ function normalizeNasType(string $nasType): string
     return match ($type) {
         'mikrotik' => 'mikrotik',
         'opnsense' => 'opnsense',
-        'radius', 'freeradius' => 'radius',
+        'radius', 'freeradius', 'ubiquiti', 'tplink', 'tenda' => 'radius',
         default => throw new InvalidArgumentException(sprintf(
             'Type NAS invalide: %s',
             $nasType !== '' ? $nasType : '(vide)'

@@ -365,6 +365,7 @@ $defaultLogoUrl = (string)($pendingTicketOptions['logo_url'] ?? '');
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
 <script src="../js/sidebar.js?v=20260402a"></script>
+<script src="../js/profile_options_loader.js?v=20260417a"></script>
 <script src="../js/generate.js"></script>
 </body>
 </html>

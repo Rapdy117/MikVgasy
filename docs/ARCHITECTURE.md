@@ -239,6 +239,7 @@ Composants :
 - [pages/add_profile.php](/var/www/html/pages/add_profile.php)
 - [pages/profile_list.php](/var/www/html/pages/profile_list.php)
 - [js/select_nas.js](/var/www/html/js/select_nas.js)
+- [includes/profile_catalog.php](/var/www/html/includes/profile_catalog.php)
 - [api/profiles/create_profile.php](/var/www/html/api/profiles/create_profile.php)
 - [includes/radius_sync.php](/var/www/html/includes/radius_sync.php)
 
@@ -251,8 +252,11 @@ Structure :
 
 Observation :
 
-- [pages/profile_list.php](/var/www/html/pages/profile_list.php) est branche :
+- [includes/profile_catalog.php](/var/www/html/includes/profile_catalog.php) centralise la lecture des profils par device reel :
   - source directe RouterOS pour `mikrotik`
+  - source SQL `profiles` pour `opnsense` / `radius`
+- [pages/profile_list.php](/var/www/html/pages/profile_list.php) est branche :
+  - source commune de profils par device
   - edition via retour vers [pages/add_profile.php](/var/www/html/pages/add_profile.php)
   - suppression reelle de profil cote MikroTik
 

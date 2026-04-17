@@ -12,6 +12,14 @@ document.addEventListener('DOMContentLoaded', () => {
     const dataLimitValueInput = document.getElementById('dataLimitValueInput');
     const dataLimitUnitSelect = document.getElementById('dataLimitUnitSelect');
     const dataLimitInput = document.getElementById('dataLimitInput');
+    const profileFields = {
+        rateLimit: document.getElementById('profileFieldRateLimit'),
+        timeLimit: document.getElementById('profileFieldTimeLimit'),
+        dataLimit: document.getElementById('profileFieldDataLimit'),
+        validityTime: document.getElementById('profileFieldValidityTime'),
+        expiredMode: document.getElementById('profileFieldExpiredMode'),
+        sellingPrice: document.getElementById('profileFieldSellingPrice'),
+    };
     const activeDeviceBusinessSource = String(document.body?.dataset?.activeDeviceBusinessSource || '').trim().toLowerCase();
     const activeDeviceId = String(document.body?.dataset?.activeDeviceId || '').trim();
 
@@ -70,6 +78,117 @@ document.addEventListener('DOMContentLoaded', () => {
         return Number.isFinite(parsed) ? parsed : 0;
     }
 
+    function formatSecondsLabel(value) {
+        const seconds = toInt(value);
+        if (seconds <= 0) {
+            return '';
+        }
+
+        const days = Math.floor(seconds / 86400);
+        const hours = Math.floor((seconds % 86400) / 3600);
+        const minutes = Math.floor((seconds % 3600) / 60);
+        const parts = [];
+
+        if (days > 0) parts.push(`${days}j`);
+        if (hours > 0) parts.push(`${hours}h`);
+        if (minutes > 0) parts.push(`${minutes}m`);
+
+        return parts.join(' ');
+    }
+
+    function formatDataLimitLabel(value) {
+        const megabytes = toInt(value);
+        if (megabytes <= 0) {
+            return '';
+        }
+
+        return megabytes % 1024 === 0
+            ? `${megabytes / 1024} GB`
+            : `${megabytes} MB`;
+    }
+
+    function formatPriceLabel(value) {
+        const raw = String(value || '').trim();
+        if (raw === '') {
+            return '';
+        }
+
+        return /^[0-9]+([.,][0-9]+)?$/.test(raw) ? `${raw} Ar` : raw;
+    }
+
+    function updateProfileInheritedFields(selectedOption) {
+        const setField = (field, value) => {
+            if (field) {
+                field.value = String(value || '').trim();
+            }
+        };
+
+        if (!selectedOption) {
+            Object.values(profileFields).forEach((field) => setField(field, ''));
+            return;
+        }
+
+        setField(profileFields.rateLimit, selectedOption.dataset.profileRateLimit || '');
+        setField(profileFields.timeLimit, formatSecondsLabel(selectedOption.dataset.profileSessionTimeout || ''));
+        setField(profileFields.dataLimit, formatDataLimitLabel(selectedOption.dataset.profileDataQuotaMb || ''));
+        setField(profileFields.validityTime, formatSecondsLabel(selectedOption.dataset.profileValidityTime || ''));
+        setField(profileFields.expiredMode, selectedOption.dataset.profileExpiredMode || '');
+        setField(profileFields.sellingPrice, formatPriceLabel(selectedOption.dataset.profileSellingPrice || ''));
+    }
+
+    function clearInheritedLimitFields() {
+        [sessionDaysInput, sessionHoursInput, sessionMinutesInput, dataLimitValueInput]
+            .filter(Boolean)
+            .forEach((input) => {
+                input.value = '';
+            });
+
+        if (dataLimitUnitSelect) {
+            dataLimitUnitSelect.value = 'MB';
+        }
+    }
+
+    function applySelectedProfileInheritedLimits() {
+        const profileOption = profileSelect?.selectedOptions?.[0] ?? null;
+        const inheritedSessionTimeout = profileOption ? toInt(profileOption.dataset.profileSessionTimeout) : 0;
+        const inheritedDataLimitMb = profileOption ? toInt(profileOption.dataset.profileDataQuotaMb) : 0;
+
+        updateProfileInheritedFields(profileOption);
+
+        if (sessionDaysInput && sessionHoursInput && sessionMinutesInput) {
+            if (inheritedSessionTimeout > 0) {
+                const days = Math.floor(inheritedSessionTimeout / 86400);
+                const hours = Math.floor((inheritedSessionTimeout % 86400) / 3600);
+                const minutes = Math.floor((inheritedSessionTimeout % 3600) / 60);
+
+                sessionDaysInput.value = String(days);
+                sessionHoursInput.value = String(hours);
+                sessionMinutesInput.value = String(minutes);
+            } else {
+                sessionDaysInput.value = '';
+                sessionHoursInput.value = '';
+                sessionMinutesInput.value = '';
+            }
+        }
+
+        if (dataLimitValueInput && dataLimitUnitSelect) {
+            if (inheritedDataLimitMb > 0) {
+                if (inheritedDataLimitMb % 1024 === 0) {
+                    dataLimitValueInput.value = String(inheritedDataLimitMb / 1024);
+                    dataLimitUnitSelect.value = 'GB';
+                } else {
+                    dataLimitValueInput.value = String(inheritedDataLimitMb);
+                    dataLimitUnitSelect.value = 'MB';
+                }
+            } else {
+                dataLimitValueInput.value = '';
+                dataLimitUnitSelect.value = 'MB';
+            }
+        }
+
+        syncComputedLimits();
+    }
+
     function setCapabilityFieldState(wrapper, enabled) {
         if (!wrapper) {
             return;
@@ -121,7 +240,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         const selectedOption = profileSelect.selectedOptions[0] || null;
-        profileIdInput.value = selectedOption ? String(selectedOption.value || '').trim() : '';
+        profileIdInput.value = selectedOption ? String(selectedOption.dataset.profileId || '0').trim() : '';
         profileNameInput.value = selectedOption
             ? String(selectedOption.dataset.profileName || selectedOption.textContent || '').trim()
             : '';
@@ -139,6 +258,9 @@ document.addEventListener('DOMContentLoaded', () => {
         profileSelect.appendChild(option);
         profileSelect.value = '';
         syncSelectedProfileHiddenFields();
+        clearInheritedLimitFields();
+        updateProfileInheritedFields(null);
+        syncComputedLimits();
     }
 
     async function loadProfilesForNas() {
@@ -159,44 +281,36 @@ document.addEventListener('DOMContentLoaded', () => {
             return;
         }
 
-        const endpoint = `../api/users/profile_options.php?device_id=${encodeURIComponent(deviceId)}`;
-
-        resetProfiles('Chargement...');
+        if (!window.ProfileOptionsLoader) {
+            resetProfiles('-- Indisponible --');
+            return;
+        }
 
         try {
-            const response = await fetch(endpoint, {
-                method: 'GET',
-                credentials: 'same-origin',
-                cache: 'no-store',
-            });
-            const data = await response.json();
-
-            if (!data.success || !Array.isArray(data.profiles)) {
-                throw new Error(data.message || 'Profils introuvables');
-            }
-
-            resetProfiles('-- Choisir un profil --');
-            data.profiles.forEach((profile) => {
-                const option = document.createElement('option');
-                option.value = String(profile.id || '');
-                option.textContent = String(profile.name || 'Profil');
-                option.dataset.profileName = String(profile.name || '');
-                option.dataset.profileSessionTimeout = String(profile.session_timeout ?? '');
-                option.dataset.profileValidityTime = String(profile.validity_time ?? '');
-                option.dataset.profileDataQuotaMb = String(profile.data_quota_mb ?? '');
-                option.dataset.profileRateLimit = String(profile.rate_limit ?? '');
-                option.dataset.profileSimultaneousUse = String(profile.simultaneous_use ?? '');
-                option.dataset.profileExpiredMode = String(profile.expired_mode ?? '');
-                option.dataset.profilePrice = String(profile.price ?? '');
-                option.dataset.profileSellingPrice = String(profile.selling_price ?? '');
-                option.dataset.profileIpPool = String(profile.ip_pool ?? '');
-                profileSelect.appendChild(option);
+            await window.ProfileOptionsLoader.loadProfilesForDevice({
+                deviceId,
+                select: profileSelect,
+                placeholder: '-- Choisir un profil --',
+                loadingPlaceholder: 'Chargement...',
+                onReset: syncSelectedProfileHiddenFields,
+                onOption(option, profile) {
+                    option.dataset.profileSessionTimeout = String(profile.session_timeout ?? '');
+                    option.dataset.profileValidityTime = String(profile.validity_time ?? '');
+                    option.dataset.profileDataQuotaMb = String(profile.data_quota_mb ?? '');
+                    option.dataset.profileRateLimit = String(profile.rate_limit ?? '');
+                    option.dataset.profileSimultaneousUse = String(profile.simultaneous_use ?? '');
+                    option.dataset.profileExpiredMode = String(profile.expired_mode ?? '');
+                    option.dataset.profilePrice = String(profile.price ?? '');
+                    option.dataset.profileSellingPrice = String(profile.selling_price ?? '');
+                    option.dataset.profileIpPool = String(profile.ip_pool ?? '');
+                },
             });
 
             if (profileSelect.options.length > 1) {
                 profileSelect.selectedIndex = 1;
             }
             syncSelectedProfileHiddenFields();
+            applySelectedProfileInheritedLimits();
         } catch (error) {
             console.error('Erreur chargement profils:', error);
             resetProfiles('-- Indisponible --');
@@ -277,7 +391,7 @@ document.addEventListener('DOMContentLoaded', () => {
     if (profileSelect) {
         profileSelect.addEventListener('change', () => {
             syncSelectedProfileHiddenFields();
-            syncComputedLimits();
+            applySelectedProfileInheritedLimits();
         });
     }
 

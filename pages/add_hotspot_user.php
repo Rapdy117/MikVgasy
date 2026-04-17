@@ -92,6 +92,38 @@ $activeDeviceId = (string)($activeDevice['id'] ?? '');
 </select>
 </div>
 
+<div class="card mt-2 mb-2 add-hotspot-profile-card">
+<div class="card-header py-2">
+    <i class="fa fa-layer-group me-2"></i> Hérité du profil
+</div>
+<div class="card-body py-2">
+<div class="input-group input-group-sm mb-2">
+<span class="input-group-text">Rate Limit</span>
+<input type="text" class="form-control" id="profileFieldRateLimit" readonly value="">
+</div>
+<div class="input-group input-group-sm mb-2">
+<span class="input-group-text">Time Limit</span>
+<input type="text" class="form-control" id="profileFieldTimeLimit" readonly value="">
+</div>
+<div class="input-group input-group-sm mb-2">
+<span class="input-group-text">Data Limit</span>
+<input type="text" class="form-control" id="profileFieldDataLimit" readonly value="">
+</div>
+<div class="input-group input-group-sm mb-2">
+<span class="input-group-text">Validité</span>
+<input type="text" class="form-control" id="profileFieldValidityTime" readonly value="">
+</div>
+<div class="input-group input-group-sm mb-2">
+<span class="input-group-text">Expiration</span>
+<input type="text" class="form-control" id="profileFieldExpiredMode" readonly value="">
+</div>
+<div class="input-group input-group-sm mb-0">
+<span class="input-group-text">Prix vente</span>
+<input type="text" class="form-control" id="profileFieldSellingPrice" readonly value="">
+</div>
+</div>
+</div>
+
 <div class="input-group input-group-sm mb-2" data-capability="Session-Timeout">
 <span class="input-group-text">Time Limit</span>
 <input type="hidden" name="session_timeout" id="sessionTimeoutInput">
@@ -160,7 +192,8 @@ $activeDeviceId = (string)($activeDevice['id'] ?? '');
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 
 <script src="../js/sidebar.js?v=20260402a"></script>
-<script src="../js/add_hotspot_user.js?v=20260404b"></script>
+<script src="../js/profile_options_loader.js?v=20260417a"></script>
+<script src="../js/add_hotspot_user.js?v=20260417c"></script>
 
 </body>
 </html>

@@ -9,9 +9,13 @@ document.addEventListener("DOMContentLoaded", function () {
     const initialAddressPool = form?.dataset?.initialAddressPool || '';
     const initialParentQueue = form?.dataset?.initialParentQueue || '';
     const initialDeviceId = form?.dataset?.initialDeviceId || '';
+    const messageArea = document.getElementById('messageArea');
+    const submitButton = form ? form.querySelector('button[type="submit"]') : null;
+    const submitButtonHtml = submitButton ? submitButton.innerHTML : '';
 
     let deviceList = [];
     let nasMappingsByDeviceId = {};
+    let messageTimer = null;
 
     if (!select) {
         return;
@@ -19,6 +23,45 @@ document.addEventListener("DOMContentLoaded", function () {
 
     function normalizeDeviceType(type) {
         return String(type || '').trim().toLowerCase();
+    }
+
+    function escapeHtml(value) {
+        return String(value || '')
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;')
+            .replace(/'/g, '&#039;');
+    }
+
+    function showProfileMessage(message, type = 'info') {
+        if (!messageArea) {
+            return;
+        }
+
+        window.clearTimeout(messageTimer);
+        messageArea.classList.remove('is-hiding');
+        messageArea.classList.add('is-visible');
+        messageArea.innerHTML = `<div class="alert alert-${type}" role="alert">${escapeHtml(message)}</div>`;
+
+        messageTimer = window.setTimeout(() => {
+            messageArea.classList.add('is-hiding');
+            window.setTimeout(() => {
+                messageArea.classList.remove('is-visible', 'is-hiding');
+                messageArea.innerHTML = '';
+            }, 280);
+        }, 4200);
+    }
+
+    function setSubmitBusy(isBusy) {
+        if (!submitButton) {
+            return;
+        }
+
+        submitButton.disabled = isBusy;
+        submitButton.innerHTML = isBusy
+            ? '<span class="spinner-border spinner-border-sm me-1" aria-hidden="true"></span> Traitement...'
+            : submitButtonHtml;
     }
 
     function resolveDefaultCapabilities(deviceType) {
@@ -313,6 +356,7 @@ document.addEventListener("DOMContentLoaded", function () {
 
             syncSelectedNasHiddenFields();
             const formData = new FormData(form);
+            setSubmitBusy(true);
 
             fetch('../api/profiles/create_profile.php', {
                 method: 'POST',
@@ -325,7 +369,7 @@ document.addEventListener("DOMContentLoaded", function () {
                 })
                 .then((data) => {
                     if (data.success) {
-                        alert(data.message || 'Profil cree');
+                        showProfileMessage(data.message || 'Profil enregistré.', 'success');
                         const profileIdValue = Number(formData.get('profile_id') || 0);
                         if (profileIdValue <= 0) {
                             const preservedDeviceId = select.value;
@@ -344,12 +388,15 @@ document.addEventListener("DOMContentLoaded", function () {
                             }
                         }
                     } else {
-                        alert(data.message || 'Creation impossible');
+                        showProfileMessage(data.message || 'Enregistrement impossible.', 'danger');
                     }
                 })
                 .catch((err) => {
                     console.error('Erreur profil:', err);
-                    alert(err.message || 'Erreur serveur');
+                    showProfileMessage(err.message || 'Erreur serveur', 'danger');
+                })
+                .finally(() => {
+                    setSubmitBusy(false);
                 });
         });
     }

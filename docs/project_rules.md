@@ -88,6 +88,8 @@ Contraintes :
 
 - une action metier ne doit jamais partir du seul `device` actif en session
 - `device.type` ne choisit pas le backend metier ; il execute seulement la connexion technique correspondante
+- les anciens types NAS `ubiquiti`, `tplink`, `tenda` sont normalises vers le backend canonique `radius`
+- aucun flux API metier ne doit renvoyer `ubiquiti`, `tplink` ou `tenda` comme backend final
 - le `device` actif en session peut servir d affichage, de monitoring ou de support technique, jamais de source metier unique
 - toute logique qui choisit entre `mikrotik`, `opnsense` et `radius` sans passer par `nas.type` est consideree comme une divergence d architecture
 - aucun fallback de resolution n est autorise apres choix de la source canonique

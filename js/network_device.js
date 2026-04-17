@@ -325,7 +325,7 @@ document.addEventListener("DOMContentLoaded", function () {
             }
 
             // 🔥 FORCER CRÉATION SI ID VIDE OU MODE NEW
-            const formData = new FormData(form);
+            const formData = buildFullFormData();
             const hostField = form.querySelector('[name="host"]');
             if (hostField) {
                 const normalizedHost = normalizeHostByType(hostField.value, getSelectedDeviceType());

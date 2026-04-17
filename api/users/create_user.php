@@ -120,6 +120,17 @@ $device_id = post_string_or_null('device_id');
 $session_timeout = post_int_or_null('session_timeout');
 $data_limit = post_int_or_null('data_limit');
 $nas_id = post_int_or_default('nas_id', 0);
+$isMikrotikDevice = false;
+if ($device_id !== null && $device_id !== '') {
+    try {
+        $deviceStore = loadDeviceStore();
+        $device = findDeviceById($deviceStore, $device_id);
+        $isMikrotikDevice = is_array($device)
+            && resolveDeviceBusinessSource((string)($device['type'] ?? '')) === 'mikrotik_local';
+    } catch (Throwable $e) {
+        $isMikrotikDevice = false;
+    }
+}
 
 /* =========================
    VALIDATION
@@ -160,7 +171,7 @@ if ($device_id === null || $device_id === '') {
     exit;
 }
 
-if ($nas_id <= 0) {
+if ($nas_id <= 0 && !$isMikrotikDevice) {
     http_response_code(400);
     echo json_encode([
         'success' => false,
