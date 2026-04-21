@@ -64,57 +64,50 @@ if ($isMikrotik) {
     }
 }
 ?>
-<!DOCTYPE html>
-<html lang="fr">
-<head>
-<meta charset="UTF-8">
-<title><?= $selectedBinding ? 'Modifier IP Binding' : 'Ajouter IP Binding' ?></title>
+<?php
+$pageTitle = $selectedBinding ? 'Modifier IP Binding' : 'Ajouter IP Binding';
+$extraCss = array (
+  0 => '../css/network_devices.css',
+);
+require_once __DIR__ . '/../includes/layout_header.php';
+?>
 
-<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
-<link rel="stylesheet" href="../css/theme.css">
-<link rel="stylesheet" href="../css/network_devices.css">
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
-</head>
-<body>
-
-<div class="d-flex" id="wrapper">
-<?php include __DIR__ . '/../includes/sidebar.php'; ?>
-
-<div id="page-content-wrapper">
-<div class="container-fluid py-3">
-
-<div id="messageArea" style="display:none;"></div>
-
-<h5 class="text-white mb-3">
-    <i class="fa fa-address-book me-2"></i> <?= $selectedBinding ? 'Modifier IP Binding' : 'Ajouter IP Binding' ?>
-</h5>
+<div class="card shadow-sm mb-3">
+    <div class="card-body py-3">
+        <div class="d-flex align-items-center text-white" style="font-size: calc(0.875rem + 2px);">
+            <i class="fa fa-address-book me-2"></i>
+            <span class="small fw-semibold"><?= $selectedBinding ? 'Modifier IP Binding' : 'Ajouter IP Binding' ?></span>
+        </div>
+    </div>
+</div>
 
 <div class="row">
 <div class="col-lg-6 mb-3">
-<div class="card shadow-sm">
+<div class="card shadow-sm h-100">
+<div class="card-header standard-card-header">
+    <i class="fa fa-list me-2"></i> Bindings existants
+</div>
 <div class="card-body">
 
-<div class="d-flex justify-content-between align-items-center mb-3">
-    <h6 class="text-white mb-0">
-        <i class="fa fa-list me-2"></i> Bindings existants
-    </h6>
-
+<div class="d-flex justify-content-end mb-3">
     <a href="ip_bindings.php" class="btn btn-test">
         <i class="fa fa-arrow-left me-1"></i> Retour
     </a>
 </div>
 
 <?php if (!$isMikrotik && !$isOpnsense): ?>
-    <div class="p-4 text-center text-white-50">
-        Cette page est disponible avec un device actif MikroTik ou OPNsense.
+    <div class="p-5 text-center text-white-50 opacity-50">
+        <i class="fa fa-info-circle fa-2x mb-3"></i>
+        <p class="mb-0">Cette page est disponible avec un device actif MikroTik ou OPNsense.</p>
     </div>
 <?php elseif ($bindingsError !== null): ?>
-    <div class="p-4 text-center text-danger">
-        <?= htmlspecialchars($bindingsError) ?>
+    <div class="p-5 text-center text-danger">
+        <i class="fa fa-exclamation-triangle fa-2x mb-3"></i>
+        <p class="mb-0"><?= htmlspecialchars($bindingsError) ?></p>
     </div>
 <?php else: ?>
 <div class="table-responsive">
-<table class="table network-device-table table-hover align-middle small text-nowrap">
+<table class="table table-dark table-hover table-striped mb-0 table-standard">
     <thead>
         <tr>
             <th>Adresse</th>
@@ -128,7 +121,7 @@ if ($isMikrotik) {
     <tbody>
         <?php if (!$bindings): ?>
         <tr>
-            <td colspan="6" class="text-center py-4 text-white-50">Aucun binding existant</td>
+            <td colspan="6" class="text-center py-4 text-white-50 opacity-50">Aucun binding existant</td>
         </tr>
         <?php else: ?>
         <?php foreach ($bindings as $binding): ?>
@@ -152,16 +145,15 @@ if ($isMikrotik) {
 </div>
 
 <div class="col-lg-6 mb-3">
-<div class="card shadow-sm">
+<div class="card shadow-sm h-100">
+<div class="card-header standard-card-header">
+    <i class="fa fa-plus-circle me-2"></i> <?= $selectedBinding ? 'Édition du binding' : 'Nouveau binding' ?>
+</div>
 <div class="card-body">
 
-<h6 class="text-white mb-3">
-    <i class="fa fa-plus-circle me-2"></i> <?= $selectedBinding ? 'Edition du binding' : 'Nouveau binding' ?>
-</h6>
-
 <?php if (!$isMikrotik && !$isOpnsense): ?>
-    <div class="text-center text-muted mb-3">
-        <i class="fa fa-address-card fa-2x mb-2"></i>
+    <div class="text-center text-white-50 py-5 opacity-50">
+        <i class="fa fa-address-card fa-3x mb-3"></i>
         <p>Activez un device MikroTik ou OPNsense pour ajouter un binding.</p>
     </div>
 <?php else: ?>
@@ -175,9 +167,9 @@ if ($isMikrotik) {
 <input type="hidden" name="original_kind" value="<?= htmlspecialchars((string)($selectedBinding['binding_kind'] ?? ''), ENT_QUOTES) ?>">
 <?php endif; ?>
 
-<div class="d-flex justify-content-between align-items-center mb-3">
-    <h6 class="text-white mt-3 mb-2">
-        <i class="fa fa-info-circle me-2"></i> Parametres
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h6 class="text-white small mb-0">
+        <i class="fa fa-info-circle me-2"></i> Paramètres
     </h6>
 
     <div class="d-flex gap-2">
@@ -232,9 +224,9 @@ if ($isMikrotik) {
     <input type="text" class="form-control" name="comment" placeholder="Commentaire optionnel" value="<?= htmlspecialchars((string)($selectedBinding['comment'] ?? '')) ?>">
 </div>
 
-<div class="form-check form-switch text-white mt-2">
+<div class="form-check form-switch text-white mt-3">
     <input class="form-check-input" type="checkbox" role="switch" id="disabled" name="disabled" value="1" <?= !empty($selectedBinding['disabled']) ? 'checked' : '' ?>>
-    <label class="form-check-label" for="disabled">Desactive</label>
+    <label class="form-check-label" for="disabled">Désactivé</label>
 </div>
 <?php elseif ($isOpnsense): ?>
 <div class="input-group mb-2">
@@ -256,7 +248,7 @@ if ($isMikrotik) {
     </select>
 </div>
 
-<div class="input-group mb-2">
+<div class="input-group mb-3">
     <span class="input-group-text">Zone</span>
     <select class="form-select" name="zone_uuid" required>
         <option value="">Choisir une zone</option>
@@ -268,8 +260,8 @@ if ($isMikrotik) {
     </select>
 </div>
 
-<div class="small text-white-50 mt-2">
-    Pour OPNsense, ce module pilote les adresses IP, reseaux et MAC en bypass portail dans la zone captive.
+<div class="small text-white-50 mt-3 pt-3 border-top border-white-10">
+    <i class="fa fa-info-circle me-1"></i> Pour OPNsense, ce module pilote les adresses IP, réseaux et MAC en bypass portail dans la zone captive.
 </div>
 <?php endif; ?>
 </form>
@@ -281,17 +273,15 @@ if ($isMikrotik) {
 </div>
 </div>
 
-</div>
-</div>
-</div>
-
-<script src="../js/sidebar.js?v=20260402a"></script>
-<script>
+<?php
+$extraScript = "
 window.ipBindingEditorConfig = {
-    mode: <?= json_encode($selectedBinding ? 'edit' : 'create') ?>,
-    device_type: <?= json_encode($activeType) ?>
+    mode: " . json_encode($selectedBinding ? 'edit' : 'create') . ",
+    device_type: " . json_encode($activeType) . "
 };
-</script>
-<script src="../js/add_ip_binding.js?v=20260330c"></script>
-</body>
-</html>
+";
+$extraJs = array (
+  0 => '../js/add_ip_binding.js?v=20260330c',
+);
+require_once __DIR__ . '/../includes/layout_footer.php';
+?>

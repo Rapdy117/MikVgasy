@@ -1,0 +1,43 @@
+.radius-card .card-header {
+    background-color: var(--theme-card-soft) !important;
+    color: var(--theme-primary) !important;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08) !important;
+}
+
+.radius-form .input-group {
+    margin-bottom: 10px;
+}
+
+.radius-status-box,
+.radius-output-box {
+    background: rgba(12, 20, 34, 0.82);
+    border: 1px solid rgba(148, 163, 184, 0.18);
+    border-radius: 10px;
+}
+
+.radius-status-box {
+    padding: 12px;
+    min-height: 116px;
+}
+
+.radius-status-line {
+    color: var(--theme-text);
+    font-size: 13px;
+    line-height: 1.55;
+}
+
+.radius-status-line strong {
+    color: rgba(255, 255, 255, 0.66);
+    font-weight: 500;
+}
+
+.radius-output-box {
+    height: 402px;
+    overflow: auto;
+    white-space: pre-wrap;
+    color: var(--theme-text);
+    padding: 12px;
+    margin: 0;
+    font-size: 12px;
+    line-height: 1.45;
+}
