@@ -12,31 +12,22 @@ if (!isset($_SESSION['logged_in']) || $_SESSION['logged_in'] !== true) {
 requireAdministratorAccess();
 ?>
 
-<!DOCTYPE html>
-<html lang="fr">
-<head>
-<meta charset="UTF-8">
-<title>Équipements Réseau</title>
+<?php
+$pageTitle = 'Équipements Réseau';
+$extraCss = array (
+  0 => '../css/network_devices.css',
+);
+require_once '../includes/layout_header.php';
+?>
 
-<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
-<link rel="stylesheet" href="../css/theme.css">
-<link rel="stylesheet" href="../css/network_devices.css">
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
-
-</head>
-
-<body>
-
-<div class="d-flex" id="wrapper">
-
-<?php include '../includes/sidebar.php'; ?>
-
-<div id="page-content-wrapper">
-<div class="container-fluid py-3">
-
-<h5 class="text-white mb-3">
-    <i class="fa fa-network-wired me-2"></i> Équipements Réseau
-</h5>
+<div class="card shadow-sm mb-3">
+    <div class="card-body py-3">
+        <div class="d-flex align-items-center text-white" style="font-size: calc(0.875rem + 2px);">
+            <i class="fa fa-network-wired me-2"></i>
+            <span class="small fw-semibold">Équipements Réseau</span>
+        </div>
+    </div>
+</div>
 
 <div class="row">
 
@@ -44,21 +35,20 @@ requireAdministratorAccess();
      LEFT: TABLE
 ========================= -->
 <div class="col-lg-6 mb-3">
-<div class="card shadow-sm">
+<div class="card shadow-sm h-100">
+<div class="card-header standard-card-header">
+    <i class="fa fa-list me-2"></i> Équipements
+</div>
 <div class="card-body">
 
-<div class="d-flex justify-content-between align-items-center mb-3">
-    <h6 class="text-white mb-0">
-        <i class="fa fa-list me-2"></i> Équipements
-    </h6>
-
+<div class="d-flex justify-content-end mb-3">
     <button type="button" id="newDeviceBtn" class="btn btn-save">
         <i class="fa fa-plus me-1"></i> Nouveau
     </button>
 </div>
 
 <div class="table-responsive">
-<table class="table network-device-table table-hover align-middle small text-nowrap">
+<table class="table table-dark table-hover table-striped mb-0 network-device-table table-standard" data-sort-table="1">
     <thead>
         <tr>
             <th>Nom</th>
@@ -72,12 +62,12 @@ requireAdministratorAccess();
 </div>
 
 <div class="mt-3">
-    <h6 class="text-white mb-2">
+    <h6 class="text-white small mb-2">
         <i class="fa fa-circle-info me-2 backend-status-icon backend-status-offline" id="backendStatusIcon"></i> Backend actif
     </h6>
 
-    <div id="deviceBackendStatus">
-        <span class="text-muted">Chargement...</span>
+    <div id="deviceBackendStatus" class="small">
+        <span class="text-white-50">Chargement...</span>
     </div>
 </div>
 
@@ -89,16 +79,15 @@ requireAdministratorAccess();
      RIGHT: DETAILS
 ========================= -->
 <div class="col-lg-6 mb-3">
-<div class="card shadow-sm">
+<div class="card shadow-sm h-100">
+<div class="card-header standard-card-header">
+    <i class="fa fa-server me-2"></i> Détails de l'équipement
+</div>
 <div class="card-body">
 
-<h6 class="text-white mb-3">
-    <i class="fa fa-server me-2"></i> Détails de l'équipement
-</h6>
-
-<div class="text-center text-muted mb-3" id="deviceEmptyState">
-    <i class="fa fa-network-wired fa-2x mb-2"></i>
-    <p>Sélectionnez un équipement ou créez-en un nouveau</p>
+<div class="text-center text-white-50 py-5" id="deviceEmptyState">
+    <i class="fa fa-network-wired fa-3x mb-3 opacity-25"></i>
+    <p class="mb-0">Sélectionnez un équipement ou créez-en un nouveau</p>
 </div>
 
 <div id="deviceContent" class="d-none">
@@ -108,7 +97,7 @@ requireAdministratorAccess();
 <input type="hidden" name="id">
 
 <div class="d-flex justify-content-between align-items-center mb-3">
-    <h6 class="text-white mt-3 mb-2">
+    <h6 class="text-white small mb-0">
         <i class="fa fa-info-circle me-2"></i> Connexion
     </h6>
 
@@ -134,7 +123,7 @@ requireAdministratorAccess();
         </button>
 
         <button type="button" id="testDevice" class="btn btn-test">
-            <i class="fa fa-plug me-1"></i> Tester la connexion
+            <i class="fa fa-plug me-1"></i> Tester
         </button>
     </div>
 </div>
@@ -194,13 +183,13 @@ requireAdministratorAccess();
 
 </form>
 
-<div class="mt-3">
-    <h6 class="text-white mb-2">
+<div class="mt-4 pt-2 border-top border-white-10">
+    <h6 class="text-white small mb-3">
         <i class="fa fa-terminal me-2"></i> Journal du test
     </h6>
 
-    <div id="testStatus">
-        <span class="text-muted">Aucun test effectué</span>
+    <div id="testStatus" class="p-3 bg-dark rounded border border-white-10 small font-monospace" style="min-height: 80px;">
+        <span class="text-white-50">Aucun test effectué</span>
     </div>
 </div>
 
@@ -211,12 +200,10 @@ requireAdministratorAccess();
 </div>
 
 </div>
-</div>
-</div>
-</div>
 
-<script src="../js/sidebar.js?v=20260402a"></script>
-<script src="../js/network_device.js"></script>
-
-</body>
-</html>
+<?php
+$extraJs = array (
+  0 => '../js/network_device.js',
+);
+require_once '../includes/layout_footer.php';
+?>

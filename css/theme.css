@@ -1461,16 +1461,263 @@ body::before {
     background-color: rgba(255, 255, 255, 0.18) !important;
 }
 
-.network-device-form .card-header {
-    background: var(--theme-primary-soft) !important;
-    color: var(--theme-primary) !important;
-    font-size: 0.8rem;
-    font-weight: 600;
-    padding: 6px 10px;
-    border-bottom: 1px solid rgba(0, 255, 255, 0.1) !important;
-    display: flex;
-    align-items: center;
-}
+    .network-device-form .form-control[type="file"],
+    .network-device-form .form-control[type="file"]:not(:disabled):not([readonly]) {
+        min-height: calc(var(--theme-control-height) + 2px);
+        padding: 0.45rem 0.75rem;
+        background-color: rgba(255, 255, 255, 0.14) !important;
+        border: 1px solid var(--theme-border) !important;
+        color: var(--theme-text) !important;
+    }
+
+    .network-device-form .form-control[type="file"]::file-selector-button,
+    .network-device-form .form-control[type="file"]::-webkit-file-upload-button {
+        background: var(--theme-primary-soft);
+        color: var(--theme-primary);
+        border: none;
+        padding: 0.4rem 0.75rem;
+        border-radius: 0.35rem;
+        cursor: pointer;
+    }
+
+    .network-device-form .form-control[type="file"]:focus {
+        outline: none;
+        box-shadow: 0 0 0 0.18rem rgba(23, 162, 184, 0.22) !important;
+    }
+
+    .administration-card {
+        background: rgba(7, 12, 22, 0.82);
+        border: 1px solid rgba(94, 234, 212, 0.13);
+        border-radius: 22px;
+        box-shadow: 0 20px 60px rgba(0, 0, 0, 0.18);
+        transition: transform 0.25s ease, border-color 0.25s ease, box-shadow 0.25s ease;
+    }
+
+    .administration-card:hover {
+        transform: translateY(-2px);
+        border-color: rgba(94, 234, 212, 0.22);
+        box-shadow: 0 24px 70px rgba(0, 0, 0, 0.22);
+    }
+
+    .administration-card .card-header {
+        background: linear-gradient(180deg, rgba(10, 23, 46, 0.95), rgba(6, 12, 26, 0.95));
+        border-bottom: 1px solid rgba(94, 234, 212, 0.15) !important;
+        color: rgba(236, 248, 255, 0.95) !important;
+        letter-spacing: 0.02em;
+        text-transform: uppercase;
+        font-size: 0.92rem;
+        padding: 1rem 1.15rem;
+        border-radius: 22px 22px 0 0;
+    }
+
+    .administration-card .card-body {
+        padding: 1.25rem 1.25rem 1.5rem;
+    }
+
+    .administration-search-group {
+        width: 100%;
+        max-width: 420px;
+        box-shadow: inset 0 0 0 1px rgba(148, 163, 184, 0.12);
+        border-radius: 14px;
+        overflow: hidden;
+    }
+
+    .administration-search-group .input-group-text {
+        background: rgba(59, 130, 246, 0.16);
+        border: none;
+        color: rgba(236, 248, 255, 0.85);
+    }
+
+    .administration-search-group .form-control {
+        background: rgba(12, 20, 34, 0.92);
+        border: none;
+        color: var(--theme-text);
+        box-shadow: none;
+    }
+
+    .administration-search-group .form-control::placeholder {
+        color: rgba(226, 232, 240, 0.45);
+    }
+
+    .administration-search-group .form-control:focus {
+        outline: none;
+        border-color: transparent;
+        box-shadow: inset 0 0 0 1px rgba(59, 130, 246, 0.45);
+        background: rgba(12, 20, 34, 0.96);
+    }
+
+    .administration-table thead th {
+        font-size: 0.76rem;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        color: rgba(226, 232, 240, 0.86);
+        background: rgba(15, 23, 42, 0.95);
+        border-bottom: 1px solid rgba(148, 163, 184, 0.16);
+    }
+
+    .administration-table tbody tr {
+        transition: background 0.2s ease, transform 0.2s ease;
+    }
+
+    .administration-table tbody tr:hover {
+        background: rgba(59, 130, 246, 0.08);
+        transform: translateX(1px);
+    }
+
+    .administration-table tbody td {
+        border-top: 1px solid rgba(148, 163, 184, 0.08);
+        color: rgba(226, 232, 240, 0.88);
+    }
+
+    .action-cell .btn {
+        padding: 0.45rem 0.6rem;
+        border-radius: 12px;
+        background: rgba(255, 255, 255, 0.05);
+        border: 1px solid rgba(148, 163, 184, 0.12);
+    }
+
+    .action-cell .btn:hover {
+        background: rgba(59, 130, 246, 0.14);
+    }
+
+    .administration-status-badge {
+        min-width: 110px;
+        font-size: 0.76rem;
+        font-weight: 700;
+        letter-spacing: 0.04em;
+        text-transform: uppercase;
+        border-radius: 999px;
+        padding: 0.45rem 0.85rem;
+    }
+
+    .administration-note {
+        line-height: 1.55;
+    }
+
+    .administration-section-title {
+        display: inline-flex;
+        align-items: center;
+        font-weight: 600;
+        letter-spacing: 0.03em;
+    }
+
+    .administration-form .input-group {
+        margin-bottom: 10px;
+    }
+
+    .administration-form-note {
+        line-height: 1.55;
+        max-width: 42rem;
+    }
+
+    .administration-info-box {
+        padding: 0.85rem 1rem;
+        border-radius: 14px;
+        background: rgba(59, 130, 246, 0.06);
+        border: 1px solid rgba(94, 234, 212, 0.12);
+    }
+
+    .administration-info-box-title {
+        font-weight: 600;
+        letter-spacing: 0.04em;
+        text-transform: uppercase;
+        font-size: 0.7rem;
+    }
+
+    .administration-password-group .form-control {
+        border-right: 0;
+    }
+
+    .administration-password-group .btn {
+        min-width: 44px;
+        border-radius: 0 0.65rem 0.65rem 0;
+        border-left: 1px solid rgba(148, 163, 184, 0.16);
+    }
+
+    .administration-password-group .btn i {
+        color: rgba(236, 248, 255, 0.88);
+    }
+
+    .administration-password-group .btn:hover {
+        background: rgba(59, 130, 246, 0.14);
+    }
+
+    .btn-test {
+        background: rgba(59, 130, 246, 0.14);
+        border: 1px solid rgba(59, 130, 246, 0.18);
+        color: #eff6ff;
+        transition: transform 0.2s ease, background 0.2s ease, border-color 0.2s ease;
+    }
+
+    .btn-test:hover {
+        background: rgba(59, 130, 246, 0.24);
+        border-color: rgba(59, 130, 246, 0.32);
+        transform: translateY(-1px);
+    }
+
+    .btn-save {
+        background: linear-gradient(135deg, #0ea5e9, #22d3ee);
+        color: #fff;
+        border: 1px solid rgba(14, 165, 233, 0.35);
+    }
+
+    .btn-save:hover {
+        filter: brightness(1.05);
+        transform: translateY(-1px);
+    }
+
+    .btn-delete {
+        background: linear-gradient(135deg, rgba(248, 113, 113, 0.18), rgba(249, 115, 22, 0.12));
+        color: #fff;
+        border: 1px solid rgba(248, 113, 113, 0.25);
+    }
+
+    .btn-delete:hover {
+        background: linear-gradient(135deg, rgba(248, 113, 113, 0.28), rgba(249, 115, 22, 0.2));
+        transform: translateY(-1px);
+    }
+
+    .administration-tabs-card {
+        border-radius: 22px;
+        overflow: hidden;
+    }
+
+    .administration-tabs-header .nav-link {
+        border: none;
+        border-radius: 999px;
+        padding: 0.55rem 1rem;
+        color: rgba(226, 232, 240, 0.7);
+        transition: background 0.2s ease, color 0.2s ease;
+    }
+
+    .administration-tabs-header .nav-link.active {
+        background: rgba(59, 130, 246, 0.22);
+        color: #fff;
+        box-shadow: inset 0 0 0 1px rgba(59, 130, 246, 0.15);
+    }
+
+    .administration-tabs-header .nav-link:hover {
+        background: rgba(59, 130, 246, 0.14);
+        color: #fff;
+    }
+
+    .administration-tabs-card .card-body {
+        padding-top: 1rem;
+    }
+
+    @media (max-width: 991.98px) {
+        .administration-tabs-header.reports-tabs-header {
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+
+        .administration-tabs-header .reports-tabs {
+            position: static;
+            transform: none;
+            width: 100%;
+            justify-content: flex-start;
+        }
+    }
 
 .network-device-form .card-header:hover {
     background: var(--theme-primary-hover) !important;
@@ -1750,4 +1997,9 @@ body::before {
 .status-badge.checking {
     background: rgba(245, 158, 11, 0.18);
     color: #f59e0b;
+}
+
+.btn:disabled,
+.btn[disabled] {
+    background-color: #e9ecef;
 }

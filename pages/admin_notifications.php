@@ -66,146 +66,27 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 $notifications = listAdminNotifications($pdo, 150);
 $unreadCount = countUnreadAdminNotifications($pdo);
 ?>
-<!DOCTYPE html>
-<html lang="fr">
-<head>
-<meta charset="UTF-8">
-<title>Notifications</title>
-<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
-<link rel="stylesheet" href="../css/theme.css">
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
-<style>
-    .admin-notifications-card .card-header {
-        background-color: var(--theme-card-soft) !important;
-        color: var(--theme-primary) !important;
-        border-bottom: 1px solid rgba(255, 255, 255, 0.08) !important;
-    }
+<?php
+$pageTitle = 'Notifications';
+$extraCss = array (
+  0 => '../css/admin_notifications.css',
+);
+require_once __DIR__ . '/../includes/layout_header.php';
+?>
 
-    .admin-notifications-search-group {
-        width: min(100%, 320px);
-    }
-
-    .admin-notifications-header-row {
-        gap: 12px;
-        flex-wrap: nowrap;
-        justify-content: space-between;
-    }
-
-    .admin-notifications-toolbar {
-        display: flex;
-        align-items: center;
-        justify-content: flex-end;
-        gap: 8px;
-        flex-wrap: nowrap;
-        flex: 1 1 auto;
-        min-width: 0;
-        margin-left: auto;
-    }
-
-    .admin-notifications-title-wrap {
-        display: flex;
-        align-items: center;
-        gap: 8px;
-        color: var(--theme-primary);
-        flex: 0 0 auto;
-        white-space: nowrap;
-    }
-
-    .admin-notifications-search-group .input-group-text {
-        background: rgba(59, 130, 246, 0.12);
-        border-color: rgba(148, 163, 184, 0.18);
-        color: var(--theme-text);
-    }
-
-    .admin-notifications-search-group .form-control,
-    .admin-notifications-filter {
-        background: rgba(12, 20, 34, 0.82);
-        border-color: rgba(148, 163, 184, 0.18);
-        color: var(--theme-text);
-    }
-
-    .admin-notifications-search-group .form-control:focus,
-    .admin-notifications-filter:focus {
-        border-color: rgba(59, 130, 246, 0.45);
-        box-shadow: 0 0 0 0.2rem rgba(59, 130, 246, 0.12);
-    }
-
-    .admin-notifications-filter {
-        width: 130px;
-        flex: 0 0 130px;
-    }
-
-    .admin-notifications-toolbar form {
-        flex: 0 0 auto;
-        margin-bottom: 0;
-    }
-
-    .admin-notifications-select-col {
-        width: 36px;
-    }
-
-    .admin-notifications-table thead th {
-        font-size: 14px;
-        text-align: center;
-        vertical-align: middle;
-    }
-
-    .admin-notifications-table tbody td {
-        font-size: 14px;
-        vertical-align: middle;
-    }
-
-    .admin-notifications-table tbody td:nth-child(3),
-    .admin-notifications-table tbody td:nth-child(4),
-    .admin-notifications-table tbody td:nth-child(5) {
-        text-align: left;
-    }
-
-    .admin-notifications-table tbody td:not(:nth-child(3)):not(:nth-child(4)):not(:nth-child(5)) {
-        text-align: center;
-    }
-
-    .admin-notifications-unread {
-        background: rgba(255, 193, 7, 0.08);
-    }
-
-    .admin-notifications-message {
-        white-space: normal;
-        line-height: 1.45;
-        max-width: 520px;
-    }
-
-    @media (max-width: 1200px) {
-        .admin-notifications-header-row {
-            flex-wrap: wrap;
-        }
-
-        .admin-notifications-toolbar {
-            width: 100%;
-            margin-left: 0;
-            justify-content: flex-start;
-            flex-wrap: wrap;
-            flex: 1 1 100%;
-        }
-
-        .admin-notifications-title-wrap {
-            white-space: normal;
-        }
-    }
-</style>
-</head>
-<body>
-<div class="d-flex" id="wrapper">
-<?php include '../includes/sidebar.php'; ?>
-
-<div id="page-content-wrapper">
-<div class="container-fluid py-3">
-<?php display_message(); ?>
+<div class="card shadow-sm mb-3">
+    <div class="card-body py-3">
+        <div class="d-flex align-items-center text-white" style="font-size: calc(0.875rem + 2px);">
+            <i class="fa fa-bell me-2"></i>
+            <span class="small fw-semibold">Notifications Système</span>
+        </div>
+    </div>
+</div>
 
 <div class="card shadow-sm admin-notifications-card">
-    <div class="card-header d-flex flex-wrap align-items-center admin-notifications-header-row">
+    <div class="card-header d-flex flex-wrap align-items-center admin-notifications-header-row standard-card-header">
         <div class="admin-notifications-title-wrap">
-            <span><i class="fa fa-triangle-exclamation me-2"></i> Suivi des événements importants</span>
+            <span><i class="fa fa-triangle-exclamation me-2"></i> Événements importants</span>
             <span class="badge <?= $unreadCount > 0 ? 'bg-warning text-dark' : 'bg-success' ?>">
                 <?= $unreadCount ?> non lue<?= $unreadCount > 1 ? 's' : '' ?>
             </span>
@@ -273,12 +154,12 @@ $unreadCount = countUnreadAdminNotifications($pdo);
                         <td class="admin-notifications-select-col">
                             <input type="checkbox" class="form-check-input notification-select" value="<?= (int)$notification['id'] ?>" aria-label="Sélectionner cette notification">
                         </td>
-                        <td><?= htmlspecialchars(date('Y-m-d H:i:s', strtotime((string)$notification['created_at']))) ?></td>
-                        <td><?= htmlspecialchars((string)($notification['title'] ?? '-')) ?></td>
+                        <td class="text-nowrap"><?= htmlspecialchars(date('Y-m-d H:i:s', strtotime((string)$notification['created_at']))) ?></td>
+                        <td class="fw-semibold"><?= htmlspecialchars((string)($notification['title'] ?? '-')) ?></td>
                         <td><?= htmlspecialchars(adminNotificationCategoryLabel((string)($notification['category'] ?? 'system'))) ?></td>
-                        <td class="admin-notifications-message"><?= htmlspecialchars((string)($notification['message'] ?? '-')) ?></td>
+                        <td class="admin-notifications-message small text-white-50"><?= htmlspecialchars((string)($notification['message'] ?? '-')) ?></td>
                         <td><span class="badge <?= adminNotificationSeverityBadgeClass($severity) ?>"><?= htmlspecialchars(adminNotificationSeverityLabel($severity)) ?></span></td>
-                        <td><?= $isRead ? '<span class="badge bg-secondary">Lue</span>' : '<span class="badge bg-warning text-dark">Nouvelle</span>' ?></td>
+                        <td><?= $isRead ? '<span class="badge bg-secondary opacity-50">Lue</span>' : '<span class="badge bg-warning text-dark">Nouvelle</span>' ?></td>
                         <td>
                             <?php if (!$isRead): ?>
                             <form method="POST" class="mb-0">
@@ -301,12 +182,8 @@ $unreadCount = countUnreadAdminNotifications($pdo);
     </div>
 </div>
 
-</div>
-</div>
-</div>
-
-<script src="../js/sidebar.js?v=20260402a"></script>
-<script>
+<?php
+$extraScript = "
 document.addEventListener('DOMContentLoaded', () => {
     const searchInput = document.getElementById('adminNotificationsSearch');
     const severityFilter = document.getElementById('adminNotificationsSeverity');
@@ -352,7 +229,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         if (deleteInputs) {
             deleteInputs.innerHTML = selected
-                .map((checkbox) => `<input type="hidden" name="notification_ids[]" value="${String(checkbox.value).replace(/"/g, '&quot;')}">`)
+                .map((checkbox) => `<input type=\"hidden\" name=\"notification_ids[]\" value=\"\${String(checkbox.value).replace(/\"/g, '&quot;')}\">`)
                 .join('');
         }
 
@@ -386,8 +263,8 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
-    updateSelectionState();
+    applyFilters();
 });
-</script>
-</body>
-</html>
+";
+require_once __DIR__ . '/../includes/layout_footer.php';
+?>

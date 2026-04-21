@@ -257,28 +257,10 @@ ksort($availableStatusOptions);
 ksort($availableProfileOptions);
 ?>
 
-<!DOCTYPE html>
-<html lang="fr" class="users-list-page">
-<head>
-<meta charset="UTF-8">
-<title>Users</title>
-
-<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
-<link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="../css/theme.css">
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
-<link rel="stylesheet" href="../css/users_list.css?v=20260404c">
-
-</head>
-
-<body class="users-list-page" data-users-list-readonly="<?= $canManageUsersFromList ? '0' : '1' ?>" data-active-device-type="<?= htmlspecialchars($activeDeviceType, ENT_QUOTES) ?>" data-active-device-id="<?= htmlspecialchars((string)($context['device']['id'] ?? ''), ENT_QUOTES) ?>">
-
-<div class="d-flex" id="wrapper">
-
-<?php include '../includes/sidebar.php'; ?>
-
-<div id="page-content-wrapper">
-<div class="container-fluid py-3 users-list-shell">
+<?php
+$pageTitle = 'Users';
+require_once '../includes/layout_header.php';
+?>
 
 <div class="alert alert-info py-2 px-3 small mb-3 page-flow-explanation" id="usersFlowExplanation">
     <div class="fw-semibold"><?= htmlspecialchars($usersFlowLabel) ?></div>
@@ -892,10 +874,11 @@ ksort($availableProfileOptions);
 </div>
 </div>
 
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
-<script src="../js/sidebar.js?v=20260402a"></script>
-<script src="../js/table_sort.js"></script>
-<script src="../js/users_list.js?v=20260404i"></script>
 
-</body>
-</html>
+<?php
+$extraJs = array (
+  0 => '../js/table_sort.js',
+  1 => '../js/users_list.js?v=20260404i',
+);
+require_once '../includes/layout_footer.php';
+?>

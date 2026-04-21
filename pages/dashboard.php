@@ -22,31 +22,19 @@ $username = $_SESSION['username'] ?? 'Utilisateur';
 $appContext = buildAppContext();
 
 ?>
-<!DOCTYPE html>
-<html lang="fr">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Tableau de Bord Général</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
-    <script src="../assets/vendor/chart/chart.umd.min.js"></script>
-    <script src="../assets/vendor/chart/moment-with-locales.min.js"></script>
-    <script src="../assets/vendor/chart/chartjs-adapter-moment.min.js"></script>
-    <script src="../assets/vendor/chart/chartjs-plugin-streaming.js"></script>
-    <link rel="stylesheet" href="../css/theme.css"> </head>
-    <body
-        data-active-device-id="<?= htmlspecialchars((string)($appContext['device']['id'] ?? ''), ENT_QUOTES) ?>"
-        data-active-device-type="<?= htmlspecialchars((string)($appContext['device']['type'] ?? 'other'), ENT_QUOTES) ?>"
-    >
 
-    <div class="d-flex" id="wrapper">
-        <?php include '../includes/sidebar.php'; ?>
+<?php
+$pageTitle = 'Tableau de Bord Général';
+$extraHeadJs = array (
+  0 => '../assets/vendor/chart/chart.umd.min.js',
+  1 => '../assets/vendor/chart/moment-with-locales.min.js',
+  2 => '../assets/vendor/chart/chartjs-adapter-moment.min.js',
+  3 => '../assets/vendor/chart/chartjs-plugin-streaming.js',
+);
+require_once '../includes/layout_header.php';
+?>
 
-        <div id="page-content-wrapper">
-            <div class="container-fluid py-3 dashboard-page"> <?php display_message(); // Affiche les messages de session ?>
-
-                <div id="messageArea" style="display: none;"></div>
+<div id="messageArea" style="display: none;"></div>
 
                 <div class="row dashboard-layout">
                     <div class="col-lg-7 col-md-12 mb-3">
@@ -290,15 +278,10 @@ $appContext = buildAppContext();
             </div>
         </div>
     </div>
-    <div id="spinner-overlay">
-        <div class="spinner"></div>
-    </div>
-
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
-    <script>
-    window.DASHBOARD_CSRF_TOKEN = '<?= htmlspecialchars($_SESSION['csrf_token'], ENT_QUOTES) ?>';
-    </script>
-    <script src="../js/dashboard.js"></script>
-<script src="../js/sidebar.js?v=20260402a"></script>
-</body>
-</html>
+    
+<?php
+$extraJs = array (
+  0 => '../js/dashboard.js',
+);
+require_once '../includes/layout_footer.php';
+?>
