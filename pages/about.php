@@ -128,15 +128,16 @@ require_once '../includes/layout_header.php';
         <div class="card shadow-sm mb-3 about-card">
             <div class="card-body">
                 <p class="text-white mb-3">
-                    Cette application centralise la gestion hotspot, recharge, profils, vouchers,
-                    supervision et journaux avec un pilote principal <strong>MikroTik</strong>,
-                    tout en gardant des branches <strong>RADIUS</strong> et <strong>OPNsense</strong>.
+                    Radius Manager centralise la gestion hotspot, profils, utilisateurs, vouchers,
+                    recharges, supervision et recouvrement avec une architecture locale orientée
+                    <strong>MikroTik</strong>, <strong>RADIUS</strong> et <strong>OPNsense</strong>.
+                    Les actions sensibles sont progressivement protégées par un agent Windows local.
                 </p>
 
                 <div class="row g-3">
                     <div class="col-md-6">
                         <div class="about-label">Version applicative</div>
-                        <div class="about-value">1.0.0</div>
+                        <div class="about-value">V1 locale sécurisée</div>
                     </div>
                     <div class="col-md-6">
                         <div class="about-label">Statut</div>
@@ -144,7 +145,7 @@ require_once '../includes/layout_header.php';
                     </div>
                     <div class="col-md-6">
                         <div class="about-label">Backend pilote</div>
-                        <div class="about-value">MikroTik / Mikhmon-like</div>
+                        <div class="about-value">PHP UI + Agent Windows</div>
                     </div>
                     <div class="col-md-6">
                         <div class="about-label">Backends supportés</div>
@@ -196,6 +197,14 @@ require_once '../includes/layout_header.php';
                         <div class="about-label">Administration</div>
                         <div class="about-value">Comptes locaux, export SQL, import SQL</div>
                     </div>
+                    <div class="col-md-6">
+                        <div class="about-label">Sécurité locale</div>
+                        <div class="about-value">Licence signée, intégrité, agent backend</div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="about-label">Installation</div>
+                        <div class="about-value">WAMP local, agents dans bin/agent</div>
+                    </div>
                 </div>
             </div>
         </div>
@@ -234,14 +243,13 @@ require_once '../includes/layout_header.php';
             </div>
             <div class="card-body">
                 <div class="about-rule mb-2">
-                    La recharge applique les règles d’offre selon le mode choisi :
-                    changement d’offre, rechargement ou réabonnement.
+                    Les opérations sensibles passent par le contrôle de licence et d’intégrité avant exécution.
                 </div>
                 <div class="about-rule mb-2">
-                    Le quota data est porté par le profil et appliqué au user.
+                    La génération de licence reste côté éditeur et ne doit pas être livrée au client.
                 </div>
                 <div class="about-rule">
-                    La comptabilisation d’un voucher démarre au premier login du ticket concerné.
+                    L’interface PHP reste l’affichage ; l’agent local devient le point d’autorisation backend.
                 </div>
             </div>
         </div>
