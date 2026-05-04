@@ -172,54 +172,6 @@ require_once __DIR__ . '/../includes/layout_header.php';
       </div>
     </div>
 
-    <!-- Section avancée : gestion des clés -->
-    <div class="mt-2">
-      <button class="btn btn-link btn-sm text-muted px-0 text-decoration-none"
-              type="button" data-bs-toggle="collapse" data-bs-target="#keypairSection">
-        <i class="fas fa-chevron-right fa-xs me-1"></i>Gestion des clés Ed25519
-      </button>
-      <div class="collapse" id="keypairSection">
-        <div class="card mt-1">
-          <div class="card-body p-3">
-
-            <p class="small text-muted mb-2">
-              Génère une nouvelle paire uniquement à la première installation.
-              Copier la <strong>clé publique</strong> dans
-              <code>config/license/public_key.txt</code>.
-              La <strong>clé privée</strong> reste sur ce poste.
-            </p>
-
-            <div id="keypairResult" style="display:none" class="mb-2">
-              <div class="mb-2">
-                <div class="d-flex justify-content-between align-items-center mb-1">
-                  <span class="small text-warning fw-semibold">Clé privée — garder secret</span>
-                  <button class="btn btn-outline-warning btn-sm py-0 px-1" id="copyPrivBtn">
-                    <i class="fas fa-copy fa-xs"></i>
-                  </button>
-                </div>
-                <pre id="kpPrivatePre" class="bg-dark text-warning rounded p-2 small mb-0"
-                     style="word-break:break-all;white-space:pre-wrap;max-height:58px;overflow:auto"></pre>
-              </div>
-              <div>
-                <div class="d-flex justify-content-between align-items-center mb-1">
-                  <span class="small text-info fw-semibold">Clé publique → config/license/public_key.txt</span>
-                  <button class="btn btn-outline-info btn-sm py-0 px-1" id="copyPubBtn">
-                    <i class="fas fa-copy fa-xs"></i>
-                  </button>
-                </div>
-                <pre id="kpPublicPre" class="bg-dark text-info rounded p-2 small mb-0"
-                     style="word-break:break-all;white-space:pre-wrap;max-height:58px;overflow:auto"></pre>
-              </div>
-            </div>
-
-            <button type="button" class="btn btn-outline-secondary btn-sm" id="btnKeypair">
-              <i class="fas fa-sync-alt me-1"></i>Générer une nouvelle paire
-            </button>
-
-          </div>
-        </div>
-      </div>
-    </div>
 
   </div>
 </div>
@@ -227,22 +179,16 @@ require_once __DIR__ . '/../includes/layout_header.php';
 <?php
 $extraScript = <<<'JS'
 (function () {
-  const form     = document.getElementById('licenseForm');
-  const btnGen   = document.getElementById('btnGenerate');
-  const btnKp    = document.getElementById('btnKeypair');
-  const resArea  = document.getElementById('resultArea');
-  const kpDiv    = document.getElementById('keypairResult');
-  const errDiv   = document.getElementById('licenseError');
-  const errMsg   = document.getElementById('licenseErrorMsg');
-  const keyPre   = document.getElementById('licenseKeyPre');
-  const jsonPre  = document.getElementById('licenseJsonPre');
-  const kpPriv   = document.getElementById('kpPrivatePre');
-  const kpPub    = document.getElementById('kpPublicPre');
-  const copyBtn  = document.getElementById('copyKeyBtn');
-  const copyPriv = document.getElementById('copyPrivBtn');
-  const copyPub  = document.getElementById('copyPubBtn');
-  const sel      = document.getElementById('deviceIdSelect');
-  const man      = document.getElementById('deviceIdManual');
+  const form    = document.getElementById('licenseForm');
+  const btnGen  = document.getElementById('btnGenerate');
+  const resArea = document.getElementById('resultArea');
+  const errDiv  = document.getElementById('licenseError');
+  const errMsg  = document.getElementById('licenseErrorMsg');
+  const keyPre  = document.getElementById('licenseKeyPre');
+  const jsonPre = document.getElementById('licenseJsonPre');
+  const copyBtn = document.getElementById('copyKeyBtn');
+  const sel     = document.getElementById('deviceIdSelect');
+  const man     = document.getElementById('deviceIdManual');
 
   if (sel) {
     sel.addEventListener('change', function () {
@@ -266,9 +212,7 @@ $extraScript = <<<'JS'
     }
   }
 
-  copyBtn  && copyBtn.addEventListener('click',  () => copyText(keyPre.textContent, copyBtn));
-  copyPriv && copyPriv.addEventListener('click', () => copyText(kpPriv.textContent, copyPriv));
-  copyPub  && copyPub.addEventListener('click',  () => copyText(kpPub.textContent,  copyPub));
+  copyBtn && copyBtn.addEventListener('click', () => copyText(keyPre.textContent, copyBtn));
 
   function hide(el) { el.style.display = 'none'; }
   function show(el) { el.style.display = '';     }
@@ -282,14 +226,13 @@ $extraScript = <<<'JS'
     return fd;
   }
 
-  async function post(action) {
+  async function post() {
     btnGen.disabled = true;
-    if (btnKp) btnKp.disabled = true;
-    hide(errDiv); hide(resArea); hide(kpDiv);
+    hide(errDiv); hide(resArea);
 
     try {
       const resp = await fetch('../api/admin/generate_license.php', {
-        method: 'POST', body: buildFormData(action)
+        method: 'POST', body: buildFormData('generate')
       });
       const data = await resp.json();
 
@@ -299,26 +242,18 @@ $extraScript = <<<'JS'
         return;
       }
 
-      if (action === 'keypair') {
-        kpPriv.textContent = data.private_key ?? '';
-        kpPub.textContent  = data.public_key  ?? '';
-        show(kpDiv);
-      } else {
-        keyPre.textContent  = data.license_key  ?? '';
-        jsonPre.textContent = data.license_json ?? '';
-        show(resArea);
-      }
+      keyPre.textContent  = data.license_key  ?? '';
+      jsonPre.textContent = data.license_json ?? '';
+      show(resArea);
     } catch (e) {
       errMsg.textContent = 'Erreur réseau : ' + e.message;
       show(errDiv);
     } finally {
       btnGen.disabled = false;
-      if (btnKp) btnKp.disabled = false;
     }
   }
 
-  form.addEventListener('submit', e => { e.preventDefault(); post('generate'); });
-  btnKp && btnKp.addEventListener('click', () => post('keypair'));
+  form.addEventListener('submit', e => { e.preventDefault(); post(); });
 })();
 JS;
 
