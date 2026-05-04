@@ -110,10 +110,15 @@ function runLicenseExe(string $exe, array $args, array $extraEnv, int $timeout):
     $stderr = (string)stream_get_contents($pipes[2]);
     fclose($pipes[1]);
     fclose($pipes[2]);
-    proc_close($process);
+    $exitCode = proc_close($process);
 
-    if ($stdout === '') {
-        throw new RuntimeException('Aucune sortie du générateur' . ($stderr !== '' ? ' : ' . $stderr : ''));
+    if ($stdout === '' || $exitCode !== 0) {
+        $detail = $stderr !== '' ? ' : ' . $stderr : '';
+        throw new RuntimeException(
+            $stdout === ''
+                ? 'Aucune sortie du générateur' . $detail
+                : 'license-generator.exe a échoué (code ' . $exitCode . ')' . $detail
+        );
     }
 
     return $stdout;

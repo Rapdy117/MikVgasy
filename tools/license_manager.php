@@ -289,12 +289,29 @@ $extraScript = <<<'JS'
   btnKp.addEventListener('click', function () { post('keypair'); });
 
   copyBtn.addEventListener('click', function () {
-    navigator.clipboard.writeText(keyPre.textContent).then(function () {
-      copyBtn.innerHTML = '<i class="fas fa-check me-1"></i>Copié !';
+    const text = keyPre.textContent;
+    const reset = function () {
       setTimeout(function () {
         copyBtn.innerHTML = '<i class="fas fa-copy me-1"></i>Copier la clé';
       }, 2000);
-    });
+    };
+    if (navigator.clipboard) {
+      navigator.clipboard.writeText(text).then(function () {
+        copyBtn.innerHTML = '<i class="fas fa-check me-1"></i>Copié !';
+        reset();
+      });
+    } else {
+      const ta = document.createElement('textarea');
+      ta.value = text;
+      ta.style.position = 'fixed';
+      ta.style.opacity  = '0';
+      document.body.appendChild(ta);
+      ta.select();
+      document.execCommand('copy');
+      document.body.removeChild(ta);
+      copyBtn.innerHTML = '<i class="fas fa-check me-1"></i>Copié !';
+      reset();
+    }
   });
 })();
 JS;
