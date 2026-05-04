@@ -8,6 +8,7 @@ require_once '../../includes/device_manager.php';
 require_once '../../includes/mikrotik_backend.php';
 require_once '../../includes/nas_resolver.php';
 require_once '../../includes/operation_history.php';
+require_once '../../includes/backend_agent.php';
 
 session_start();
 if (!isset($_SESSION['logged_in']) || $_SESSION['logged_in'] !== true) {
@@ -173,6 +174,14 @@ try {
         profileUsageCounts($pdo, $effectiveProfileId, $effectiveProfileName),
         $isTargetMikrotik
     );
+
+    if (is_array($targetDevice)) {
+        backendAgentAuthorizeDeviceAction($targetDevice, 'profile-delete', [
+            'profile_id' => $effectiveProfileId,
+            'profile_name' => $effectiveProfileName,
+            'router_profile_id' => $routerProfileId,
+        ]);
+    }
 
     ensureOperationHistoryTable($pdo);
     $pdo->beginTransaction();

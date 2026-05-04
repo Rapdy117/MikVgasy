@@ -3,6 +3,8 @@ require '../../config/db.php';
 require_once '../../includes/auth.php';
 require_once '../../includes/operation_history.php';
 require_once '../../includes/admin_notifications.php';
+require_once '../../includes/nas_resolver.php';
+require_once '../../includes/backend_agent.php';
 
 session_start();
 header('Content-Type: application/json');
@@ -75,7 +77,7 @@ try {
     /* =========================
        1. GET USERNAME
     ========================= */
-    $stmt = $pdo->prepare("SELECT username FROM users WHERE id = ?");
+    $stmt = $pdo->prepare("SELECT username, nas_id FROM users WHERE id = ?");
     $stmt->execute([$id]);
     $user = $stmt->fetch(PDO::FETCH_ASSOC);
 
@@ -84,6 +86,16 @@ try {
     }
 
     $username = $user['username'];
+    $nasId = (int)($user['nas_id'] ?? 0);
+    if ($nasId <= 0) {
+        throw new Exception('NAS introuvable pour cet utilisateur');
+    }
+    $nasContext = resolveNasContextFromInputs($pdo, $nasId, null);
+    backendAgentAuthorizeDeviceAction($nasContext['device'] ?? [], 'user-delete', [
+        'user_id' => $id,
+        'username' => $username,
+        'nas_id' => $nasId,
+    ]);
 
     /* =========================
        2. DELETE RADIUS

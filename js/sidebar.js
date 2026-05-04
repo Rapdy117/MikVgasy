@@ -7,8 +7,6 @@ document.addEventListener("DOMContentLoaded", function () {
     const navbarSearchInput = document.getElementById("navbarSearchInput");
     const navbarSearchResults = document.getElementById("navbarSearchResults");
     const navbarSearchIndexNode = document.getElementById("navbarSearchIndex");
-    const voucherSyncKey = "voucherSyncLastRunAt";
-    const voucherSyncIntervalMs = 60 * 1000;
 
     function normalizeDeviceStatus(statusValue) {
         const normalized = String(statusValue || "offline").toLowerCase();
@@ -42,39 +40,6 @@ document.addEventListener("DOMContentLoaded", function () {
     }
 
     applyNavbarDeviceStatus();
-
-    async function triggerVoucherSync(force = false) {
-        const now = Date.now();
-        const lastRun = Number(window.localStorage.getItem(voucherSyncKey) || 0);
-        if (!force && now - lastRun < voucherSyncIntervalMs) {
-            return;
-        }
-
-        window.localStorage.setItem(voucherSyncKey, String(now));
-
-        try {
-            await fetch("/api/sync_vouchers.php", {
-                method: "GET",
-                credentials: "same-origin",
-                cache: "no-store",
-                keepalive: true
-            });
-        } catch (error) {
-            // synchro silencieuse
-        }
-    }
-
-    triggerVoucherSync(false);
-
-    document.addEventListener("visibilitychange", function () {
-        if (document.visibilityState === "visible") {
-            triggerVoucherSync(false);
-        }
-    });
-
-    window.addEventListener("focus", function () {
-        triggerVoucherSync(false);
-    });
 
     function buildPageIndex() {
         if (!navbarSearchIndexNode) {

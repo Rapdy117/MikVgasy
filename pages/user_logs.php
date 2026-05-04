@@ -47,7 +47,6 @@ $hotspotEventsError = $errors['hotspot'] ?? null;
 $radiusSessionsError = $errors['radius_sessions'] ?? null;
 $operationRowsError = $errors['operations'] ?? null;
 $rechargeRowsError = $errors['recharges'] ?? null;
-$radiusAuthError = $errors['radius_auth'] ?? null;
 
 $currentMonth = (int)date('m');
 $currentYear = (int)date('Y');
@@ -170,10 +169,10 @@ require_once '../includes/layout_header.php';
                         Cette page sera alimentee quand le device actif expose des logs utilisateur.
                     </td>
                 </tr>
-                <?php elseif ($hotspotEventsError !== null || $radiusSessionsError !== null || $operationRowsError !== null || $rechargeRowsError !== null || $radiusAuthError !== null): ?>
+                <?php elseif ($hotspotEventsError !== null || $radiusSessionsError !== null || $operationRowsError !== null || $rechargeRowsError !== null): ?>
                 <tr data-sort-disabled="1">
                     <td colspan="9" class="text-center text-danger py-4">
-                        <?= htmlspecialchars($hotspotEventsError ?? $radiusSessionsError ?? $operationRowsError ?? $rechargeRowsError ?? $radiusAuthError ?? 'Erreur de chargement') ?>
+                        <?= htmlspecialchars($hotspotEventsError ?? $radiusSessionsError ?? $operationRowsError ?? $rechargeRowsError ?? 'Erreur de chargement') ?>
                     </td>
                 </tr>
                 <?php elseif (empty($combinedRows)): ?>

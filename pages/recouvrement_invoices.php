@@ -49,11 +49,16 @@ try {
 
 <?php
 $pageTitle = 'Suivi Facture';
+$htmlClass = 'recouvrement-invoices-page';
+$bodyClass = 'recouvrement-invoices-page';
+$extraCss = [
+    '../css/recouvrement_invoices.css',
+];
 require_once '../includes/layout_header.php';
 ?>
 
 <div class="card shadow-sm administration-card recouvrement-invoices-main-card">
-    <div class="card-header d-flex justify-content-between align-items-center">
+    <div class="card-header recouvrement-invoices-toolbar d-flex justify-content-between align-items-center">
         <span><i class="fa fa-file-invoice-dollar me-2"></i> Suivi paiement facture</span>
         <a href="/pages/recouvrement.php" class="btn btn-test btn-sm">
             <i class="fa fa-hand-holding-dollar me-1"></i> Retour recouvrement

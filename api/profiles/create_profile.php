@@ -6,6 +6,7 @@ require_once '../../includes/device_manager.php';
 require_once '../../includes/nas_resolver.php';
 require_once '../../includes/radius_sync.php';
 require_once '../../includes/profile_schema.php';
+require_once '../../includes/backend_agent.php';
 
 session_start();
 
@@ -286,6 +287,12 @@ try {
 
     $hasOldName = $oldProfileName !== null && trim($oldProfileName) !== '';
     $isUpdate = $profileId > 0 || $hasOldName;
+    backendAgentAuthorizeDeviceAction($device, $isUpdate ? 'profile-update' : 'profile-create', [
+        'profile_id' => $profileId,
+        'name' => $name,
+        'old_name' => $oldProfileName,
+        'business_source' => $businessSource,
+    ]);
 
     if ($businessSource === 'mikrotik_local' && $expiredMode !== 'none' && $validityTime <= 0) {
         throw new Exception("Validite profil requise pour ce mode d'expiration MikroTik");

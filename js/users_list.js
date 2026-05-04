@@ -337,14 +337,21 @@ function applyUsersFilters() {
     updateBulkSelectionState();
 }
 
+function hideSearchSuggestions() {
+    if (!usersSearchSuggestions) {
+        return;
+    }
+    usersSearchSuggestions.classList.add('d-none');
+    usersSearchSuggestions.innerHTML = '';
+}
+
 function renderSearchSuggestions(query) {
     if (!usersSearchSuggestions) {
         return;
     }
     const normalized = (query || '').trim().toLowerCase();
     if (normalized.length < 1) {
-        usersSearchSuggestions.classList.add('d-none');
-        usersSearchSuggestions.innerHTML = '';
+        hideSearchSuggestions();
         return;
     }
 
@@ -355,8 +362,7 @@ function renderSearchSuggestions(query) {
         .slice(0, 6);
 
     if (candidates.length === 0) {
-        usersSearchSuggestions.classList.add('d-none');
-        usersSearchSuggestions.innerHTML = '';
+        hideSearchSuggestions();
         return;
     }
 
@@ -948,6 +954,7 @@ fetch('../api/nas.php', { credentials: 'same-origin' })
 rows.forEach((row) => {
     getRowCheckbox(row)?.addEventListener('click', (event) => {
         event.stopPropagation();
+        hideSearchSuggestions();
         updateBulkSelectionState();
     });
 
@@ -956,9 +963,11 @@ rows.forEach((row) => {
             return;
         }
         if (event.target.closest('.user-action-btn')) {
+            hideSearchSuggestions();
             selectUserRow(row, true);
             return;
         }
+        hideSearchSuggestions();
         selectUserRow(row, currentUsersViewMode !== 'details');
     });
 });
@@ -987,7 +996,7 @@ usersSearchSuggestions?.addEventListener('click', (event) => {
     }
     usersSearchInput.value = button.dataset.username || '';
     applyUsersFilters();
-    usersSearchSuggestions.classList.add('d-none');
+    hideSearchSuggestions();
 });
 
 editBtn?.addEventListener('click', enableEditMode);

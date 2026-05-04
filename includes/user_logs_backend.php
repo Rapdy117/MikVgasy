@@ -222,7 +222,7 @@ function loadMikrotikHotspotEvents(array $context): array
     }
 
     try {
-        foreach (getMikrotikHotspotLogs(400) as $row) {
+        foreach (getMikrotikHotspotLogs(1000) as $row) {
             if (!is_array($row)) {
                 continue;
             }
@@ -318,48 +318,6 @@ function loadRadiusSessionRows(PDO $pdo, array $context, array $filters, array $
     return ['rows' => $rows, 'error' => $error, 'first_login_map' => $firstLoginMap];
 }
 
-function loadRadiusAuthRows(PDO $pdo, array $context, array $filters): array
-{
-    $rows = [];
-    $error = null;
-
-    if (!$context['is_radius_like']) {
-        return ['rows' => $rows, 'error' => $error];
-    }
-
-    try {
-        $tableCheck = $pdo->query("SHOW TABLES LIKE 'radpostauth'");
-        $hasRadPostAuth = $tableCheck && $tableCheck->fetchColumn();
-
-        if ($hasRadPostAuth) {
-            $sql = "
-                SELECT username, reply, authdate
-                FROM radpostauth
-                WHERE reply IS NOT NULL AND reply <> ''
-            ";
-            $params = [];
-
-            if ($filters['day_filter'] !== '') {
-                $sql .= " AND DATE(authdate) = ?";
-                $params[] = $filters['day_filter'];
-            } elseif ($filters['month'] !== '' && $filters['year'] !== '') {
-                $sql .= " AND YEAR(authdate) = ? AND MONTH(authdate) = ?";
-                $params[] = (int)$filters['year'];
-                $params[] = (int)$filters['month'];
-            }
-
-            $sql .= " ORDER BY authdate DESC LIMIT 500";
-            $stmt = $pdo->prepare($sql);
-            $stmt->execute($params);
-            $rows = $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
-        }
-    } catch (Throwable $e) {
-        $error = $e->getMessage();
-    }
-
-    return ['rows' => $rows, 'error' => $error];
-}
-
 function loadOperationHistoryRows(PDO $pdo, array $context, array $filters, array $deviceMaps): array
 {
     $rows = [];
@@ -382,7 +340,7 @@ function loadOperationHistoryRows(PDO $pdo, array $context, array $filters, arra
                 profile_name,
                 created_at
             FROM operation_history
-            WHERE operation_type IN ('user_notice_record', 'user_remove_record', 'session_disconnect')
+            WHERE operation_type IN ('session_disconnect')
         ";
         $params = [];
 
@@ -568,38 +526,6 @@ function normalizeRadiusSessionRows(array $radiusSessions, array $firstLoginMap,
     return $rows;
 }
 
-function normalizeRadiusAuthRows(array $radiusAuthRows, array $deviceMaps): array
-{
-    $rows = [];
-
-    foreach ($radiusAuthRows as $row) {
-        $authDate = trim((string)($row['authdate'] ?? ''));
-        $timestamp = $authDate !== '' ? strtotime($authDate) : false;
-        $reply = strtolower(trim((string)($row['reply'] ?? '')));
-
-        if ($reply === '' || !str_contains($reply, 'reject')) {
-            continue;
-        }
-
-        $rows[] = [
-            'date' => $timestamp ? date('Y-m-d', $timestamp) : '-',
-            'time' => $timestamp ? date('H:i:s', $timestamp) : '-',
-            'username' => (string)($row['username'] ?? '-'),
-            'profile' => '-',
-            'address' => '-',
-            'mac' => '-',
-            'action' => 'Mot de passe invalide',
-            'status' => 'Echec',
-            'server' => $deviceMaps['query_device_id'] !== ''
-                ? ($deviceMaps['device_label_by_id'][$deviceMaps['query_device_id']] ?? $deviceMaps['query_device_id'])
-                : '-',
-            'source_key' => 'radius_auth',
-        ];
-    }
-
-    return $rows;
-}
-
 function normalizeRechargeRows(array $rechargeRows, array $deviceMaps): array
 {
     $rows = [];
@@ -662,8 +588,6 @@ function normalizeOperationRows(array $operationRows, array $deviceMaps): array
                 'user_create' => 'Ajout user',
                 'user_update' => 'Maj user',
                 'user_delete' => 'Suppression user',
-                'user_notice_record' => 'Expiration',
-                'user_remove_record' => 'Suppression quota',
                 'session_disconnect' => 'Déconnexion',
                 default => 'Operation',
             },
@@ -738,7 +662,6 @@ function loadUserLogsViewData(PDO $pdo, array $filters = []): array
 
     $mikrotikLogs = loadMikrotikHotspotEvents($context);
     $radiusSessions = loadRadiusSessionRows($pdo, $context, $preparedFilters, $deviceMaps);
-    $radiusAuth = loadRadiusAuthRows($pdo, $context, $preparedFilters);
     $operations = loadOperationHistoryRows($pdo, $context, $preparedFilters, $deviceMaps);
     $recharges = loadRechargeHistoryRows($pdo, $preparedFilters, $deviceMaps);
     $mikrotikProfileMap = buildMikrotikProfileMap($context);
@@ -747,7 +670,6 @@ function loadUserLogsViewData(PDO $pdo, array $filters = []): array
         [],
         normalizeMikrotikLogRows($mikrotikLogs['rows'], $deviceMaps['active_device_label'], $mikrotikProfileMap, $context['is_mikrotik']),
         normalizeRadiusSessionRows($radiusSessions['rows'], $radiusSessions['first_login_map'], $deviceMaps),
-        normalizeRadiusAuthRows($radiusAuth['rows'], $deviceMaps),
         normalizeRechargeRows($recharges['rows'], $deviceMaps),
         normalizeOperationRows($operations['rows'], $deviceMaps)
     );
@@ -768,7 +690,6 @@ function loadUserLogsViewData(PDO $pdo, array $filters = []): array
                 'all' => 'Toutes sources',
                 'details_event' => 'Détails événements',
                 'radius_session' => 'RADIUS sessions',
-                'radius_auth' => 'RADIUS auth',
                 'recharge' => 'Recharges',
                 'operation' => 'Opérations',
             ],
@@ -799,7 +720,6 @@ function loadUserLogsViewData(PDO $pdo, array $filters = []): array
             'radius_sessions' => $radiusSessions['error'],
             'operations' => $operations['error'],
             'recharges' => $recharges['error'],
-            'radius_auth' => $radiusAuth['error'],
         ],
     ];
 }

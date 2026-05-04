@@ -24,6 +24,7 @@ migrate.php
 pages/license_manager.php
 tools/license_manager.php
 tools/editor-license/
+tools/windows-agent/*.exe
 
 # ── Éditeur uniquement — NE PAS déployer chez le client ──
 # Clé privée Ed25519 — ne jamais versionner

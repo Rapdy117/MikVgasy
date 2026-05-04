@@ -42,6 +42,9 @@ if ($isMikrotik) {
 
 <?php
 $pageTitle = 'Baux DHCP';
+$extraCss = array (
+  0 => '../css/dhcp_leases.css',
+);
 require_once '../includes/layout_header.php';
 ?>
 

@@ -41,6 +41,23 @@ document.addEventListener('DOMContentLoaded', function () {
         sellingPrice: document.getElementById('profileFieldSellingPrice')
     };
 
+    function initializeFlashMessage() {
+        const flash = document.getElementById('messageArea');
+        if (!flash) {
+            return;
+        }
+
+        window.setTimeout(() => {
+            flash.classList.add('generate-flash-hide');
+        }, 3400);
+
+        window.setTimeout(() => {
+            if (flash && flash.parentNode) {
+                flash.parentNode.removeChild(flash);
+            }
+        }, 3900);
+    }
+
     function showFlashMessage(message, type) {
         AppToast.flash(message, type || 'info');
     }
@@ -541,6 +558,12 @@ document.addEventListener('DOMContentLoaded', function () {
         });
     }
 
+    if (printDisabledBtn) {
+        printDisabledBtn.addEventListener('click', function () {
+            showFlashMessage('Préparez un lot avant de lancer l impression.', 'info');
+        });
+    }
+
     syncSelectedProfileName();
     restoreTicketDraft();
     if (ssidInput) {
@@ -575,9 +598,14 @@ document.addEventListener('DOMContentLoaded', function () {
                         throw new Error(data.message || 'Erreur application');
                     }
 
-                    window.open('/pages/print_vouchers.php', '_blank', 'noopener');
-                    setPendingMode(false);
-                    showFlashMessage('Lot appliqué. Impression ouverte dans un autre onglet.', 'success');
+                    const printLink = document.createElement('a');
+                    printLink.href = '/pages/print_vouchers.php';
+                    printLink.target = '_blank';
+                    printLink.rel = 'noopener';
+                    document.body.appendChild(printLink);
+                    printLink.click();
+                    printLink.remove();
+                    window.location.href = '/pages/generate.php';
                 })
                 .catch((err) => {
                     AppToast.flash(err.message, 'danger');

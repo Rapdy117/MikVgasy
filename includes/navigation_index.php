@@ -124,8 +124,8 @@ function getNavigationSearchIndex(): array
             'keywords' => ['recharge', 'rechargement', 'rajout', 'reabonnement'],
         ],
         [
-            'label' => 'Rouvrement',
-            'breadcrumb' => 'Finances > Rouvrement',
+            'label' => 'Recouvrement',
+            'breadcrumb' => 'Finances > Recouvrement',
             'href' => '/pages/recouvrement.php',
             'keywords' => ['recouvrement', 'collection', 'suivi', 'operations sensibles'],
         ],

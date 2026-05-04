@@ -123,6 +123,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const amountLabel = formatNumber(totalAmount);
         const summaryText = lastEntry?.summary || '-';
         const lastDate = lastEntry?.created_at || '-';
+        const lastDateLabel = lastDate !== '-' ? lastDate.slice(0, 10) : '-';
 
         row.dataset.filteredCount = String(count);
         row.dataset.amount = amountLabel;
@@ -131,7 +132,7 @@ document.addEventListener('DOMContentLoaded', () => {
         row.dataset.dateIso = (lastDate || '').slice(0, 10);
         row.querySelector('td:nth-child(5)').textContent = String(count);
         row.querySelector('td:nth-child(6)').textContent = summaryText;
-        row.querySelector('td:nth-child(7)').textContent = lastDate;
+        row.querySelector('td:nth-child(7)').textContent = lastDateLabel;
         row.querySelector('td:nth-child(8)').textContent = amountLabel;
         return true;
     };
@@ -140,6 +141,8 @@ document.addEventListener('DOMContentLoaded', () => {
         if (!invoiceLink) {
             return;
         }
+
+        invoiceLink.classList.remove('recouvrement-invoice-pending');
 
         if (!Array.isArray(selectedRows) || selectedRows.length === 0) {
             invoiceLink.href = '#';
@@ -215,8 +218,9 @@ document.addEventListener('DOMContentLoaded', () => {
         });
 
         const rechargeEntries = Array.from(rechargeEntriesMap.values());
-        const voucherEntries = (recouvrementData.vouchers || []).filter((entry) => operators.includes(entry.operator) && matchesDateFilters((entry.created_at || '').slice(0, 10)));
-        const operationEntries = (recouvrementData.operations || []).filter((entry) => operators.includes(entry.operator) && matchesDateFilters((entry.created_at || '').slice(0, 10)));
+        const voucherUseEntries = rechargeEntries.filter((entry) => (entry.source_type || '') === 'voucher_use');
+        const accountRechargeEntries = rechargeEntries.filter((entry) => (entry.source_type || 'recharge') === 'recharge');
+        const operationEntries = [];
         const profileSet = new Set();
         const userSet = new Set();
         const operatorLabel = operators.length === 1 ? operators[0] : (operators.length > 1 ? operators.join(', ') : '-');
@@ -232,12 +236,15 @@ document.addEventListener('DOMContentLoaded', () => {
             if (row.profile && row.profile !== '-') {
                 profileSet.add(row.profile);
             }
-        });
-
-        voucherEntries.forEach((entry) => {
-            if (entry.profile && entry.profile !== '-') {
-                profileSet.add(entry.profile);
-            }
+            (row.entries || []).forEach((entry) => {
+                if ((entry.entry_type || '') !== 'operation') {
+                    return;
+                }
+                if (!matchesDateFilters((entry.created_at || '').slice(0, 10))) {
+                    return;
+                }
+                operationEntries.push(entry);
+            });
         });
 
         if (detailOperator) {
@@ -247,10 +254,10 @@ document.addEventListener('DOMContentLoaded', () => {
             metricRecharges.value = String(rechargeEntries.length);
         }
         if (metricVoucherBatches) {
-            metricVoucherBatches.value = String(voucherEntries.length);
+            metricVoucherBatches.value = String(voucherUseEntries.length);
         }
         if (metricVouchers) {
-            metricVouchers.value = String(voucherEntries.reduce((sum, entry) => sum + Number(entry.quantity || 0), 0));
+            metricVouchers.value = String(accountRechargeEntries.length);
         }
         if (metricAmount) {
             metricAmount.value = formatNumber(rechargeEntries.reduce((sum, entry) => sum + Number(entry.amount_value || 0), 0));
@@ -364,6 +371,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         try {
             invoiceLink.classList.add('disabled');
+            invoiceLink.classList.add('recouvrement-invoice-pending');
             invoiceLink.setAttribute('aria-disabled', 'true');
 
             const formData = new FormData();
@@ -393,6 +401,7 @@ document.addEventListener('DOMContentLoaded', () => {
             window.location.reload();
         } catch (error) {
             AppToast.flash(error.message || 'Creation impossible', 'danger');
+            invoiceLink.classList.remove('recouvrement-invoice-pending');
             updateSelectionState();
         }
     });

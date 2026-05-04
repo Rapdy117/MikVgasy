@@ -273,6 +273,7 @@ foreach ($users as $userRow) {
     }
 }
 
+$availableStatusOptions['expired'] = true;
 ksort($availableStatusOptions);
 ksort($availableProfileOptions);
 ?>
@@ -444,7 +445,16 @@ require_once '../includes/layout_header.php';
                         <select class="form-select" id="usersStatusFilter">
                         <option value="">Tous</option>
                         <?php foreach (array_keys($availableStatusOptions) as $statusOption): ?>
-                        <option value="<?= htmlspecialchars(mb_strtolower($statusOption)) ?>"><?= htmlspecialchars($statusOption) ?></option>
+                        <?php
+                        $statusOptionValue = mb_strtolower($statusOption);
+                        $statusOptionLabel = match ($statusOptionValue) {
+                            'active' => 'ACTIVE',
+                            'disabled' => 'DESACTIVE',
+                            'expired' => 'EXPIRE',
+                            default => $statusOption,
+                        };
+                        ?>
+                        <option value="<?= htmlspecialchars($statusOptionValue) ?>"><?= htmlspecialchars($statusOptionLabel) ?></option>
                         <?php endforeach; ?>
                         </select>
                     </div>
@@ -595,7 +605,7 @@ require_once '../includes/layout_header.php';
 
     data-id="<?= htmlspecialchars((string)($u['id'] ?? '')) ?>"
     data-username="<?= htmlspecialchars($u['username']) ?>"
-    data-password="<?= htmlspecialchars((string)($u['password'] ?? '')) ?>"
+    data-password="<?= $isMikrotikUsers ? htmlspecialchars((string)($u['password'] ?? '')) : '' ?>"
     data-profile_id="<?= $isMikrotikUsers ? '' : (int)$u['profile_id'] ?>"
     data-nas_id="<?= $isMikrotikUsers ? '' : (int)($u['nas_id'] ?? 0) ?>"
     data-account_type="<?= htmlspecialchars($isMikrotikUsers ? 'MikroTik' : ($u['account_type'] ?? '')) ?>"
@@ -659,7 +669,7 @@ require_once '../includes/layout_header.php';
     <td class="text-end" data-column-key="data_limit"><?= htmlspecialchars($isMikrotikUsers ? $mikrotikDataLimit : $radiusDataLimit) ?></td>
     <td class="text-end" data-column-key="data_consumed"><?= htmlspecialchars($isMikrotikUsers ? $mikrotikDataConsumedLabel : $radiusDataConsumed) ?></td>
     <td class="text-end" data-column-key="validity_profile"><?= htmlspecialchars($isMikrotikUsers ? $mikrotikValidityLabel : $radiusValidity) ?></td>
-    <td data-column-key="expired_mode"><?= htmlspecialchars($isMikrotikUsers ? '-' : $rowExpiredMode) ?></td>
+    <td data-column-key="expired_mode"><?= htmlspecialchars($rowExpiredMode) ?></td>
     <td data-column-key="expiration">
         <?= htmlspecialchars($isMikrotikUsers ? $mikrotikExpiration : ($computedExpirationDate ? date('Y-m-d', strtotime($computedExpirationDate)) : '-')) ?>
     </td>
@@ -842,7 +852,7 @@ require_once '../includes/layout_header.php';
 <?php
 $extraJs = array (
   0 => '../js/table_sort.js',
-  1 => '../js/users_list.js?v=20260430a',
+  1 => '../js/users_list.js?v=20260504a',
 );
 require_once '../includes/layout_footer.php';
 ?>

@@ -1,6 +1,20 @@
 <?php
 
 require_once __DIR__ . '/../config/config.php';
+require_once __DIR__ . '/crypto.php';
+
+/* Champs sensibles chiffrés dans le device store */
+const DEVICE_SENSITIVE_FIELDS = ['api_key', 'api_secret', 'secret'];
+
+function &deviceStoreRuntimeCache(): array
+{
+    static $cache = [
+        'mtime' => null,
+        'store' => null,
+    ];
+
+    return $cache;
+}
 
 function deviceConfigFilePath(): string
 {
@@ -172,8 +186,15 @@ function normalizeDeviceRecord(array $device): array
         'verify_ssl' => !empty($device['verify_ssl']),
         'port' => isset($device['port']) ? (int)$device['port'] : null,
         'vendor' => isset($device['vendor']) ? (string)$device['vendor'] : null,
-        'created_at' => $device['created_at'] ?? null,
-        'updated_at' => $device['updated_at'] ?? null,
+        'created_at'          => $device['created_at'] ?? null,
+        'updated_at'          => $device['updated_at'] ?? null,
+        /* Licence */
+        'device_fingerprint'  => trim((string)($device['device_fingerprint'] ?? '')),
+        'hardware_info'       => is_array($device['hardware_info'] ?? null) ? $device['hardware_info'] : [],
+        'license_key'         => trim((string)($device['license_key']    ?? '')),
+        'license_status'      => trim((string)($device['license_status'] ?? '')),
+        'license_expiry'      => trim((string)($device['license_expiry'] ?? '')),
+        'license_issued'      => trim((string)($device['license_issued'] ?? '')),
     ];
 }
 
@@ -190,23 +211,45 @@ function ensureDeviceStore(array $payload): array
 function loadDeviceStore(): array
 {
     $file = deviceConfigFilePath();
+    $runtimeCache =& deviceStoreRuntimeCache();
+    $mtime = is_file($file) ? filemtime($file) : null;
+
+    if (is_array($runtimeCache['store']) && $runtimeCache['mtime'] === $mtime) {
+        return $runtimeCache['store'];
+    }
 
     if (!is_file($file)) {
-        return [
+        $runtimeCache['mtime'] = null;
+        $runtimeCache['store'] = [
             'active_device_id' => null,
             'devices' => [],
         ];
+
+        return $runtimeCache['store'];
     }
 
     $payload = json_decode((string)file_get_contents($file), true);
     if (!is_array($payload)) {
-        return [
+        $runtimeCache['mtime'] = $mtime;
+        $runtimeCache['store'] = [
             'active_device_id' => null,
             'devices' => [],
         ];
+
+        return $runtimeCache['store'];
     }
 
-    return ensureDeviceStore($payload);
+    $store = ensureDeviceStore($payload);
+
+    /* Déchiffre les champs sensibles à la lecture */
+    $store['devices'] = array_map(static function (array $device): array {
+        return decryptFields($device, DEVICE_SENSITIVE_FIELDS);
+    }, $store['devices']);
+
+    $runtimeCache['mtime'] = $mtime;
+    $runtimeCache['store'] = $store;
+
+    return $runtimeCache['store'];
 }
 
 function saveDeviceStore(array $store): void
@@ -216,11 +259,17 @@ function saveDeviceStore(array $store): void
     $forSave['devices'] = array_map(static function (array $device): array {
         $out = $device;
         unset($out['backend']);
+        /* Chiffre les champs sensibles avant écriture */
+        $out = encryptFields($out, DEVICE_SENSITIVE_FIELDS);
 
         return $out;
     }, $normalized['devices']);
 
     file_put_contents(deviceConfigFilePath(), json_encode($forSave, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES), LOCK_EX);
+
+    $runtimeCache =& deviceStoreRuntimeCache();
+    $runtimeCache['mtime'] = filemtime(deviceConfigFilePath()) ?: time();
+    $runtimeCache['store'] = $normalized;
 }
 
 function findDeviceById(array $store, ?string $deviceId): ?array

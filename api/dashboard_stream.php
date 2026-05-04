@@ -6,6 +6,7 @@ require_once __DIR__ . '/../includes/mikrotik_backend.php';
 require_once __DIR__ . '/../includes/operation_history.php';
 require_once __DIR__ . '/../includes/vouchers.php';
 require_once __DIR__ . '/../includes/profile_schema.php';
+require_once __DIR__ . '/../includes/commercial_report_source.php';
 
 if (session_status() === PHP_SESSION_NONE) {
     session_start();
@@ -52,65 +53,7 @@ function formatCommercialAmount(float $amount): string
 
 function commercialEntriesUnionSql(): string
 {
-    return "
-        SELECT
-            'recharge' AS source_type,
-            id AS source_id,
-            created_at,
-            COALESCE(amount_value, 0) AS amount_value
-        FROM recharge_history
-
-        UNION ALL
-
-        SELECT
-            'voucher_use' AS source_type,
-            v.id AS source_id,
-            v.used_at AS created_at,
-            COALESCE(p.price, 0) AS amount_value
-        FROM vouchers v
-        LEFT JOIN profiles p ON p.id = v.profile_id
-        WHERE v.used_at IS NOT NULL
-
-        UNION ALL
-
-        SELECT
-            'user_create_first_login' AS source_type,
-            oh.id AS source_id,
-            fl.first_login AS created_at,
-            0 AS amount_value
-        FROM (
-            SELECT MAX(id) AS id, target_name
-            FROM operation_history
-            WHERE operation_type = 'user_create'
-            GROUP BY target_name
-        ) oh
-        INNER JOIN (
-            SELECT username, MIN(acctstarttime) AS first_login
-            FROM radacct
-            WHERE acctstarttime IS NOT NULL AND acctstarttime <> ''
-            GROUP BY username
-        ) fl ON fl.username = oh.target_name
-
-        UNION ALL
-
-        SELECT
-            'commercial_notice' AS source_type,
-            id AS source_id,
-            created_at,
-            COALESCE(amount_value, 0) AS amount_value
-        FROM operation_history
-        WHERE operation_type = 'user_notice_record'
-
-        UNION ALL
-
-        SELECT
-            'commercial_remove' AS source_type,
-            id AS source_id,
-            created_at,
-            COALESCE(amount_value, 0) AS amount_value
-        FROM operation_history
-        WHERE operation_type = 'user_remove_record'
-    ";
+    return commercialReportEntriesUnionSql();
 }
 
 function ensureRechargeHistoryStatsTable(PDO $pdo): void
@@ -155,61 +98,7 @@ function loadCommercialSummary(PDO $pdo): array
         $schemaReady = true;
     }
 
-    $commercialEntriesSql = commercialEntriesUnionSql();
-
-    $todayStmt = $pdo->query("
-        SELECT
-            COUNT(DISTINCT CONCAT(source_type, ':', source_id)) AS total_count,
-            COALESCE(SUM(amount_value), 0) AS total_amount
-        FROM ($commercialEntriesSql) commercial_entries
-        WHERE created_at IS NOT NULL
-          AND created_at <> ''
-          AND DATE(created_at) = CURDATE()
-    ");
-    $today = $todayStmt ? ($todayStmt->fetch(PDO::FETCH_ASSOC) ?: []) : [];
-
-    $monthStmt = $pdo->query("
-        SELECT
-            COUNT(DISTINCT CONCAT(source_type, ':', source_id)) AS total_count,
-            COALESCE(SUM(amount_value), 0) AS total_amount
-        FROM ($commercialEntriesSql) commercial_entries
-        WHERE created_at IS NOT NULL
-          AND created_at <> ''
-          AND YEAR(created_at) = YEAR(CURDATE())
-          AND MONTH(created_at) = MONTH(CURDATE())
-    ");
-    $month = $monthStmt ? ($monthStmt->fetch(PDO::FETCH_ASSOC) ?: []) : [];
-
-    $trendStmt = $pdo->query("
-        SELECT
-            DAY(created_at) AS sale_day,
-            COUNT(DISTINCT CONCAT(source_type, ':', source_id)) AS total
-        FROM ($commercialEntriesSql) commercial_entries
-        WHERE created_at IS NOT NULL
-          AND created_at <> ''
-          AND YEAR(created_at) = YEAR(CURDATE())
-          AND MONTH(created_at) = MONTH(CURDATE())
-        GROUP BY DAY(created_at)
-        ORDER BY sale_day ASC
-    ");
-    $trendRaw = $trendStmt ? ($trendStmt->fetchAll(PDO::FETCH_KEY_PAIR) ?: []) : [];
-
-    $daysInMonth = (int)date('t');
-    $trend = [];
-    for ($day = 1; $day <= $daysInMonth; $day++) {
-        $trend[] = [
-            'day' => $day,
-            'total' => (int)($trendRaw[$day] ?? 0),
-        ];
-    }
-
-    return [
-        'today_count' => (int)($today['total_count'] ?? 0),
-        'today_amount' => (float)($today['total_amount'] ?? 0),
-        'month_count' => (int)($month['total_count'] ?? 0),
-        'month_amount' => (float)($month['total_amount'] ?? 0),
-        'trend' => $trend,
-    ];
+    return commercialReportSummary($pdo);
 }
 
 function parseMikrotikLogTimeLabel(?string $raw): array

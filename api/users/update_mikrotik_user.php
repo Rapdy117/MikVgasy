@@ -3,6 +3,7 @@ require '../../config/db.php';
 require_once '../../includes/auth.php';
 require_once '../../includes/mikrotik_backend.php';
 require_once '../../includes/operation_history.php';
+require_once '../../includes/backend_agent.php';
 
 session_start();
 
@@ -57,6 +58,14 @@ try {
     if (!is_array($device) || normalizeDeviceType((string)($device['type'] ?? '')) !== 'mikrotik') {
         throw new RuntimeException('Serveur MikroTik introuvable.');
     }
+
+    requireDeviceLicensed($device);
+    backendAgentAuthorizeDeviceAction($device, 'mikrotik-update-user', [
+        'old_username' => $oldUsername,
+        'username' => $username,
+        'password_changed' => $password !== null && $password !== '',
+        'status' => $status !== '' ? $status : null,
+    ]);
 
     $nasContext = [
         'device' => $device,

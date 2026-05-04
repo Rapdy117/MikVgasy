@@ -6,8 +6,6 @@ require_once '../config/db.php';
 require_once '../includes/local_admins.php';
 require_once '../includes/auth.php';
 require_once '../includes/operation_history.php';
-require_once '../includes/portal_hotspot.php';
-require_once '../includes/portal_template_injector.php';
 require_once '../includes/device_manager.php';
 require_once '../includes/nas_resolver.php';
 
@@ -34,147 +32,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
         $action = trim((string)($_POST['admin_action'] ?? ''));
 
-        if ($action === 'portal_captive_deploy') {
-            $store = loadDeviceStore();
-            $deviceId = trim((string)($_POST['portal_device_id'] ?? ''));
-            $device = findDeviceById($store, $deviceId);
-            if ($device === null) {
-                throw new RuntimeException('Choisissez un device valide.');
-            }
-
-            try {
-                $deviceType = deriveDeviceType($device);
-            } catch (InvalidArgumentException $e) {
-                throw new RuntimeException('Type de device inconnu pour ce NAS.');
-            }
-
-            $portalApiBaseUrl = normalizePortalApiBaseUrl((string)($_POST['portal_api_base_url'] ?? ''));
-
-            $zipFile = $_FILES['portal_template_zip'] ?? null;
-            if (!is_array($zipFile) || (int)($zipFile['error'] ?? 0) !== UPLOAD_ERR_OK) {
-                $err = (int)($zipFile['error'] ?? UPLOAD_ERR_NO_FILE);
-                if ($err === UPLOAD_ERR_INI_SIZE || $err === UPLOAD_ERR_FORM_SIZE) {
-                    throw new RuntimeException('ZIP trop volumineux.');
-                }
-                throw new RuntimeException('Fichier ZIP du modele obligatoire.');
-            }
-
-            $zipMax = portalCaptiveZipUploadMaxBytes();
-            if ((int)($zipFile['size'] ?? 0) > $zipMax) {
-                throw new RuntimeException('ZIP : taille max ' . (int)($zipMax / 1024 / 1024) . ' Mo.');
-            }
-
-            $zipBaseName = (string)($zipFile['name'] ?? '');
-            if (strtolower(pathinfo($zipBaseName, PATHINFO_EXTENSION)) !== 'zip') {
-                throw new RuntimeException('Le modele doit etre une archive .zip.');
-            }
-
-            $tmpZip = (string)($zipFile['tmp_name'] ?? '');
-            $analysis = portalAnalyzeCaptiveZip($tmpZip);
-            $compat = portalCompatMessageForDevice($deviceType, $analysis);
-
-            portalEnsureCaptiveDirectories();
-            $safeId = preg_replace('/[^a-zA-Z0-9_-]+/', '_', $deviceId);
-            $destName = 'captive_' . $safeId . '_' . date('Ymd_His') . '.zip';
-            $destAbs = portalCaptiveFilesystemRoot() . '/templates/' . $destName;
-            if (!move_uploaded_file($tmpZip, $destAbs)) {
-                throw new RuntimeException('Impossible d enregistrer l archive sur le serveur.');
-            }
-
-            $injectionMeta = null;
-            if ($deviceType === 'opnsense') {
-                $statusApiUrl = rtrim($portalApiBaseUrl, '/') . '/api/portal/opnsense_user_status.php';
-                $injectionMeta = portalInjectOpnsenseTemplateArchive($destAbs, [
-                    'api_base_url' => $portalApiBaseUrl,
-                    'status_api_url' => $statusApiUrl,
-                    'device_id' => $deviceId,
-                    'device_type' => $deviceType,
-                ]);
-            } elseif ($deviceType === 'mikrotik') {
-                $routerHost = extractDeviceAddress((string)($device['host'] ?? ''));
-                if ($routerHost === '') {
-                    $routerHost = trim((string)($device['ip'] ?? ''));
-                }
-                if ($routerHost === '') {
-                    throw new RuntimeException('Adresse routeur MikroTik introuvable pour injection.');
-                }
-
-                $injectionMeta = portalInjectMikrotikTemplateArchive($destAbs, [
-                    'api_base_url' => $portalApiBaseUrl,
-                    'router_host' => $routerHost,
-                    'device_type' => $deviceType,
-                ]);
-            }
-
-            $templateRel = 'uploads/portal_captive/templates/' . $destName;
-
-            $prev = loadPortalHotspotConfig();
-            $logoRel = $prev['logo_relative_path'] ?? null;
-
-            $logoUpload = $_FILES['portal_logo'] ?? null;
-            if (is_array($logoUpload) && (int)($logoUpload['error'] ?? 0) === UPLOAD_ERR_OK && (int)($logoUpload['size'] ?? 0) > 0) {
-                $logoRel = portalStoreCaptiveLogoUpload($logoUpload);
-            } else {
-                $existingLogo = trim((string)($_POST['portal_logo_existing'] ?? ''));
-                if ($existingLogo !== '') {
-                    $pick = basename($existingLogo);
-                    if (in_array($pick, portalListCaptiveLogoFiles(), true)) {
-                        $logoRel = 'uploads/portal_captive/logos/' . $pick;
-                    }
-                }
-            }
-
-            $lastCompat = [
-                'level' => $compat['level'],
-                'summary' => $compat['summary'],
-                'detail' => $compat['detail'],
-                'device_type' => $deviceType,
-                'zip_files' => $analysis['file_count'],
-                'deploy_note' => 'Deploiement automatique vers l equipement non disponible pour le moment. L archive est stockee sur ce serveur.',
-                'injected_entry_file' => is_array($injectionMeta) ? (string)($injectionMeta['entry_file'] ?? '') : null,
-                'status_api_url' => is_array($injectionMeta) ? (string)($injectionMeta['status_api_url'] ?? '') : null,
-                'injected_device_id' => is_array($injectionMeta) ? (string)($injectionMeta['device_id'] ?? '') : null,
-                'injected_router_host' => is_array($injectionMeta) ? (string)($injectionMeta['router_host'] ?? '') : null,
-                'injection_verified' => is_array($injectionMeta),
-            ];
-
-            savePortalHotspotConfig([
-                'api_base_url' => $portalApiBaseUrl,
-                'captive_device_id' => $deviceId,
-                'template_relative_path' => $templateRel,
-                'logo_relative_path' => $logoRel,
-                'last_compat' => $lastCompat,
-            ]);
-
-            recordOperationHistory($pdo, [
-                'operation_scope' => 'admin',
-                'operation_type' => 'portal_captive_deploy',
-                'actor_username' => (string)($_SESSION['username'] ?? ''),
-                'actor_role' => (string)($_SESSION['user_role'] ?? 'administrator'),
-                'target_type' => 'portal_captive',
-                'target_name' => (string)($device['name'] ?? $device['host'] ?? $deviceId),
-                'target_ref' => $deviceId,
-                'summary' => 'Portail captif : enregistrement local du template (aucun déploiement device)',
-                'details_json' => [
-                    'api_base_url' => $portalApiBaseUrl,
-                    'template_relative_path' => $templateRel,
-                    'logo_relative_path' => $logoRel,
-                    'compat_level' => $compat['level'],
-                    'injected_entry_file' => is_array($injectionMeta) ? (string)($injectionMeta['entry_file'] ?? '') : null,
-                    'status_api_url' => is_array($injectionMeta) ? (string)($injectionMeta['status_api_url'] ?? '') : null,
-                    'injected_device_id' => is_array($injectionMeta) ? (string)($injectionMeta['device_id'] ?? '') : null,
-                    'injected_router_host' => is_array($injectionMeta) ? (string)($injectionMeta['router_host'] ?? '') : null,
-                    'injection_verified' => is_array($injectionMeta),
-                ],
-            ]);
-
-            $msg = 'Portail captif : template enregistré sur ce serveur. '
-                . $compat['summary'] . ' — ' . $compat['detail']
-                . ' Aucun déploiement automatique vers le device n’est effectué. '
-                . 'Importez manuellement l’archive sur le portail du routeur/pare-feu.';
-
-            set_message($msg, $compat['level'] === 'warn' ? 'warning' : 'success');
-        } elseif ($action === 'create') {
+        if ($action === 'create') {
             $targetUsername = (string)($_POST['username'] ?? '');
             $targetRole = (string)($_POST['role'] ?? 'administrator');
             createLocalAdmin(
@@ -248,10 +106,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
 $admins = listLocalAdmins($pdo);
 $currentLocalAdminId = (int)($_SESSION['local_admin_id'] ?? 0);
-$portalHotspotConfig = loadPortalHotspotConfig();
 $deviceStore = loadDeviceStore();
-$portalLogoFiles = portalListCaptiveLogoFiles();
-$lastPortalCompat = is_array($portalHotspotConfig['last_compat'] ?? null) ? $portalHotspotConfig['last_compat'] : null;
 
 $allDevices = is_array($deviceStore['devices'] ?? null) ? $deviceStore['devices'] : [];
 $mikrotikDevices = [];
@@ -354,7 +209,7 @@ require_once '../includes/layout_header.php';
     </li>
     <li class="nav-item" role="presentation">
         <button class="nav-link" id="admin-system-tab" data-bs-toggle="tab" data-bs-target="#administration-system" type="button" role="tab" aria-controls="administration-system" aria-selected="false">
-            <i class="fa fa-sliders me-1"></i> Portail et maintenance
+            <i class="fa fa-sliders me-1"></i> Import / export et maintenance
         </button>
     </li>
 </ul>
@@ -502,124 +357,7 @@ require_once '../includes/layout_header.php';
 
             <div class="tab-pane fade" id="administration-system" role="tabpanel" aria-labelledby="admin-system-tab">
                 <div class="row g-3">
-                    <div class="col-12 col-lg-4 mb-3 mb-lg-0">
-                        <div class="card shadow-sm mb-3 administration-card h-100">
-                            <div class="card-header">
-                                <span class="administration-section-title"><i class="fa fa-globe me-2"></i> Portail captif</span>
-                            </div>
-                            <div class="card-body">
-                                <form method="POST" class="network-device-form administration-form administration-panel-form" id="portalCaptiveForm" enctype="multipart/form-data" autocomplete="off">
-                                    <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($_SESSION['csrf_token']) ?>">
-                                    <input type="hidden" name="admin_action" value="portal_captive_deploy">
-
-                                    <div class="mb-3">
-                                        <label class="form-label small text-white-50 mb-1" for="portalDeviceSelect">Device</label>
-                                        <select class="form-select" name="portal_device_id" id="portalDeviceSelect" required <?= count($deviceStore['devices'] ?? []) < 1 ? 'disabled' : '' ?>>
-                                            <option value="">— Choisir un device —</option>
-                                            <?php foreach ($deviceStore['devices'] as $devRow): ?>
-                                                <?php
-                                                $devId = (string)($devRow['id'] ?? '');
-                                                $typeLabel = (string)($devRow['type'] ?? '');
-                                                $nameLabel = trim((string)($devRow['name'] ?? ''));
-                                                if ($nameLabel !== '') {
-                                                    $devLabel = $nameLabel . ' (' . $typeLabel . ')';
-                                                } else {
-                                                    $devLabel = trim((string)($devRow['host'] ?? '')) . ' (' . $typeLabel . ')';
-                                                }
-                                                $sel = ((string)($portalHotspotConfig['captive_device_id'] ?? '') === $devId) ? ' selected' : '';
-                                                ?>
-                                                <option value="<?= htmlspecialchars($devId) ?>"<?= $sel ?>><?= htmlspecialchars($devLabel) ?></option>
-                                            <?php endforeach; ?>
-                                        </select>
-                                        <?php if (count($deviceStore['devices'] ?? []) < 1): ?>
-                                            <div class="small text-warning mt-1">Aucun device configure. Ajoutez un NAS dans la section equipements.</div>
-                                        <?php endif; ?>
-                                    </div>
-
-                                    <div class="mb-3">
-                                        <label class="form-label small text-white-50 mb-1" for="portalTemplateZip">Template (ZIP)</label>
-                                        <input
-                                            type="file"
-                                            class="form-control"
-                                            name="portal_template_zip"
-                                            id="portalTemplateZip"
-                                            accept=".zip,application/zip"
-                                            required
-                                        >
-                                        <div class="small text-white-50 mt-1">Archive obligatoire ; max <?= (int)(portalCaptiveZipUploadMaxBytes() / 1024 / 1024) ?> Mo.</div>
-                                    </div>
-
-                                    <div class="mb-3 administration-info-box" id="portalCompatBox">
-                                        <div class="small text-white-50 mb-1 administration-info-box-title">Compatibilite (apres enregistrement)</div>
-                                        <?php if ($lastPortalCompat !== null): ?>
-                                            <?php
-                                            $lc = (string)($lastPortalCompat['level'] ?? 'ok');
-                                            $badgeClass = $lc === 'warn' ? 'text-warning' : 'text-success';
-                                            ?>
-                                            <div class="small <?= htmlspecialchars($badgeClass) ?>">
-                                                <strong><?= htmlspecialchars((string)($lastPortalCompat['summary'] ?? '')) ?></strong>
-                                                — <?= htmlspecialchars((string)($lastPortalCompat['detail'] ?? '')) ?>
-                                                <?php if (isset($lastPortalCompat['zip_files'])): ?>
-                                                    <span class="text-white-50"> (<?= (int)$lastPortalCompat['zip_files'] ?> fichiers dans le ZIP)</span>
-                                                <?php endif; ?>
-                                            </div>
-                                        <?php else: ?>
-                                            <div class="small text-white-50" id="portalCompatPlaceholder">Selectionnez un device et un ZIP, puis enregistrez pour verifier la compatibilite.</div>
-                                        <?php endif; ?>
-                                    </div>
-
-                                    <div class="input-group mb-3">
-                                        <span class="input-group-text">Adresse serveur API</span>
-                                        <input
-                                            type="text"
-                                            class="form-control"
-                                            name="portal_api_base_url"
-                                            value="<?= htmlspecialchars((string)($portalHotspotConfig['api_base_url'] ?? 'http://10.10.10.2')) ?>"
-                                            placeholder="https://votre-serveur"
-                                            required
-                                        >
-                                    </div>
-
-                                    <div class="mb-3">
-                                        <label class="form-label small text-white-50 mb-1" for="portalLogoFile">Logo (optionnel)</label>
-                                        <input type="file" class="form-control" name="portal_logo" id="portalLogoFile" accept="image/png,image/jpeg,image/gif,image/webp">
-                                        <?php if (count($portalLogoFiles) > 0): ?>
-                                            <div class="mt-2">
-                                                <label class="form-label small text-white-50 mb-1" for="portalLogoExisting">Ou logo deja depose</label>
-                                                <select class="form-select" name="portal_logo_existing" id="portalLogoExisting">
-                                                    <option value="">— Aucun —</option>
-                                                    <?php
-                                                    $currentLogoBase = '';
-                                                    $lr = (string)($portalHotspotConfig['logo_relative_path'] ?? '');
-                                                    if ($lr !== '' && preg_match('#/([^/]+)$#', $lr, $m)) {
-                                                        $currentLogoBase = $m[1];
-                                                    }
-                                                    ?>
-                                                    <?php foreach ($portalLogoFiles as $lf): ?>
-                                                        <option value="<?= htmlspecialchars($lf) ?>"<?= ($currentLogoBase === $lf) ? ' selected' : '' ?>><?= htmlspecialchars($lf) ?></option>
-                                                    <?php endforeach; ?>
-                                                </select>
-                                            </div>
-                                        <?php endif; ?>
-                                    </div>
-
-                                    <?php if (!empty($portalHotspotConfig['template_relative_path'])): ?>
-                                        <div class="small text-white-50 mb-3">
-                                            Dernier template stocke : <code class="user-select-all"><?= htmlspecialchars((string)$portalHotspotConfig['template_relative_path']) ?></code>
-                                        </div>
-                                    <?php endif; ?>
-
-                                    <div class="d-grid">
-                                        <button type="submit" class="btn btn-save" <?= count($deviceStore['devices'] ?? []) < 1 ? 'disabled' : '' ?>>
-                                            <i class="fa fa-cloud-arrow-up me-1"></i> Mettre en place le portail sur le device choisi
-                                        </button>
-                                    </div>
-                                </form>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="col-12 col-lg-4 mb-3 mb-lg-0">
+                    <div class="col-12 col-lg-6 mb-3 mb-lg-0">
                         <div class="card shadow-sm mb-3 administration-card h-100">
                             <div class="card-header d-flex align-items-center justify-content-between">
                                 <span class="administration-section-title">
@@ -727,7 +465,7 @@ require_once '../includes/layout_header.php';
                         </div>
                     </div>
 
-                    <div class="col-12 col-lg-4">
+                    <div class="col-12 col-lg-6">
                         <div class="card shadow-sm administration-card h-100">
                             <div class="card-header d-flex align-items-center justify-content-between">
                                 <span class="administration-section-title">

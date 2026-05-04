@@ -140,9 +140,27 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $id = post_string_or_null('id');
 
         if ($id === null) {
+            echo json_encode(['success' => false, 'message' => 'Identifiant manquant']);
+            exit;
+        }
+
+        /* ── Vérification licence avant activation ── */
+        require_once __DIR__ . '/../includes/license.php';
+        $candidateDevice = findDeviceById($data, $id);
+        if (!$candidateDevice) {
+            echo json_encode(['success' => false, 'message' => 'Device introuvable']);
+            exit;
+        }
+
+        $licStatus = getDeviceLicenseStatus($candidateDevice);
+        if (!$licStatus['valid']) {
+            $deviceId = $licStatus['device_id'] ?? 'non identifié';
+            http_response_code(403);
             echo json_encode([
-                'success' => false,
-                'message' => 'Identifiant manquant',
+                'success'          => false,
+                'message'          => "🔒 Licence requise pour activer ce routeur.\nDevice ID : {$deviceId}\nContactez l'administrateur pour obtenir votre clé de licence.",
+                'license_required' => true,
+                'license'          => $licStatus,
             ]);
             exit;
         }
@@ -150,17 +168,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $activeDevice = setActiveDeviceId($id);
 
         if (!$activeDevice) {
-            echo json_encode([
-                'success' => false,
-                'message' => 'Device introuvable'
-            ]);
+            echo json_encode(['success' => false, 'message' => 'Device introuvable']);
             exit;
         }
 
         echo json_encode([
-            'success' => true,
+            'success'          => true,
             'active_device_id' => $activeDevice['id'],
-            'active_device' => stripDeviceSecretsForPublicApi($activeDevice),
+            'active_device'    => stripDeviceSecretsForPublicApi($activeDevice),
             'connection_state' => buildDeviceConnectionState($activeDevice),
         ]);
         exit;
@@ -178,6 +193,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $verify_ssl = ($_POST['verify_ssl'] ?? 'false') === 'true';
     $setActive = ($_POST['is_active'] ?? '0') === '1';
     $existingDevice = null;
+    /* Fingerprint transmis depuis le test de connexion JS */
+    $deviceFingerprint = trim((string)($_POST['device_fingerprint'] ?? ''));
+    $hardwareInfoRaw   = trim((string)($_POST['hardware_info']      ?? ''));
+    $hardwareInfo      = $hardwareInfoRaw !== '' ? (json_decode($hardwareInfoRaw, true) ?? []) : [];
 
     if ($id !== null) {
         foreach ($data['devices'] as $candidateDevice) {
@@ -235,22 +254,26 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     foreach ($data['devices'] as &$device) {
         if (($device['id'] ?? '') === $id) {
-
             $device = normalizeDeviceRecord([
-                'id' => $id,
-                'name' => $name,
-                'type' => $type,
-                'host' => $host,
-                'api_key' => $requiresApiCredentials ? $effectiveApiKey : '',
-                'api_secret' => $effectiveApiSecret,
-                'secret' => $effectiveApiSecret,
-                'verify_ssl' => $verify_ssl,
-                'port' => $device['port'] ?? null,
-                'vendor' => $device['vendor'] ?? null,
-                'created_at' => $device['created_at'] ?? null,
-                'updated_at' => date('Y-m-d H:i:s')
+                'id'                 => $id,
+                'name'               => $name,
+                'type'               => $type,
+                'host'               => $host,
+                'api_key'            => $requiresApiCredentials ? $effectiveApiKey : '',
+                'api_secret'         => $effectiveApiSecret,
+                'secret'             => $effectiveApiSecret,
+                'verify_ssl'         => $verify_ssl,
+                'port'               => $device['port']    ?? null,
+                'vendor'             => $device['vendor']  ?? null,
+                'created_at'         => $device['created_at'] ?? null,
+                'updated_at'         => date('Y-m-d H:i:s'),
+                'device_fingerprint' => $deviceFingerprint !== '' ? $deviceFingerprint : ($device['device_fingerprint'] ?? ''),
+                'hardware_info'      => !empty($hardwareInfo) ? $hardwareInfo : ($device['hardware_info'] ?? []),
+                'license_key'        => $device['license_key']    ?? '',
+                'license_status'     => $device['license_status'] ?? '',
+                'license_expiry'     => $device['license_expiry'] ?? '',
+                'license_issued'     => $device['license_issued'] ?? '',
             ]);
-
             $savedDevice = $device;
             $found = true;
             break;
@@ -260,36 +283,79 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     if (!$found) {
         $savedDevice = normalizeDeviceRecord([
-            'id' => $id,
-            'name' => $name,
-            'type' => $type,
-            'host' => $host,
-            'api_key' => $requiresApiCredentials ? $effectiveApiKey : '',
-            'api_secret' => $effectiveApiSecret,
-            'secret' => $effectiveApiSecret,
-            'verify_ssl' => $verify_ssl,
-            'created_at' => date('Y-m-d H:i:s')
+            'id'                 => $id,
+            'name'               => $name,
+            'type'               => $type,
+            'host'               => $host,
+            'api_key'            => $requiresApiCredentials ? $effectiveApiKey : '',
+            'api_secret'         => $effectiveApiSecret,
+            'secret'             => $effectiveApiSecret,
+            'verify_ssl'         => $verify_ssl,
+            'created_at'         => date('Y-m-d H:i:s'),
+            'device_fingerprint' => $deviceFingerprint,
+            'hardware_info'      => $hardwareInfo,
         ]);
         $data['devices'][] = $savedDevice;
     }
 
     $syncedNasId = $savedDevice !== null ? syncRadiusNasForDevice($pdo, $savedDevice) : null;
 
-    if ($setActive || empty($data['active_device_id'])) {
+    /* ── N'active automatiquement que si la licence est valide ── */
+    require_once __DIR__ . '/../includes/license.php';
+    $savedLicStatus = getDeviceLicenseStatus($savedDevice ?? []);
+
+    if ($savedLicStatus['valid']) {
+        /* Licencié → active automatiquement à chaque sauvegarde */
         $data['active_device_id'] = $id;
         $_SESSION['active_device_id'] = $id;
+    } elseif (empty($data['active_device_id'])) {
+        $data['active_device_id'] = null;
     }
 
     saveDeviceStore($data);
 
     $activeAfterSave = findDeviceById($data, (string)($data['active_device_id'] ?? ''));
+
+    /* Pour RADIUS : générer un fingerprint depuis l'IP si absent */
+    if ($savedDevice !== null && ($savedDevice['type'] ?? '') === 'radius'
+        && trim((string)($savedDevice['device_fingerprint'] ?? '')) === '') {
+        $radiusHost = trim((string)($savedDevice['ip'] ?? $savedDevice['host'] ?? ''));
+        $radiusPort = (int)($savedDevice['port'] ?? 1812);
+        if ($radiusHost !== '') {
+            $radiusHwInfo = [
+                'serial' => $radiusHost,
+                'host'   => $radiusHost,
+                'board'  => 'FreeRADIUS',
+            ];
+            try {
+                $radiusFp = computeDeviceFingerprint($radiusHwInfo);
+                $radiusDevId = formatDeviceId($radiusFp, 'radius');
+                foreach ($data['devices'] as &$dRef) {
+                    if (($dRef['id'] ?? '') === $id) {
+                        $dRef['device_fingerprint'] = $radiusFp;
+                        $dRef['hardware_info']      = $radiusHwInfo;
+                        $savedDevice = $dRef;
+                        break;
+                    }
+                }
+                unset($dRef);
+                saveDeviceStore($data);
+            } catch (\Throwable $ignored) {}
+        }
+    }
+
+    /* Recalcule avec les éventuelles données RADIUS générées */
+    $licenseStatus = getDeviceLicenseStatus($savedDevice ?? []);
+
     echo json_encode([
-        'success' => true,
-        'id' => $id,
-        'synced_nas_id' => $syncedNasId,
-        'active_device_id' => $data['active_device_id'] ?? null,
-        'active_device' => stripDeviceSecretsForPublicApi($activeAfterSave),
-        'connection_state' => buildDeviceConnectionState($activeAfterSave),
+        'success'                       => true,
+        'id'                            => $id,
+        'synced_nas_id'                 => $syncedNasId,
+        'active_device_id'              => $data['active_device_id'] ?? null,
+        'active_device'                 => stripDeviceSecretsForPublicApi($activeAfterSave),
+        'connection_state'              => buildDeviceConnectionState($activeAfterSave),
+        'saved_device_connection_state' => buildDeviceConnectionState($savedDevice),
+        'license'                       => $licenseStatus,
     ]);
     exit;
 }

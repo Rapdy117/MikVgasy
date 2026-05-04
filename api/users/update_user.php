@@ -1,11 +1,13 @@
 <?php
 require '../../config/db.php';
 require_once '../../includes/auth.php';
+require_once '../../includes/crypto.php';
 require_once '../../includes/nas_resolver.php';
 require_once '../../includes/opnsense_shaper.php';
 require_once '../../includes/radius_sync.php';
 require_once '../../includes/operation_history.php';
 require_once '../../includes/user_schema.php';
+require_once '../../includes/backend_agent.php';
 
 session_start();
 
@@ -193,6 +195,13 @@ try {
     $pdo->beginTransaction();
 
     $nasContext = resolveNasContextFromInputs($pdo, $nas_id, $device_id);
+    backendAgentAuthorizeDeviceAction($nasContext['device'] ?? [], 'user-update', [
+        'user_id' => $id,
+        'username' => $username,
+        'profile_id' => $profile_id,
+        'nas_id' => $nas_id,
+        'status' => $status,
+    ]);
 
     if ((int)($nasContext['nas_id'] ?? 0) !== (int)$nas_id) {
         throw new Exception('NAS incoherent avec le serveur choisi');
@@ -225,7 +234,11 @@ try {
     }
 
     if ($password === null) {
+        /* Garde le mot de passe existant (déjà chiffré en DB) */
         $password = $existingUser['password'];
+    } else {
+        /* Nouveau mot de passe → chiffre avant stockage */
+        $password = encryptField($password);
     }
 
     /* =========================

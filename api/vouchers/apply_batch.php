@@ -3,6 +3,8 @@
 require_once '../../config/db.php';
 require_once '../../includes/vouchers.php';
 require_once '../../includes/device_manager.php';
+require_once '../../includes/license.php';
+require_once '../../includes/backend_agent.php';
 
 header('Content-Type: application/json');
 
@@ -41,6 +43,14 @@ try {
     if (!$device) {
         throw new RuntimeException('Serveur introuvable');
     }
+
+    requireDeviceLicensed($device);
+    $licenseDeviceId = formatDeviceId((string)($device['device_fingerprint'] ?? ''), (string)($device['type'] ?? 'dev'));
+    backendAgentAuthorizeAction('voucher-apply-batch', $licenseDeviceId, [
+        'count' => count($batch['entries'] ?? []),
+        'profile_name' => (string)($batch['profile_name'] ?? ''),
+        'device_type' => (string)($device['type'] ?? ''),
+    ]);
 
     $batch['printed_by'] = trim((string)($_SESSION['username'] ?? ''));
     $saveResult = savePreparedVoucherBatch($pdo, $batch);

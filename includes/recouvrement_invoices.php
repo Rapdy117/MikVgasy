@@ -55,7 +55,7 @@ if (!function_exists('notifyMissingVoucherPrice')) {
     function notifyMissingVoucherPrice(PDO $pdo): void
     {
         $stmt = $pdo->query("
-            SELECT DISTINCT v.profile_id, p.name AS profile_name, p.price AS profile_price
+            SELECT DISTINCT v.profile_id, COALESCE(NULLIF(v.profile_name, ''), p.name) AS profile_name, COALESCE(v.price, p.price) AS profile_price
             FROM vouchers v
             LEFT JOIN profiles p ON p.id = v.profile_id
             WHERE v.used_at IS NOT NULL
@@ -168,6 +168,7 @@ function calculateRecouvrementInvoiceSnapshot(
     ensureRecouvrementInvoicesTable($pdo);
     ensureRecouvrementInvoiceMovementsTable($pdo);
     ensureProfilesExtendedSchema($pdo);
+    syncVoucherCommercialSnapshots($pdo);
     notifyMissingVoucherPrice($pdo);
 
     $rechargeSummaryStmt = $pdo->prepare("
@@ -200,7 +201,7 @@ function calculateRecouvrementInvoiceSnapshot(
     $voucherUseSummaryStmt = $pdo->prepare("
         SELECT
             COUNT(*) AS total_uses,
-            COALESCE(SUM(COALESCE(p.price, 0)), 0) AS total_amount
+            COALESCE(SUM(COALESCE(v.price, p.price, 0)), 0) AS total_amount
         FROM vouchers v
         LEFT JOIN profiles p ON p.id = v.profile_id
         WHERE v.printed_by = :operator
@@ -270,7 +271,7 @@ function calculateRecouvrementInvoiceSnapshot(
                     AND rim.source_id = recharge_history.id
               )
             UNION
-            SELECT COALESCE(NULLIF(p.name, ''), '-') AS profile_name
+            SELECT COALESCE(NULLIF(v.profile_name, ''), p.name, '-') AS profile_name
             FROM vouchers v
             LEFT JOIN profiles p ON p.id = v.profile_id
             WHERE v.printed_by = :operator
@@ -381,9 +382,9 @@ function calculateRecouvrementInvoiceSnapshot(
             v.id AS source_id,
             v.used_at AS created_at,
             COALESCE(NULLIF(v.username, ''), v.used_by) AS target_name,
-            COALESCE(NULLIF(p.name, ''), '-') AS profile_name,
+            COALESCE(NULLIF(v.profile_name, ''), p.name, '-') AS profile_name,
             '1er login voucher' AS summary,
-            COALESCE(p.price, 0) AS amount_value,
+            COALESCE(v.price, p.price, 0) AS amount_value,
             NULL AS quantity,
             NULL AS first_username,
             NULL AS last_username

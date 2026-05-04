@@ -1,10 +1,12 @@
 <?php
-require '../../config/db.php'; // ta connexion PDO
+require '../../config/db.php';
 require_once '../../includes/auth.php';
+require_once '../../includes/crypto.php';
 require_once '../../includes/user_provisioning.php';
 require_once '../../includes/opnsense_shaper.php';
 require_once '../../includes/operation_history.php';
 require_once '../../includes/user_schema.php';
+require_once '../../includes/backend_agent.php';
 
 session_start();
 
@@ -192,10 +194,22 @@ if (($session_timeout !== null && $session_timeout < 0) || ($data_limit !== null
 try {
     ensureOperationHistoryTable($pdo);
     ensureAdminNotificationsTable($pdo);
+    $deviceStore = loadDeviceStore();
+    $targetDevice = findDeviceById($deviceStore, (string)$device_id);
+    if (!is_array($targetDevice)) {
+        throw new RuntimeException('Device introuvable');
+    }
+    backendAgentAuthorizeDeviceAction($targetDevice, 'user-create', [
+        'username' => $username,
+        'profile_id' => $profile_id,
+        'profile_name' => $profile_name,
+        'nas_id' => $nas_id,
+    ]);
+
     $pdo->beginTransaction();
     $result = provisionUserWithProfile($pdo, [
         'username' => $username,
-        'password' => $password,
+        'password' => encryptField($password), /* chiffré en DB, déchiffré au sync RADIUS */
         'profile_id' => $profile_id,
         'profile_name' => $profile_name,
         'device_id' => $device_id,

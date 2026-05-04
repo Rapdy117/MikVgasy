@@ -525,9 +525,39 @@ body::before {
 }
 
 .menu-item > .submenu-group {
+    position: relative;
     margin-left: 10px;
     padding-left: 12px;
-    border-left: 1px dashed rgba(0, 255, 255, 0.2);
+    border-left: 0;
+}
+
+.menu-item > .submenu-group::before {
+    content: "";
+    position: absolute;
+    top: 4px;
+    bottom: 4px;
+    left: -1px;
+    width: 2px;
+    pointer-events: none;
+    background: rgba(23, 162, 184, 0.34);
+    border-radius: 999px;
+    box-shadow: 0 0 5px rgba(23, 162, 184, 0.22);
+}
+
+.menu-item > .submenu-group::after {
+    content: "";
+    position: absolute;
+    top: 4px;
+    left: -1px;
+    width: 2px;
+    height: 18px;
+    pointer-events: none;
+    border-radius: 999px;
+    background: linear-gradient(180deg, rgba(255, 255, 255, 0.95), rgba(103, 232, 249, 0.95), rgba(34, 211, 238, 0.35));
+    box-shadow:
+        0 0 7px rgba(34, 211, 238, 0.95),
+        0 0 14px rgba(34, 211, 238, 0.45);
+    animation: sidebarLedDotTravel 2.7s ease-in-out infinite alternate;
 }
 
 .level-0 {
@@ -539,6 +569,20 @@ body::before {
     padding-left: 30px;
     background-color: rgba(0, 0, 0, 0.2);
     border-left: 3px solid rgba(0, 255, 255, 0.25);
+}
+
+@keyframes sidebarLedDotTravel {
+    from {
+        top: 4px;
+        opacity: 0.78;
+    }
+    50% {
+        opacity: 1;
+    }
+    to {
+        top: calc(100% - 22px);
+        opacity: 0.88;
+    }
 }
 
 /* =====================================================
@@ -714,6 +758,16 @@ body::before {
     color: #f4f7fb;
     font-size: 0.92rem;
     font-weight: 700;
+}
+
+.sales-summary-meta {
+    display: block;
+    margin-top: 2px;
+    color: var(--theme-text-muted);
+    font-size: 0.68rem;
+    font-weight: 500;
+    line-height: 1.1;
+    white-space: nowrap;
 }
 
 .dashboard-pill-list {

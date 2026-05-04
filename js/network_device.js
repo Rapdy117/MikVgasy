@@ -1,3 +1,23 @@
+/* Copie dans le presse-papier — fonctionne sur HTTP et à l'intérieur d'un Bootstrap Modal */
+function copyToClipboard(text) {
+    if (navigator.clipboard && window.isSecureContext) {
+        return navigator.clipboard.writeText(text);
+    }
+    /* Fallback execCommand — doit s'exécuter dans le focus-trap du modal si actif */
+    const container = document.querySelector('.modal.show .modal-body') || document.body;
+    const ta = document.createElement('textarea');
+    ta.value = text;
+    ta.setAttribute('readonly', '');
+    ta.style.cssText = 'position:absolute;left:-9999px;top:0;width:1px;height:1px;';
+    container.appendChild(ta);
+    ta.focus();
+    ta.setSelectionRange(0, ta.value.length);
+    let ok = false;
+    try { ok = document.execCommand('copy'); } catch (_) {}
+    container.removeChild(ta);
+    return ok ? Promise.resolve() : Promise.reject(new Error('copy_failed'));
+}
+
 let isNew = false;
 document.addEventListener("DOMContentLoaded", function () {
     const deviceApiUrl = '../api/network_devices_api.php';
@@ -26,6 +46,7 @@ document.addEventListener("DOMContentLoaded", function () {
     let currentDevice = null;
     let activeDeviceId = null;
     let deviceStatuses = loadDeviceStatuses();
+    let deviceLicInfo = null;
     const VALID_DEVICE_TYPES = ['opnsense', 'mikrotik', 'radius'];
 
     function isValidDeviceType(type) {
@@ -121,8 +142,8 @@ document.addEventListener("DOMContentLoaded", function () {
         backendStatus.innerHTML = `
             <span class="${colorClass}">${formatDeviceType(device.type)} | ${driverDisplay} | ${statusValue}</span>
             ${sourceLine}
-            <div class="small text-muted mt-1">${message}</div>
-            <div class="small text-white-50 mt-1">Host : ${hostValue}</div>
+            <div class="small mt-1" style="color:#cbd5e1;">${message}</div>
+            <div class="small mt-1" style="color:#94a3b8;">Host : ${hostValue}</div>
         `;
     }
 
@@ -139,7 +160,7 @@ document.addEventListener("DOMContentLoaded", function () {
         }
 
         if (normalizedType === 'opnsense') {
-            return `https://${value.replace(/^\/+/, '')}`;
+            return `http://${value.replace(/^\/+/, '')}`;
         }
 
         return value;
@@ -232,6 +253,12 @@ document.addEventListener("DOMContentLoaded", function () {
             formData.set(field.name, field.value ?? '');
         });
 
+        /* Ajoute le fingerprint si disponible (récupéré lors du test) */
+        if (form.dataset.deviceFingerprint) {
+            formData.set('device_fingerprint', form.dataset.deviceFingerprint);
+            formData.set('hardware_info', form.dataset.hardwareInfo || '{}');
+        }
+
         return formData;
     }
 
@@ -265,7 +292,7 @@ document.addEventListener("DOMContentLoaded", function () {
 
         const hostField = form.querySelector('[name="host"]');
         if (hostField) {
-            hostField.placeholder = normalizedType === 'opnsense' ? 'https://10.10.10.1' : '10.10.10.1';
+            hostField.placeholder = normalizedType === 'opnsense' ? 'http://10.10.10.1' : '10.10.10.1';
         }
 
         apiSecretField.placeholder = isRadius ? 'Secret / Token optionnel' : '';
@@ -366,6 +393,19 @@ document.addEventListener("DOMContentLoaded", function () {
                 selectedDeviceId = json.id || null;
                 activeDeviceId = json.active_device_id || activeDeviceId;
                 renderBackendStatus(json.active_device || null, json.connection_state || null);
+
+                if (json.license) {
+                    deviceLicInfo = json.license;
+                    if (json.license.status === 'active') {
+                        /* Licencié → rechargement (l'API a déjà activé le device) */
+                        window.location.reload();
+                        return;
+                    } else {
+                        /* Pas encore licencié → ouvre directement le panneau d'activation */
+                        renderLicensePanel(json.license, json.id);
+                    }
+                }
+
                 loadDevices();
             })
             .catch(err => {
@@ -403,20 +443,65 @@ document.addEventListener("DOMContentLoaded", function () {
             .then(res => res.json())
             .then(data => {
 
-                status.innerHTML = ""; // reset
+                status.innerHTML = '';
+                const divider = '─'.repeat(36);
 
-                status.innerHTML += data.log + "\n";
+                if (data.success) {
+                    /* ── SUCCÈS ── */
+                    if (data.device_fingerprint) {
+                        /* Stocke le fingerprint pour le save */
+                        form.dataset.deviceFingerprint = data.device_fingerprint;
+                        form.dataset.hardwareInfo      = JSON.stringify(data.hardware_info || {});
+                        const hw    = data.hardware_info || {};
+                        const sn    = hw.serial   || hw.hostname || hw.host || '';
+                        const model = hw.board    || hw.product  || '';
+                        const typeL = hw.type     || String(data.device_type || '');
+                        const isAlreadyLicensed = (currentDevice?.license_status === 'active') || (currentDevice?.license_key !== '' && currentDevice?.license_key != null);
+                        const endMsg = isAlreadyLicensed
+                            ? `✅  Connexion réussie — Routeur licencié.`
+                            : `ℹ️  Connexion réussie — Sauvegardez pour enregistrer ce routeur.`;
 
-                status.innerHTML += data.success
-                    ? "✔ SUCCESS\n"
-                    : "❌ FAILED\n";
-
-                if (data.success && data.suggested_host && form) {
-                    const hostInput = form.querySelector('[name="host"]');
-                    if (hostInput && String(hostInput.value || '').trim() !== String(data.suggested_host).trim()) {
-                        hostInput.value = String(data.suggested_host).trim();
-                        status.innerHTML += `ℹ Host recommandé détecté: ${hostInput.value}\n`;
+                        status.innerHTML =
+                            (typeL ? `Type      : ${typeL}\n`               : '') +
+                            (sn    ? `N° Série  : ${sn}\n`                  : '') +
+                            (model ? `Modèle    : ${model}\n`               : '') +
+                            `Device ID : ${data.device_id || '-'}\n` +
+                            `${divider}\n` +
+                            `${endMsg}\n`;
+                    } else {
+                        /* Succès mais pas de fingerprint (ex: RADIUS) */
+                        status.innerHTML =
+                            `${divider}\n` +
+                            `✔  Connexion réussie\n` +
+                            `${divider}\n` +
+                            (data.log ? data.log + '\n' : '') +
+                            `ℹ️  Sauvegardez pour enregistrer ce serveur.\n`;
                     }
+
+                    /* Host suggéré différent */
+                    if (data.suggested_host && form) {
+                        const hostInput = form.querySelector('[name="host"]');
+                        if (hostInput && String(hostInput.value || '').trim() !== String(data.suggested_host).trim()) {
+                            hostInput.value = String(data.suggested_host).trim();
+                            status.innerHTML += `⚠️  Host corrigé automatiquement : ${hostInput.value}\n`;
+                        }
+                    }
+
+                } else {
+                    /* ── ÉCHEC ── */
+                    const rawLog   = String(data.log || '').trim();
+                    const lines    = rawLog.split('\n').map(l => l.trim()).filter(Boolean);
+                    const headline = lines[0] || 'Connexion impossible';
+                    const details  = lines.slice(1).join('\n');
+
+                    status.innerHTML =
+                        `${divider}\n` +
+                        `❌  Échec de connexion\n` +
+                        `${divider}\n` +
+                        `Cause     : ${headline}\n` +
+                        (details ? `Détails   :\n${details}\n` : '') +
+                        `${divider}\n` +
+                        `⚠️  Vérifiez l'adresse IP, le port et les identifiants.\n`;
                 }
 
                 updateStoredDeviceStatus(
@@ -426,7 +511,8 @@ document.addEventListener("DOMContentLoaded", function () {
 
                 renderBackendStatus({
                     type: form.querySelector('[name="type"]').value,
-                    backend_driver: data.backend_driver || ''
+                    backend_driver: data.backend_driver || '',
+                    host: form.querySelector('[name="host"]')?.value || ''
                 }, {
                     supported: !!data.success,
                     status: data.success ? 'connected' : 'failed',
@@ -655,6 +741,195 @@ document.addEventListener("DOMContentLoaded", function () {
         });
     }
 
+    /* ── Panneau licence ── */
+    /* Charge les infos de contact admin depuis la config */
+    async function fetchAdminContact() {
+        try {
+            const res  = await fetch('../api/license/notification_config.php?action=get');
+            const data = await res.json();
+            if (!data.success) return {};
+            return {
+                phone: (data.config?.whatsapp?.admin_phone || '').replace(/[^0-9]/g, ''),
+                email: data.config?.email?.to_email || '',
+            };
+        } catch (e) {
+            return {};
+        }
+    }
+
+    function buildContactMessage(deviceId, hw, clientName) {
+        const sn    = (hw?.serial || '').trim();
+        const model = (hw?.model  || '').trim();
+        const type  = (hw?.type   || '').trim();
+        const name  = (clientName || '').trim();
+
+        const lines = [
+            'Bonjour,',
+            '',
+            'Je souhaite activer mon routeur.',
+            '',
+            `Device ID : ${deviceId}`,
+        ];
+        if (sn)    lines.push(`N° Série  : ${sn}`);
+        if (type)  lines.push(`Type      : ${type}`);
+        if (model) lines.push(`Modèle    : ${model}`);
+        if (name)  lines.push(`Nom       : ${name}`);
+        lines.push('', 'Merci.');
+
+        return lines.join('\n');
+    }
+
+    /* ── Référence unique au modal Bootstrap ── */
+    const licModal   = document.getElementById('licenceModal');
+    let   licBsModal = licModal ? new bootstrap.Modal(licModal) : null;
+
+    /* CSRF depuis le champ injecté par PHP */
+    function getPageCsrf() {
+        return document.getElementById('pagecsrfToken')?.value || '';
+    }
+
+    async function renderLicensePanel(licenseInfo, storeDeviceId) {
+        deviceLicInfo = licenseInfo;
+        const status     = licenseInfo.status    || 'unlicensed';
+        const deviceId   = licenseInfo.device_id || '-';
+        const hw         = licenseInfo.hw        || {};
+        const isLicensed = status === 'active';
+        const csrfToken  = getPageCsrf();
+
+        /* ── LICENCIÉ → ferme le modal + badge succès ── */
+        if (isLicensed) {
+            licBsModal?.hide();
+            AppToast.flash('✅ Routeur activé — Device ID : ' + deviceId, 'success', 5000);
+            return;
+        }
+
+        /* ── PAS DE FINGERPRINT → toast info ── */
+        if (deviceId === '-' || status === 'no_fingerprint') {
+            const hasLocalFp = !!(form?.dataset?.deviceFingerprint);
+            AppToast.flash(
+                hasLocalFp
+                    ? 'Test effectué — sauvegardez d\'abord, puis cliquez "Activer".'
+                    : 'Testez la connexion d\'abord pour identifier ce routeur.',
+                'info'
+            );
+            return;
+        }
+
+        /* ── LICENCE REQUISE → remplissage + ouverture du modal ── */
+        const contact  = await fetchAdminContact();
+        const hasWa    = contact.phone !== '';
+        const hasEmail = contact.email !== '';
+
+        /* Méta du routeur */
+        const devName = currentDevice?.name || 'Routeur';
+        const setText = (id, val) => { const el = document.getElementById(id); if (el) el.textContent = val || '—'; };
+        const showRow = (rowId, val) => { const r = document.getElementById(rowId); if (r) r.classList.toggle('d-none', !val); };
+
+        setText('licModalDeviceName', devName);
+        setText('licModalDeviceId',   deviceId);
+        setText('licModalSn',    hw.serial || '');
+        setText('licModalType',  hw.type   || '');
+        setText('licModalModel', hw.model  || '');
+        showRow('licModalSnRow',    hw.serial);
+        showRow('licModalTypeRow',  hw.type);
+        showRow('licModalModelRow', hw.model);
+
+        const badge = document.getElementById('licModalBadge');
+        if (badge) {
+            badge.textContent  = licenseInfo.label || 'Sans licence';
+            badge.className    = status === 'expired' ? 'badge bg-danger ms-2'
+                               : status === 'invalid'  ? 'badge bg-danger ms-2'
+                               : 'badge bg-warning text-dark ms-2';
+        }
+
+        /* Boutons de contact */
+        const waBtn    = document.getElementById('licModalWaBtn');
+        const emailBtn = document.getElementById('licModalEmailBtn');
+        if (waBtn)    waBtn.classList.toggle('d-none', !hasWa);
+        if (emailBtn) emailBtn.classList.toggle('d-none', !hasEmail);
+
+        /* Helper message */
+        function getModalMsg() {
+            const name = document.getElementById('licModalClientName')?.value?.trim() || '';
+            return buildContactMessage(deviceId, hw, name);
+        }
+
+        /* Helper envoi requête (email admin) */
+        async function sendLicenseRequest() {
+            const name = document.getElementById('licModalClientName')?.value?.trim() || '';
+            const fd   = new FormData();
+            fd.set('device_id',   deviceId);
+            fd.set('client_name', name);
+            try { await fetch('../api/license/request_license.php', { method: 'POST', body: fd }); }
+            catch (e) { /* silencieux */ }
+        }
+
+        /* Clone pour supprimer les anciens listeners */
+        function rebind(id, handler) {
+            const el = document.getElementById(id);
+            if (!el) return;
+            const clone = el.cloneNode(true);
+            el.parentNode.replaceChild(clone, el);
+            clone.addEventListener('click', handler);
+        }
+
+        rebind('licModalCopyId', () => {
+            copyToClipboard(deviceId)
+                .then(() => AppToast.flash('Device ID copié !', 'success'))
+                .catch(() => AppToast.flash('Erreur copie.', 'danger'));
+        });
+
+        rebind('licModalWaBtn', () => {
+            const url = 'https://wa.me/' + contact.phone + '?text=' + encodeURIComponent(getModalMsg());
+            window.open(url, '_blank');
+            sendLicenseRequest();
+        });
+
+        rebind('licModalEmailBtn', () => {
+            const subject = encodeURIComponent('Demande de licence — ' + deviceId);
+            const body    = encodeURIComponent(getModalMsg());
+            window.location.href = 'mailto:' + contact.email + '?subject=' + subject + '&body=' + body;
+            sendLicenseRequest();
+        });
+
+        rebind('licModalCopyMsgBtn', () => {
+            copyToClipboard(getModalMsg())
+                .then(() => {
+                    AppToast.flash('Message copié ! Collez-le et envoyez-le à l\'administrateur.', 'success', 5000);
+                    sendLicenseRequest();
+                })
+                .catch(() => AppToast.flash('Erreur copie.', 'danger'));
+        });
+
+        rebind('licModalActivateBtn', async () => {
+            const key = document.getElementById('licModalKeyInput')?.value?.trim();
+            if (!key) { AppToast.flash('Collez la clé de licence reçue.', 'warning'); return; }
+
+            const fd = new FormData();
+            fd.set('store_device_id', storeDeviceId);
+            fd.set('license_key',     key);
+            fd.set('csrf_token',      getPageCsrf());
+
+            try {
+                const res  = await fetch('../api/license/activate_license.php', { method: 'POST', body: fd });
+                const data = await res.json();
+                if (data.success) {
+                    renderLicensePanel({ status: 'active', device_id: deviceId, label: 'Licencié ✓', expiry: data.expiry }, storeDeviceId);
+                    AppToast.flash('Routeur activé ! Rechargement…', 'success');
+                    setTimeout(() => window.location.reload(), 1500);
+                } else {
+                    AppToast.flash(data.message || 'Activation impossible.', 'danger');
+                }
+            } catch (e) {
+                AppToast.flash('Erreur réseau.', 'danger');
+            }
+        });
+
+        /* Ouvre le modal */
+        if (!licBsModal && licModal) { licBsModal = new bootstrap.Modal(licModal); }
+        licBsModal?.show();
+    }
+
     if (activateBtn) {
         activateBtn.addEventListener('click', () => {
             if (!currentDevice || !currentDevice.id) {
@@ -674,7 +949,13 @@ document.addEventListener("DOMContentLoaded", function () {
             .then(res => res.json())
             .then(data => {
                 if (!data.success) {
-                    AppToast.flash(data.message || 'L activation du device a echoue.', 'danger');
+                    if (data.license_required && data.license) {
+                        /* Affiche le panneau licence au lieu d'un simple toast */
+                        AppToast.flash('Licence requise pour activer ce routeur.', 'warning', 5000);
+                        renderLicensePanel(data.license, currentDevice.id);
+                    } else {
+                        AppToast.flash(data.message || 'L activation du device a echoue.', 'danger');
+                    }
                     return;
                 }
 

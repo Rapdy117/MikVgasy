@@ -1618,7 +1618,7 @@ function getMikrotikHotspotUsers(int $limit = 100, ?array $deviceOverride = null
     $cacheTtlSeconds = 60;
     $activeDevice = $deviceOverride ?? (getActiveDeviceContext()['device'] ?? null);
     $cacheKey = $activeDevice['id'] ?? ($activeDevice['host'] ?? 'active');
-    $cacheFile = sys_get_temp_dir() . '/mikrotik_hotspot_users_' . md5((string)$cacheKey . '|' . (string)$limit) . '.json';
+    $cacheFile = sys_get_temp_dir() . '/mikrotik_hotspot_users_' . md5((string)$cacheKey . '|' . (string)$limit . '|profile_expired_mode_v1') . '.json';
 
     if (is_file($cacheFile) && (time() - filemtime($cacheFile) <= $cacheTtlSeconds)) {
         $cached = json_decode((string)file_get_contents($cacheFile), true);
@@ -1643,7 +1643,7 @@ function getMikrotikHotspotUsers(int $limit = 100, ?array $deviceOverride = null
 
     try {
         $profileMetaByName = [];
-        $profileCacheFile = sys_get_temp_dir() . '/mikrotik_hotspot_profiles_' . md5((string)$cacheKey) . '.json';
+        $profileCacheFile = sys_get_temp_dir() . '/mikrotik_hotspot_profiles_' . md5((string)$cacheKey . '|profile_expired_mode_v1') . '.json';
         if (is_file($profileCacheFile) && (time() - filemtime($profileCacheFile) <= $cacheTtlSeconds)) {
             $cachedProfiles = json_decode((string)file_get_contents($profileCacheFile), true);
             if (is_array($cachedProfiles)) {
@@ -1670,8 +1670,11 @@ function getMikrotikHotspotUsers(int $limit = 100, ?array $deviceOverride = null
                         'rate_limit' => trim((string)($profileRow['rate-limit'] ?? '')),
                         'shared_users' => (int)($profileRow['shared-users'] ?? 0),
                         'validity_seconds' => $validitySeconds,
+                        'expired_mode' => normalizeMikrotikExpiredModeLabel((string)($metadata['expired_mode'] ?? '')),
                         'data_limit_bytes' => (string)($profileRow['limit-bytes-total'] ?? ''),
                         'session_timeout_seconds' => $sessionTimeoutSeconds,
+                        'price' => mikrotikNumericOrNull((string)($metadata['price'] ?? '')),
+                        'selling_price' => mikrotikNumericOrNull((string)($metadata['selling_price'] ?? '')),
                     ];
                 }
                 file_put_contents($profileCacheFile, json_encode($profileMetaByName, JSON_UNESCAPED_SLASHES));
@@ -1775,6 +1778,9 @@ function getMikrotikHotspotUsers(int $limit = 100, ?array $deviceOverride = null
                 'profile_validity_seconds' => (int)($profileMeta['validity_seconds'] ?? 0),
                 'profile_session_timeout_seconds' => (int)($profileMeta['session_timeout_seconds'] ?? 0),
                 'rate_limit' => $profileRateLimit,
+                'expired_mode' => (string)($profileMeta['expired_mode'] ?? ''),
+                'price' => $profileMeta['price'] ?? null,
+                'selling_price' => $profileMeta['selling_price'] ?? null,
                 'shared_users' => isset($profileMeta['shared_users']) ? (int)$profileMeta['shared_users'] : null,
                 'disabled' => strtolower((string)($row['disabled'] ?? 'false')) === 'true',
                 'active_session_id' => $active !== null ? (string)($active['id'] ?? '') : '',
@@ -2531,16 +2537,6 @@ function getMikrotikHotspotLogs(int $limit = 20): array
                 return false;
             }
             return str_contains($topics, 'hotspot') || str_starts_with($message, '->');
-        }));
-
-        $prefixedRows = array_values(array_filter($rows, static function ($row): bool {
-            $message = trim((string)($row['message'] ?? ''));
-            return $message !== '' && str_starts_with($message, '->');
-        }));
-
-        $rows = $prefixedRows !== [] ? $prefixedRows : array_values(array_filter($rows, static function ($row): bool {
-            $topics = strtolower(trim((string)($row['topics'] ?? '')));
-            return $topics !== '' && str_contains($topics, 'hotspot');
         }));
 
         $deduped = [];

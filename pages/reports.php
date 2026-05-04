@@ -8,6 +8,7 @@ require_once '../includes/operation_history.php';
 require_once '../includes/device_manager.php';
 require_once '../includes/profile_schema.php';
 require_once '../includes/admin_notifications.php';
+require_once '../includes/commercial_report_source.php';
 
 if (!isset($_SESSION['logged_in']) || $_SESSION['logged_in'] !== true) {
     set_message('Veuillez vous connecter pour accéder à cette page.', 'danger');
@@ -16,14 +17,15 @@ if (!isset($_SESSION['logged_in']) || $_SESSION['logged_in'] !== true) {
 }
 
 ensureVouchersTable($pdo);
-syncVoucherUsage($pdo);
+runVoucherUsageMaintenanceIfDue($pdo, 'reports_voucher_usage');
+runVoucherCommercialSnapshotMaintenanceIfDue($pdo, 'reports_voucher_snapshots');
 ensureOperationHistoryTable($pdo);
 ensureProfilesExtendedSchema($pdo);
 
 function notifyMissingVoucherPrice(PDO $pdo): void
 {
     $stmt = $pdo->query("
-        SELECT DISTINCT v.profile_id, p.name AS profile_name, p.price AS profile_price
+        SELECT DISTINCT v.profile_id, COALESCE(NULLIF(v.profile_name, ''), p.name) AS profile_name, COALESCE(v.price, p.price) AS profile_price
         FROM vouchers v
         LEFT JOIN profiles p ON p.id = v.profile_id
         WHERE v.used_at IS NOT NULL
@@ -68,92 +70,17 @@ notifyMissingVoucherPrice($pdo);
 
 function reportEntriesUnionSql(): string
 {
-    return "
-        SELECT
-            CASE
-                WHEN created_at IS NULL THEN NULL
-                WHEN TRIM(CAST(created_at AS CHAR)) = '' THEN NULL
-                WHEN CAST(created_at AS CHAR) = '0000-00-00 00:00:00' THEN NULL
-                ELSE CAST(created_at AS CHAR)
-            END AS created_at,
-            device_id,
-            username,
-            profile_name,
-            mode,
-            operator_username,
-            effect_summary,
-            amount_value
-        FROM recharge_history
-        UNION ALL
-        SELECT
-            CASE
-                WHEN v.used_at IS NULL THEN NULL
-                WHEN TRIM(CAST(v.used_at AS CHAR)) = '' THEN NULL
-                WHEN CAST(v.used_at AS CHAR) = '0000-00-00 00:00:00' THEN NULL
-                ELSE CAST(v.used_at AS CHAR)
-            END AS created_at,
-            NULL AS device_id,
-            COALESCE(NULLIF(v.username, ''), v.used_by) AS username,
-            COALESCE(p.name, '') AS profile_name,
-            'voucher_first_login' AS mode,
-            v.printed_by AS operator_username,
-            '1er login voucher' AS effect_summary,
-            COALESCE(p.price, 0) AS amount_value
-        FROM vouchers v
-        LEFT JOIN profiles p ON p.id = v.profile_id
-        WHERE v.used_at IS NOT NULL
-        UNION ALL
-        SELECT
-            CASE
-                WHEN fl.first_login IS NULL THEN NULL
-                WHEN TRIM(CAST(fl.first_login AS CHAR)) = '' THEN NULL
-                WHEN CAST(fl.first_login AS CHAR) = '0000-00-00 00:00:00' THEN NULL
-                ELSE CAST(fl.first_login AS CHAR)
-            END AS created_at,
-            oh.device_id AS device_id,
-            oh.target_name AS username,
-            oh.profile_name AS profile_name,
-            'user_create_first_login' AS mode,
-            oh.actor_username AS operator_username,
-            '1er login compte' AS effect_summary,
-            0 AS amount_value
-        FROM operation_history oh
-        INNER JOIN (
-            SELECT username, MIN(acctstarttime) AS first_login
-            FROM radacct
-            WHERE acctstarttime IS NOT NULL
-            GROUP BY username
-        ) fl ON fl.username = oh.target_name
-        WHERE oh.operation_type = 'user_create'
-        UNION ALL
-        SELECT
-            CASE
-                WHEN created_at IS NULL THEN NULL
-                WHEN TRIM(CAST(created_at AS CHAR)) = '' THEN NULL
-                WHEN CAST(created_at AS CHAR) = '0000-00-00 00:00:00' THEN NULL
-                ELSE CAST(created_at AS CHAR)
-            END AS created_at,
-            device_id,
-            target_name AS username,
-            profile_name,
-            operation_type AS mode,
-            actor_username AS operator_username,
-            summary AS effect_summary,
-            0 AS amount_value
-        FROM operation_history
-        WHERE operation_scope = 'commercial'
-          AND operation_type IN ('user_remove_record', 'user_notice_record')
-    ";
+    return commercialReportEntriesUnionSql();
 }
 
 function reportCreatedAtDateSql(): string
 {
-    return "LEFT(created_at, 10)";
+    return commercialReportCreatedAtDateSql();
 }
 
 function reportCreatedAtMonthSql(): string
 {
-    return "LEFT(created_at, 7)";
+    return commercialReportCreatedAtMonthSql();
 }
 
 $pdo->exec(
@@ -208,7 +135,7 @@ foreach (($deviceStore['devices'] ?? []) as $device) {
 }
 
 $recentSql = "
-    SELECT created_at, device_id, username, profile_name, mode, operator_username, effect_summary, amount_value
+    SELECT created_at, device_id, username, profile_name, profile_type, mode, operator_username, effect_summary, amount_value
     FROM (" . reportEntriesUnionSql() . ") report_entries
     WHERE created_at IS NOT NULL
 ";
@@ -217,6 +144,22 @@ $recentStmt = $pdo->prepare($recentSql);
 $recentStmt->execute();
 
 $recentItems = $recentStmt ? ($recentStmt->fetchAll(PDO::FETCH_ASSOC) ?: []) : [];
+
+$profileTypeValues = [];
+$operationValues = [];
+foreach ($recentItems as $item) {
+    $profileType = trim((string)($item['profile_type'] ?? ''));
+    if ($profileType !== '') {
+        $profileTypeValues[$profileType] = true;
+    }
+
+    $mode = trim((string)($item['mode'] ?? ''));
+    if ($mode !== '') {
+        $operationValues[$mode] = reportModeLabel($mode);
+    }
+}
+ksort($profileTypeValues);
+asort($operationValues);
 
 if (isset($_GET['export']) && $_GET['export'] === 'csv') {
     header('Content-Type: text/csv; charset=UTF-8');
@@ -488,6 +431,11 @@ $resellerStats = $resellerStatsStmt ? ($resellerStatsStmt->fetchAll(PDO::FETCH_A
 
 <?php
 $pageTitle = 'Rapports';
+$htmlClass = 'reports-page';
+$bodyClass = 'reports-page';
+$extraCss = array (
+  0 => '../css/reports.css',
+);
 $extraHeadJs = array (
   0 => '../assets/vendor/chart/chart.umd.min.js',
 );
@@ -517,7 +465,7 @@ require_once '../includes/layout_header.php';
                             <i class="fa fa-file-excel me-1"></i> Export XLSX
                         </button>
                         <button type="button" class="btn btn-test" id="printReportsBtn">
-                            <i class="fa fa-file-pdf me-1"></i> PDF
+                            <i class="fa fa-file-pdf me-1"></i> Export PDF
                         </button>
                     </div>
                 </div>
@@ -527,7 +475,10 @@ require_once '../includes/layout_header.php';
                             <div class="row g-3 align-items-stretch">
                                 <div class="col-lg-8">
                                     <div class="reports-chart-card h-100">
-                                        <div class="reports-chart-header">Montant journalier (mois en cours)</div>
+                                        <div class="reports-chart-header">
+                                            <span class="reports-chart-icon reports-chart-icon-amount"><i class="fa fa-chart-line"></i></span>
+                                            <span>Montant journalier (mois en cours)</span>
+                                        </div>
                                         <div class="reports-chart-wrap reports-chart-wrap-lg">
                                             <canvas id="reportsAmountChart"></canvas>
                                         </div>
@@ -535,7 +486,10 @@ require_once '../includes/layout_header.php';
                                 </div>
                                 <div class="col-lg-4">
                                     <div class="reports-summary-panel h-100">
-                                        <div class="small text-white-50 mb-2">Résumé du mois en cours</div>
+                                        <div class="reports-chart-header">
+                                            <span class="reports-chart-icon reports-chart-icon-summary"><i class="fa fa-gauge-high"></i></span>
+                                            <span>Résumé du mois en cours</span>
+                                        </div>
                                         <div class="dashboard-summary-list reports-summary-grid">
                                             <div class="dashboard-summary-item">
                                                 <span class="dashboard-summary-label">Mois</span>
@@ -585,7 +539,10 @@ require_once '../includes/layout_header.php';
                             <div class="row g-3 mt-1">
                                 <div class="col-lg-4 col-md-6">
                                     <div class="reports-chart-card h-100">
-                                        <div class="reports-chart-header">Répartition des recharges</div>
+                                        <div class="reports-chart-header">
+                                            <span class="reports-chart-icon reports-chart-icon-mode"><i class="fa fa-chart-pie"></i></span>
+                                            <span>Répartition des recharges</span>
+                                        </div>
                                         <div class="reports-chart-wrap">
                                             <canvas id="reportsModeChart"></canvas>
                                         </div>
@@ -593,7 +550,10 @@ require_once '../includes/layout_header.php';
                                 </div>
                                 <div class="col-lg-4 col-md-6">
                                     <div class="reports-chart-card h-100">
-                                        <div class="reports-chart-header">Top revendeurs (montant)</div>
+                                        <div class="reports-chart-header">
+                                            <span class="reports-chart-icon reports-chart-icon-user"><i class="fa fa-ranking-star"></i></span>
+                                            <span>Top revendeurs (montant)</span>
+                                        </div>
                                         <div class="reports-chart-wrap">
                                             <canvas id="reportsUserChart"></canvas>
                                         </div>
@@ -601,7 +561,10 @@ require_once '../includes/layout_header.php';
                                 </div>
                                 <div class="col-lg-4 col-md-12">
                                     <div class="reports-chart-card h-100">
-                                        <div class="reports-chart-header">Recharges par jour</div>
+                                        <div class="reports-chart-header">
+                                            <span class="reports-chart-icon reports-chart-icon-count"><i class="fa fa-chart-column"></i></span>
+                                            <span>Recharges par jour</span>
+                                        </div>
                                         <div class="reports-chart-wrap">
                                             <canvas id="reportsCountChart"></canvas>
                                         </div>
@@ -650,7 +613,23 @@ require_once '../includes/layout_header.php';
                                             <?php endforeach; ?>
                                         </select>
                                     </div>
-                                    <div class="col-md-6">
+                                    <div class="col-md-2">
+                                        <select class="form-select reports-filter-select" id="reportProfileTypeFilter">
+                                            <option value="">Type profil</option>
+                                            <?php foreach (array_keys($profileTypeValues) as $profileType): ?>
+                                                <option value="<?= htmlspecialchars(mb_strtolower($profileType)) ?>"><?= htmlspecialchars($profileType) ?></option>
+                                            <?php endforeach; ?>
+                                        </select>
+                                    </div>
+                                    <div class="col-md-2">
+                                        <select class="form-select reports-filter-select" id="reportOperationFilter">
+                                            <option value="">Operation</option>
+                                            <?php foreach ($operationValues as $operationValue => $operationLabel): ?>
+                                                <option value="<?= htmlspecialchars(mb_strtolower((string)$operationValue)) ?>"><?= htmlspecialchars((string)$operationLabel) ?></option>
+                                            <?php endforeach; ?>
+                                        </select>
+                                    </div>
+                                    <div class="col-md-2">
                                         <div class="input-group reports-search-group">
                                             <span class="input-group-text"><i class="fa fa-search"></i></span>
                                             <input type="text" class="form-control" id="reportSearchInput" placeholder="Rechercher une recharge...">
@@ -691,6 +670,8 @@ require_once '../includes/layout_header.php';
                                                         data-day="<?= htmlspecialchars($dayValue) ?>"
                                                         data-month="<?= htmlspecialchars($monthValue) ?>"
                                                         data-year="<?= htmlspecialchars($yearValue) ?>"
+                                                        data-profile-type="<?= htmlspecialchars(mb_strtolower(trim((string)($item['profile_type'] ?? '')))) ?>"
+                                                        data-operation="<?= htmlspecialchars(mb_strtolower(trim((string)($item['mode'] ?? '')))) ?>"
                                                         data-server-id="<?= htmlspecialchars($itemDeviceId) ?>">
                                                         <td><?= htmlspecialchars($createdAt !== '' ? $createdAt : '-') ?></td>
                                                         <td><?= htmlspecialchars($itemServerLabel) ?></td>
@@ -720,7 +701,366 @@ require_once '../includes/layout_header.php';
 <?php
 $extraJs = array (
   0 => '../js/table_sort.js',
-  1 => 'https://cdn.jsdelivr.net/npm/xlsx@0.19.3/dist/xlsx.full.min.js',
+  1 => 'https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js',
 );
+ob_start();
+?>
+document.addEventListener('DOMContentLoaded', () => {
+    const amountCanvas = document.getElementById('reportsAmountChart');
+    const modeCanvas = document.getElementById('reportsModeChart');
+    const userCanvas = document.getElementById('reportsUserChart');
+    const countCanvas = document.getElementById('reportsCountChart');
+    const searchInput = document.getElementById('reportSearchInput');
+    const dayFilter = document.getElementById('reportDayFilter');
+    const monthFilter = document.getElementById('reportMonthFilter');
+    const yearFilter = document.getElementById('reportYearFilter');
+    const profileTypeFilter = document.getElementById('reportProfileTypeFilter');
+    const operationFilter = document.getElementById('reportOperationFilter');
+    const reportTableBody = document.getElementById('reportTableBody');
+    const printReportsBtn = document.getElementById('printReportsBtn');
+    const exportReportsXlsxBtn = document.getElementById('exportReportsXlsxBtn');
+
+    const formatAmount = (value) => {
+        const numeric = Number(value);
+        if (!Number.isFinite(numeric)) {
+            return '0';
+        }
+        return numeric.toLocaleString('fr-FR', { minimumFractionDigits: 0, maximumFractionDigits: 2 });
+    };
+    const formatCurrency = (value) => `${formatAmount(value)} F`;
+    const todayLabel = String(new Date().getDate()).padStart(2, '0');
+
+    const baseGrid = {
+        color: 'rgba(148, 163, 184, 0.08)',
+        drawBorder: false,
+    };
+
+    if (amountCanvas && typeof Chart !== 'undefined') {
+        const ctx = amountCanvas.getContext('2d');
+        const gradient = ctx.createLinearGradient(0, 0, 0, 260);
+        gradient.addColorStop(0, 'rgba(56, 189, 248, 0.35)');
+        gradient.addColorStop(1, 'rgba(56, 189, 248, 0.02)');
+
+        new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: <?= json_encode($trendSeries['labels'], JSON_UNESCAPED_UNICODE) ?>,
+                datasets: [
+                    {
+                        label: <?= json_encode($trendSeries['current_month_label'], JSON_UNESCAPED_UNICODE) ?>,
+                        data: <?= json_encode($trendSeries['current_amounts']) ?>,
+                        borderColor: '#38bdf8',
+                        backgroundColor: gradient,
+                        fill: true,
+                        tension: 0.42,
+                        borderWidth: 2,
+                        pointRadius: 0,
+                        pointHoverRadius: 5,
+                        pointHitRadius: 12,
+                    },
+                    {
+                        label: <?= json_encode($trendSeries['previous_month_label'], JSON_UNESCAPED_UNICODE) ?>,
+                        data: <?= json_encode($trendSeries['previous_amounts']) ?>,
+                        borderColor: '#f59e0b',
+                        backgroundColor: 'rgba(245, 158, 11, 0.06)',
+                        borderDash: [5, 5],
+                        tension: 0.42,
+                        borderWidth: 2,
+                        pointRadius: 0,
+                        pointHoverRadius: 4,
+                        pointHitRadius: 12,
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                interaction: {
+                    mode: 'index',
+                    intersect: false,
+                },
+                scales: {
+                    x: {
+                        ticks: { color: 'rgba(226, 232, 240, 0.68)', maxTicksLimit: 12 },
+                        grid: baseGrid,
+                    },
+                    y: {
+                        ticks: {
+                            color: 'rgba(226, 232, 240, 0.68)',
+                            callback: (value) => formatCurrency(value),
+                        },
+                        grid: baseGrid,
+                    },
+                },
+                plugins: {
+                    legend: {
+                        labels: { color: '#e5eefc', usePointStyle: true, pointStyle: 'line' },
+                    },
+                    tooltip: {
+                        backgroundColor: 'rgba(2, 6, 23, 0.94)',
+                        borderColor: 'rgba(56, 189, 248, 0.35)',
+                        borderWidth: 1,
+                        padding: 10,
+                        callbacks: {
+                            label: (context) => `${context.dataset.label}: ${formatCurrency(context.parsed.y)}`,
+                        },
+                    },
+                },
+            },
+        });
+    }
+
+    if (countCanvas && typeof Chart !== 'undefined') {
+        new Chart(countCanvas.getContext('2d'), {
+            type: 'bar',
+            data: {
+                labels: <?= json_encode($trendSeries['labels'], JSON_UNESCAPED_UNICODE) ?>,
+                datasets: [
+                    {
+                        label: 'Recharges',
+                        data: <?= json_encode($trendSeries['current_counts']) ?>,
+                        backgroundColor: (context) => context.chart.data.labels[context.dataIndex] === todayLabel ? 'rgba(56, 189, 248, 0.72)' : 'rgba(129, 140, 248, 0.45)',
+                        borderColor: '#818cf8',
+                        borderWidth: 1,
+                        borderRadius: 7,
+                        maxBarThickness: 18,
+                    },
+                ],
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    x: {
+                        ticks: { color: 'rgba(226, 232, 240, 0.68)', maxTicksLimit: 12 },
+                        grid: baseGrid,
+                    },
+                    y: {
+                        ticks: { color: 'rgba(226, 232, 240, 0.68)', precision: 0 },
+                        grid: baseGrid,
+                    },
+                },
+                plugins: {
+                    legend: { display: false },
+                    tooltip: {
+                        backgroundColor: 'rgba(2, 6, 23, 0.94)',
+                        borderColor: 'rgba(129, 140, 248, 0.35)',
+                        borderWidth: 1,
+                        padding: 10,
+                        callbacks: {
+                            label: (context) => `${context.parsed.y} recharge(s)`,
+                        },
+                    },
+                },
+            },
+        });
+    }
+
+    if (modeCanvas && typeof Chart !== 'undefined') {
+        new Chart(modeCanvas.getContext('2d'), {
+            type: 'doughnut',
+            data: {
+                labels: <?= json_encode(array_map(fn ($row) => reportModeLabel((string)($row['mode'] ?? '')), $modeStats), JSON_UNESCAPED_UNICODE) ?>,
+                datasets: [
+                    {
+                        data: <?= json_encode(array_map(fn ($row) => (int)($row['total_count'] ?? 0), $modeStats)) ?>,
+                        backgroundColor: [
+                            '#38bdf8',
+                            '#22c55e',
+                            '#f59e0b',
+                            '#f97316',
+                            '#a78bfa',
+                            '#94a3b8',
+                        ],
+                        borderColor: 'rgba(2, 6, 23, 0.88)',
+                        borderWidth: 2,
+                        hoverOffset: 8,
+                    },
+                ],
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                cutout: '62%',
+                plugins: {
+                    legend: {
+                        position: 'bottom',
+                        labels: { color: '#e5eefc', boxWidth: 10, usePointStyle: true },
+                    },
+                    tooltip: {
+                        backgroundColor: 'rgba(2, 6, 23, 0.94)',
+                        borderColor: 'rgba(167, 139, 250, 0.35)',
+                        borderWidth: 1,
+                        padding: 10,
+                    },
+                },
+            },
+        });
+    }
+
+    if (userCanvas && typeof Chart !== 'undefined') {
+        new Chart(userCanvas.getContext('2d'), {
+            type: 'bar',
+            data: {
+                labels: <?= json_encode(array_map(fn ($row) => (string)($row['operator_username'] ?? '-'), $resellerStats), JSON_UNESCAPED_UNICODE) ?>,
+                datasets: [
+                    {
+                        label: 'Montant',
+                        data: <?= json_encode(array_map(fn ($row) => (float)($row['total_amount'] ?? 0), $resellerStats)) ?>,
+                        backgroundColor: 'rgba(34, 197, 94, 0.48)',
+                        borderColor: '#22c55e',
+                        borderWidth: 1,
+                        borderRadius: 7,
+                        maxBarThickness: 16,
+                    },
+                ],
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                indexAxis: 'y',
+                scales: {
+                    x: {
+                        ticks: {
+                            color: 'rgba(226, 232, 240, 0.68)',
+                            callback: (value) => formatCurrency(value),
+                        },
+                        grid: baseGrid,
+                    },
+                    y: {
+                        ticks: { color: 'rgba(226, 232, 240, 0.68)' },
+                        grid: { display: false },
+                    },
+                },
+                plugins: {
+                    legend: { display: false },
+                    tooltip: {
+                        backgroundColor: 'rgba(2, 6, 23, 0.94)',
+                        borderColor: 'rgba(34, 197, 94, 0.35)',
+                        borderWidth: 1,
+                        padding: 10,
+                        callbacks: {
+                            label: (context) => formatCurrency(context.parsed.x),
+                        },
+                    },
+                },
+            },
+        });
+    }
+
+    const applyReportFilters = () => {
+        if (!reportTableBody) {
+            return;
+        }
+
+        const query = (searchInput?.value || '').trim().toLowerCase();
+        const selectedDay = dayFilter?.value || '';
+        const selectedMonth = monthFilter?.value || '';
+        const selectedYear = yearFilter?.value || '';
+        const selectedProfileType = profileTypeFilter?.value || '';
+        const selectedOperation = operationFilter?.value || '';
+
+        reportTableBody.querySelectorAll('tr').forEach((row) => {
+            if (row.dataset.sortDisabled === '1') {
+                row.style.display = '';
+                return;
+            }
+
+            const rowText = row.textContent.toLowerCase();
+            const matchesText = query === '' || rowText.includes(query);
+            const matchesDay = selectedDay === '' || row.dataset.day === selectedDay;
+            const matchesMonth = selectedMonth === '' || row.dataset.month === selectedMonth;
+            const matchesYear = selectedYear === '' || row.dataset.year === selectedYear;
+            const matchesProfileType = selectedProfileType === '' || row.dataset.profileType === selectedProfileType;
+            const matchesOperation = selectedOperation === '' || row.dataset.operation === selectedOperation;
+            row.style.display = (matchesText && matchesDay && matchesMonth && matchesYear && matchesProfileType && matchesOperation) ? '' : 'none';
+        });
+    };
+
+    [searchInput, dayFilter, monthFilter, yearFilter, profileTypeFilter, operationFilter].forEach((element) => {
+        if (!element) {
+            return;
+        }
+        element.addEventListener('input', applyReportFilters);
+        element.addEventListener('change', applyReportFilters);
+    });
+
+    const buildVisibleReportTable = () => {
+        const table = document.querySelector('#reports-details .reports-table-panel table');
+        if (!table) {
+            return null;
+        }
+
+        const exportedTable = document.createElement('table');
+        const tableHead = table.querySelector('thead');
+        const tableBody = document.createElement('tbody');
+
+        if (tableHead) {
+            exportedTable.appendChild(tableHead.cloneNode(true));
+        }
+
+        table.querySelectorAll('tbody tr').forEach((row) => {
+            if (row.style.display === 'none') {
+                return;
+            }
+            tableBody.appendChild(row.cloneNode(true));
+        });
+
+        exportedTable.appendChild(tableBody);
+        return exportedTable;
+    };
+
+    if (printReportsBtn) {
+        printReportsBtn.addEventListener('click', () => {
+            const table = buildVisibleReportTable();
+            if (!table) {
+                window.print();
+                return;
+            }
+
+            const printWindow = window.open('', '_blank');
+            if (!printWindow) {
+                window.print();
+                return;
+            }
+
+            const title = 'Rapports - Détails';
+            const styles = `
+                <style>
+                    body { font-family: Arial, sans-serif; padding: 16px; color: #0f172a; }
+                    h1 { font-size: 18px; margin: 0 0 12px; }
+                    table { width: 100%; border-collapse: collapse; font-size: 12px; }
+                    th, td { border: 1px solid #cbd5f5; padding: 6px 8px; text-align: left; }
+                    th { background: #e2e8f0; font-weight: 600; }
+                </style>
+            `;
+
+            printWindow.document.open();
+            printWindow.document.write(`<!doctype html><html><head><title>${title}</title>${styles}</head><body><h1>${title}</h1>${table.outerHTML}</body></html>`);
+            printWindow.document.close();
+            printWindow.focus();
+            printWindow.print();
+        });
+    }
+
+    if (exportReportsXlsxBtn) {
+        exportReportsXlsxBtn.addEventListener('click', () => {
+            if (typeof XLSX === 'undefined') {
+                alert('Export XLSX indisponible : la librairie XLSX n est pas chargee.');
+                return;
+            }
+
+            const table = buildVisibleReportTable();
+            if (!table) {
+                return;
+            }
+
+            const workbook = XLSX.utils.table_to_book(table, { sheet: 'Rapports' });
+            XLSX.writeFile(workbook, `rapports_${new Date().toISOString().slice(0, 10)}.xlsx`);
+        });
+    }
+});
+<?php
+$extraScript = ob_get_clean();
 require_once '../includes/layout_footer.php';
 ?>

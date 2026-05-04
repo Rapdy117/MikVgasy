@@ -11,6 +11,7 @@ require_once '../../includes/nas_resolver.php';
 require_once '../../includes/radius_credit_runtime.php';
 require_once '../../includes/radius_sync.php';
 require_once '../../includes/user_schema.php';
+require_once '../../includes/backend_agent.php';
 
 session_start();
 
@@ -405,6 +406,8 @@ try {
         throw new RuntimeException('Device introuvable');
     }
 
+    requireDeviceLicensed($device);
+
     $backendContext = resolveRechargeBackendContext($pdo, $device);
     $deviceContext = $backendContext['nas_context'];
     $contextDevice = $backendContext['context_device'];
@@ -422,6 +425,13 @@ try {
         }
         $profileValue = $profileId;
     }
+
+    backendAgentAuthorizeDeviceAction($device, 'recharge-apply', [
+        'username' => $username,
+        'profile_value' => $profileValue,
+        'mode' => $mode,
+        'business_source' => $businessSource,
+    ]);
 
     $operator = trim((string)($_SESSION['username'] ?? 'Utilisateur'));
     $preview = RechargeService::simulate(
@@ -441,101 +451,11 @@ try {
     ensureRechargeHistoryTable($pdo);
     ensureOperationHistoryTable($pdo);
     if ($isMikrotikBackend) {
-        $mikrotikNasContext = is_array($deviceContext) ? $deviceContext : [
-            'device' => $contextDevice,
-            'device_type' => (string)($contextDevice['type'] ?? 'mikrotik'),
-            'backend_driver' => (string)($contextDevice['backend_driver'] ?? 'mikrotik_api'),
-            'business_source' => $businessSource,
-        ];
-        $mikrotikApi = connectToMikrotikApiByDevice($contextDevice);
-
-        try {
-            $amount = resolveRechargeAmount($contextDevice, $profileValue, $mikrotikApi);
-
-            if ($mode === 'replace_offer') {
-                replaceUserOfferInMikrotik($username, $profileValue, $mikrotikNasContext, $mikrotikApi);
-                recordRechargeInMikrotik($username, $profileValue, $mode, $operator, effect_summary_from_mode($mode), $mikrotikNasContext, 100, $mikrotikApi);
-                invalidateRechargeOptionsCache((string)$deviceId);
-                try {
-                    saveRechargeHistory($pdo, $device, $username, $profileValue, $mode, $operator, $historyPreview, $amount);
-                } catch (Throwable $e) {
-                    error_log('RechargeHistory failed: ' . $e->getMessage());
-                }
-                try {
-                    recordRechargeOperationHistory($pdo, $device, $username, $profileValue, $mode, $operator, $historyPreview, $amount);
-                } catch (Throwable $e) {
-                    error_log('OperationHistory failed: ' . $e->getMessage());
-                }
-                echo json_encode([
-                    'success' => true,
-                    'message' => 'Recharge appliquée sur MikroTik.',
-                ]);
-                while (ob_get_level() > 0) {
-                    ob_end_flush();
-                }
-                disconnectMikrotikApiIfOwned($mikrotikApi, true);
-                exit;
-            }
-
-            if ($mode === 'extend_offer') {
-                extendUserOfferInMikrotik($username, $profileValue, $mikrotikNasContext, $mikrotikApi);
-                recordRechargeInMikrotik($username, $profileValue, $mode, $operator, effect_summary_from_mode($mode), $mikrotikNasContext, 100, $mikrotikApi);
-                invalidateRechargeOptionsCache((string)$deviceId);
-                try {
-                    saveRechargeHistory($pdo, $device, $username, $profileValue, $mode, $operator, $historyPreview, $amount);
-                } catch (Throwable $e) {
-                    error_log('RechargeHistory failed: ' . $e->getMessage());
-                }
-                try {
-                    recordRechargeOperationHistory($pdo, $device, $username, $profileValue, $mode, $operator, $historyPreview, $amount);
-                } catch (Throwable $e) {
-                    error_log('OperationHistory failed: ' . $e->getMessage());
-                }
-                echo json_encode([
-                    'success' => true,
-                    'message' => 'Rajout appliqué sur MikroTik.',
-                ]);
-                while (ob_get_level() > 0) {
-                    ob_end_flush();
-                }
-                disconnectMikrotikApiIfOwned($mikrotikApi, true);
-                exit;
-            }
-
-            if ($mode === 'accumulate_offer') {
-                accumulateUserOfferInMikrotik($username, $profileValue, $mikrotikNasContext, $mikrotikApi);
-                recordRechargeInMikrotik($username, $profileValue, $mode, $operator, effect_summary_from_mode($mode), $mikrotikNasContext, 100, $mikrotikApi);
-                invalidateRechargeOptionsCache((string)$deviceId);
-                try {
-                    saveRechargeHistory($pdo, $device, $username, $profileValue, $mode, $operator, $historyPreview, $amount);
-                } catch (Throwable $e) {
-                    error_log('RechargeHistory failed: ' . $e->getMessage());
-                }
-                try {
-                    recordRechargeOperationHistory($pdo, $device, $username, $profileValue, $mode, $operator, $historyPreview, $amount);
-                } catch (Throwable $e) {
-                    error_log('OperationHistory failed: ' . $e->getMessage());
-                }
-                echo json_encode([
-                    'success' => true,
-                    'message' => 'Cumul appliqué sur MikroTik.',
-                ]);
-                while (ob_get_level() > 0) {
-                    ob_end_flush();
-                }
-                disconnectMikrotikApiIfOwned($mikrotikApi, true);
-                exit;
-            }
-
-            throw new RuntimeException('Seuls les modes "Remplacer l offre", "Rajout d offre" et "Cumuler l offre" sont disponibles en application reelle pour le moment.');
-        } finally {
-            disconnectMikrotikApiIfOwned($mikrotikApi, true);
-        }
+        throw new RuntimeException('Recharge MikroTik bloquée: ce backend doit être migré dans backend-agent.exe avant réactivation.');
     }
 
-    ensureUsersExtendedSchema($pdo);
-    $pdo->beginTransaction();
-    $result = applyRadiusLikeRecharge($pdo, $device, $username, $profileValue, $mode);
+    $agentResult = backendAgentApplyRecharge((string)$deviceId, $username, $profileValue, $mode);
+    $result = is_array($agentResult['data'] ?? null) ? $agentResult['data'] : [];
     $amount = [
         'value' => null,
         'label' => '',
@@ -552,10 +472,9 @@ try {
     } catch (Throwable $e) {
         error_log('OperationHistory failed: ' . $e->getMessage());
     }
-    $pdo->commit();
     echo json_encode([
         'success' => true,
-        'message' => 'Recharge appliquée sur backend RADIUS/OPNsense.',
+        'message' => 'Recharge appliquée par backend-agent.exe.',
     ]);
     while (ob_get_level() > 0) {
         ob_end_flush();

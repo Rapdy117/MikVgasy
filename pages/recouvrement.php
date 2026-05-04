@@ -28,8 +28,10 @@ $summary = [
 ];
 
 $selectedDay = trim((string)($_GET['day'] ?? ''));
-$selectedMonth = (int)($_GET['month'] ?? gmdate('m'));
-$selectedYear = (int)($_GET['year'] ?? gmdate('Y'));
+$selectedMonthRaw = array_key_exists('month', $_GET) ? trim((string)$_GET['month']) : (string)(int)gmdate('m');
+$selectedYearRaw = array_key_exists('year', $_GET) ? trim((string)$_GET['year']) : (string)(int)gmdate('Y');
+$selectedMonth = ctype_digit($selectedMonthRaw) ? (int)$selectedMonthRaw : '';
+$selectedYear = ctype_digit($selectedYearRaw) ? (int)$selectedYearRaw : '';
 $selectedReseller = trim((string)($_GET['reseller'] ?? ''));
 $userSummaryItems = [];
 $resellerOptions = [];
@@ -38,7 +40,6 @@ $invoiceDateTo = gmdate('Y-m-d');
 $recouvrementClientRows = [];
 $recouvrementClientVouchers = [];
 $recouvrementClientOperations = [];
-$operatorRechargeEntries = [];
 $monthNames = [
     1 => 'Janvier',
     2 => 'Fevrier',
@@ -53,6 +54,28 @@ $monthNames = [
     11 => 'Novembre',
     12 => 'Decembre',
 ];
+
+function recouvrementDateFilterSql(string $column, int|string $year, int|string $month, string $day): string
+{
+    $conditions = [];
+    if (is_int($year)) {
+        $conditions[] = 'YEAR(' . $column . ') = ' . $year;
+    }
+    if (is_int($month)) {
+        $conditions[] = 'MONTH(' . $column . ') = ' . $month;
+    }
+    if (ctype_digit($day)) {
+        $conditions[] = 'DAY(' . $column . ') = ' . (int)$day;
+    }
+
+    return $conditions === [] ? '' : ' AND ' . implode(' AND ', $conditions);
+}
+
+function recouvrementOperatorFilterSql(PDO $pdo, string $column, string $operator): string
+{
+    $value = trim($operator);
+    return $value === '' ? '' : ' AND ' . $column . ' = ' . $pdo->quote($value);
+}
 
 try {
     $pdo->exec("
@@ -70,7 +93,7 @@ try {
     ");
 
     ensureVouchersTable($pdo);
-    syncVoucherUsage($pdo);
+    runVoucherUsageMaintenanceIfDue($pdo, 'recouvrement_voucher_usage');
     ensureVoucherHistoryTable($pdo);
     ensureOperationHistoryTable($pdo);
     ensureLocalAdminTable($pdo);
@@ -122,8 +145,10 @@ try {
             WHERE rim.source_type = 'recharge'
               AND rim.source_id = recharge_history.id
         )
+        " . recouvrementDateFilterSql('created_at', $selectedYear, $selectedMonth, $selectedDay) . "
+        " . recouvrementOperatorFilterSql($pdo, 'operator_username', $selectedReseller) . "
         ORDER BY created_at DESC, id DESC
-        LIMIT 1500
+        LIMIT 500
     ");
     $rechargeRows = $rechargeRowsStmt ? ($rechargeRowsStmt->fetchAll(PDO::FETCH_ASSOC) ?: []) : [];
 
@@ -166,21 +191,11 @@ try {
         $recouvrementClientRows[$summaryMap[$key]['row_key']]['entries'][] = [
             'entry_id' => 'recharge_' . (int)($row['id'] ?? 0),
             'entry_type' => 'recharge',
+            'source_type' => 'recharge',
             'created_at' => trim((string)($row['created_at'] ?? '')),
             'amount_value' => (float)($row['amount_value'] ?? 0),
             'summary' => trim((string)($row['effect_summary'] ?? '')) ?: '-',
         ];
-
-        if ($operator !== '') {
-            $operatorRechargeEntries[$operator] ??= [];
-            $operatorRechargeEntries[$operator][] = [
-                'entry_id' => 'recharge_' . (int)($row['id'] ?? 0),
-                'entry_type' => 'recharge',
-                'created_at' => trim((string)($row['created_at'] ?? '')),
-                'amount_value' => (float)($row['amount_value'] ?? 0),
-                'summary' => trim((string)($row['effect_summary'] ?? '')) ?: '-',
-            ];
-        }
     }
 
     $voucherUseStmt = $pdo->query("
@@ -190,11 +205,10 @@ try {
             v.used_by,
             v.username,
             v.profile_id,
-            v.printed_by,
-            p.name AS profile_name,
-            p.price AS profile_price
+            v.profile_name AS voucher_profile_name,
+            v.price AS voucher_price,
+            v.printed_by
         FROM vouchers v
-        LEFT JOIN profiles p ON p.id = v.profile_id
         WHERE v.used_at IS NOT NULL
           AND NOT EXISTS (
               SELECT 1
@@ -202,8 +216,10 @@ try {
               WHERE rim.source_type = 'voucher_use'
                 AND rim.source_id = v.id
           )
+        " . recouvrementDateFilterSql('v.used_at', $selectedYear, $selectedMonth, $selectedDay) . "
+        " . recouvrementOperatorFilterSql($pdo, 'v.printed_by', $selectedReseller) . "
         ORDER BY v.used_at DESC, v.id DESC
-        LIMIT 1500
+        LIMIT 500
     ");
     $voucherUseRows = $voucherUseStmt ? ($voucherUseStmt->fetchAll(PDO::FETCH_ASSOC) ?: []) : [];
     foreach ($voucherUseRows as $row) {
@@ -217,8 +233,8 @@ try {
             continue;
         }
 
-        $profile = trim((string)($row['profile_name'] ?? '')) ?: '-';
-        $amountValue = (float)($row['profile_price'] ?? 0);
+        $profile = trim((string)($row['voucher_profile_name'] ?? '')) ?: '-';
+        $amountValue = (float)($row['voucher_price'] ?? 0);
         $summaryText = '1er login voucher';
         $key = mb_strtolower($operator . '|' . $username);
 
@@ -253,15 +269,7 @@ try {
         $recouvrementClientRows[$summaryMap[$key]['row_key']]['entries'][] = [
             'entry_id' => 'voucher_use_' . (int)($row['id'] ?? 0),
             'entry_type' => 'recharge',
-            'created_at' => $createdAt,
-            'amount_value' => $amountValue,
-            'summary' => $summaryText,
-        ];
-
-        $operatorRechargeEntries[$operator] ??= [];
-        $operatorRechargeEntries[$operator][] = [
-            'entry_id' => 'voucher_use_' . (int)($row['id'] ?? 0),
-            'entry_type' => 'recharge',
+            'source_type' => 'voucher_use',
             'created_at' => $createdAt,
             'amount_value' => $amountValue,
             'summary' => $summaryText,
@@ -277,8 +285,10 @@ try {
             WHERE rim.source_type = 'voucher_batch'
               AND rim.source_id = voucher_history.id
         )
+        " . recouvrementDateFilterSql('created_at', $selectedYear, $selectedMonth, $selectedDay) . "
+        " . recouvrementOperatorFilterSql($pdo, 'operator_username', $selectedReseller) . "
         ORDER BY created_at DESC, id DESC
-        LIMIT 1500
+        LIMIT 500
     ");
     $voucherHistoryRows = $voucherHistoryStmt ? ($voucherHistoryStmt->fetchAll(PDO::FETCH_ASSOC) ?: []) : [];
     foreach ($voucherHistoryRows as $row) {
@@ -299,9 +309,16 @@ try {
         SELECT actor_username, target_name, profile_name, amount_value, summary, operation_type, created_at
         FROM operation_history
         WHERE operation_scope = 'commercial'
-          AND COALESCE(operation_type, '') NOT IN ('voucher_batch', 'recharge')
+          AND COALESCE(operation_type, '') NOT IN (
+              'voucher_batch',
+              'recharge',
+              'user_notice_record',
+              'user_remove_record'
+          )
+        " . recouvrementDateFilterSql('created_at', $selectedYear, $selectedMonth, $selectedDay) . "
+        " . recouvrementOperatorFilterSql($pdo, 'actor_username', $selectedReseller) . "
         ORDER BY created_at DESC, id DESC
-        LIMIT 1500
+        LIMIT 500
     ");
     $operationRows = $operationRowsStmt ? ($operationRowsStmt->fetchAll(PDO::FETCH_ASSOC) ?: []) : [];
     foreach ($operationRows as $row) {
@@ -358,6 +375,7 @@ try {
             $recouvrementClientRows[$summaryMap[$key]['row_key']]['entries'][] = [
                 'entry_id' => 'operation_' . md5($operator . '|' . $target . '|' . $createdAt . '|' . $summaryText),
                 'entry_type' => 'operation',
+                'source_type' => 'operation',
                 'created_at' => $createdAt,
                 'amount_value' => $amountValue,
                 'summary' => $summaryText,
@@ -381,8 +399,10 @@ try {
             GROUP BY username
         ) fl ON fl.username = oh.target_name
         WHERE oh.operation_type = 'user_create'
+        " . recouvrementDateFilterSql('fl.first_login', $selectedYear, $selectedMonth, $selectedDay) . "
+        " . recouvrementOperatorFilterSql($pdo, 'oh.actor_username', $selectedReseller) . "
         ORDER BY fl.first_login DESC, oh.id DESC
-        LIMIT 1500
+        LIMIT 500
     ");
     $accountFirstLoginRows = $accountFirstLoginStmt ? ($accountFirstLoginStmt->fetchAll(PDO::FETCH_ASSOC) ?: []) : [];
     foreach ($accountFirstLoginRows as $row) {
@@ -435,103 +455,10 @@ try {
         $recouvrementClientRows[$summaryMap[$key]['row_key']]['entries'][] = [
             'entry_id' => 'user_first_login_' . (int)($row['id'] ?? 0),
             'entry_type' => 'operation',
+            'source_type' => 'user_first_login',
             'created_at' => $createdAt,
             'amount_value' => 0,
             'summary' => $summaryText,
-        ];
-    }
-
-    $operatorMeta = [];
-    foreach ($recouvrementClientVouchers as $item) {
-        $operator = trim((string)($item['operator'] ?? ''));
-        if ($operator === '') {
-            continue;
-        }
-
-        if (!isset($operatorMeta[$operator])) {
-            $operatorMeta[$operator] = [
-                'latest_date' => '',
-                'profile' => '-',
-                'summary' => 'Activite vouchers',
-            ];
-        }
-
-        $createdAt = trim((string)($item['created_at'] ?? ''));
-        if ($createdAt !== '' && $createdAt > $operatorMeta[$operator]['latest_date']) {
-            $operatorMeta[$operator]['latest_date'] = $createdAt;
-        }
-        if (($operatorMeta[$operator]['profile'] ?? '-') === '-' && trim((string)($item['profile'] ?? '')) !== '') {
-            $operatorMeta[$operator]['profile'] = trim((string)($item['profile'] ?? ''));
-        }
-    }
-
-    foreach ($recouvrementClientOperations as $item) {
-        $operator = trim((string)($item['operator'] ?? ''));
-        if ($operator === '') {
-            continue;
-        }
-
-        if (!isset($operatorMeta[$operator])) {
-            $operatorMeta[$operator] = [
-                'latest_date' => '',
-                'profile' => '-',
-                'summary' => 'Activite commerciale',
-            ];
-        }
-
-        $createdAt = trim((string)($item['created_at'] ?? ''));
-        if ($createdAt !== '' && $createdAt > $operatorMeta[$operator]['latest_date']) {
-            $operatorMeta[$operator]['latest_date'] = $createdAt;
-        }
-        if (($operatorMeta[$operator]['profile'] ?? '-') === '-' && trim((string)($item['profile'] ?? '')) !== '') {
-            $operatorMeta[$operator]['profile'] = trim((string)($item['profile'] ?? ''));
-        }
-    }
-
-    foreach ($operatorMeta as $operator => $meta) {
-        $rowKey = 'row_' . md5($operator . '|__operator__');
-        $aggregateKey = mb_strtolower($operator . '|__operator__');
-        $aggregateEntries = $operatorRechargeEntries[$operator] ?? [];
-        $aggregateEntries[] = [
-            'entry_id' => 'meta_' . md5($operator . '|' . (string)($meta['latest_date'] ?? '') . '|' . (string)($meta['summary'] ?? '')),
-            'entry_type' => 'meta',
-            'created_at' => trim((string)($meta['latest_date'] ?? '')),
-            'amount_value' => 0,
-            'summary' => trim((string)($meta['summary'] ?? '')) ?: 'Activite commerciale',
-        ];
-
-        $latestEntry = null;
-        foreach ($aggregateEntries as $entry) {
-            if ($latestEntry === null || (string)($entry['created_at'] ?? '') > (string)($latestEntry['created_at'] ?? '')) {
-                $latestEntry = $entry;
-            }
-        }
-
-        $rechargeCount = 0;
-        $amountTotal = 0.0;
-        foreach ($aggregateEntries as $entry) {
-            if (!in_array((string)($entry['entry_type'] ?? ''), ['recharge', 'operation'], true)) {
-                continue;
-            }
-            $rechargeCount += 1;
-            $amountTotal += (float)($entry['amount_value'] ?? 0);
-        }
-
-        $summaryMap[$aggregateKey] = [
-            'row_key' => $rowKey,
-            'operator_username' => $operator,
-            'username' => '-',
-            'profile_name' => trim((string)($meta['profile'] ?? '')) ?: '-',
-            'last_summary' => trim((string)($latestEntry['summary'] ?? '')) ?: 'Activite commerciale',
-            'last_created_at' => trim((string)($latestEntry['created_at'] ?? '')) ?: '-',
-            'recharge_count' => $rechargeCount,
-            'amount_total' => $amountTotal,
-        ];
-        $recouvrementClientRows[$rowKey] = [
-            'operator' => $operator,
-            'username' => '-',
-            'profile' => trim((string)($meta['profile'] ?? '')) ?: '-',
-            'entries' => $aggregateEntries,
         ];
     }
 
@@ -552,16 +479,18 @@ try {
 
 <?php
 $pageTitle = 'Recouvrement';
+$htmlClass = 'recouvrement-page';
+$bodyClass = 'recouvrement-page';
+$extraCss = [
+    '../css/recouvrement.css',
+];
 require_once '../includes/layout_header.php';
 ?>
 
 <div class="row recouvrement-page-layout-row g-3">
-    <div class="col-lg-7 mb-3 mb-lg-0 recouvrement-main-col">
+    <div class="col-lg-9 mb-3 mb-lg-0 recouvrement-main-col">
         <div class="card shadow-sm administration-card recouvrement-main-card">
             <div class="card-header">
-                <div class="mb-2">
-                    <i class="fa fa-hand-holding-dollar me-2"></i> Recouvrement
-                </div>
                 <form method="GET" class="mb-0" autocomplete="off">
                     <div class="row g-2 align-items-end">
                         <div class="col-md-2">
@@ -576,6 +505,7 @@ require_once '../includes/layout_header.php';
                         <div class="col-md-3">
                             <label class="form-label text-white-50 small mb-1">Mois</label>
                             <select class="form-select user-logs-filter-select" id="recouvrementFilterMonth" name="month">
+                                <option value="" <?= $selectedMonth === '' ? 'selected' : '' ?>>Tous les mois</option>
                                 <?php foreach ($monthNames as $number => $label): ?>
                                 <option value="<?= $number ?>" <?= $selectedMonth === $number ? 'selected' : '' ?>><?= htmlspecialchars($label) ?></option>
                                 <?php endforeach; ?>
@@ -584,6 +514,7 @@ require_once '../includes/layout_header.php';
                         <div class="col-md-2">
                             <label class="form-label text-white-50 small mb-1">Annee</label>
                             <select class="form-select user-logs-filter-select" id="recouvrementFilterYear" name="year">
+                                <option value="" <?= $selectedYear === '' ? 'selected' : '' ?>>Toutes</option>
                                 <?php for ($y = 2018; $y <= (int)gmdate('Y'); $y++): ?>
                                 <option value="<?= $y ?>" <?= $selectedYear === $y ? 'selected' : '' ?>><?= $y ?></option>
                                 <?php endfor; ?>
@@ -601,7 +532,7 @@ require_once '../includes/layout_header.php';
                             </select>
                         </div>
                         <div class="col-md-2 text-md-end">
-                            <a href="recouvrement.php" class="btn btn-save">
+                            <a href="recouvrement.php?day=&month=&year=&reseller=" class="btn btn-save">
                                 <i class="fa fa-sync me-1"></i> Tout
                             </a>
                         </div>
@@ -619,9 +550,9 @@ require_once '../includes/layout_header.php';
                                 <th data-sort-key="operator" data-sort-type="text">Revendeur</th>
                                 <th data-sort-key="username" data-sort-type="text">Utilisateur</th>
                                 <th data-sort-key="profile" data-sort-type="text">Profil</th>
-                                <th data-sort-key="recharges" data-sort-type="number">Recharges</th>
+                                <th data-sort-key="recharges" data-sort-type="number">Qté</th>
                                 <th data-sort-key="summary" data-sort-type="text">Dernière opération</th>
-                                <th data-sort-key="date" data-sort-type="date">Dernière date</th>
+                                <th data-sort-key="date" data-sort-type="date">Date</th>
                                 <th data-sort-key="amount" data-sort-type="currency">Montant</th>
                             </tr>
                         </thead>
@@ -671,7 +602,7 @@ require_once '../includes/layout_header.php';
                                         <td><?= htmlspecialchars($profile) ?></td>
                                         <td><?= $countLabel ?></td>
                                         <td><?= htmlspecialchars($summaryText) ?></td>
-                                        <td><?= htmlspecialchars($createdAt) ?></td>
+                                        <td><?= htmlspecialchars($createdAtDate !== '' ? $createdAtDate : $createdAt) ?></td>
                                         <td><?= htmlspecialchars($valueLabel) ?></td>
                                     </tr>
                                 <?php endforeach; ?>
@@ -683,7 +614,7 @@ require_once '../includes/layout_header.php';
         </div>
     </div>
 
-    <div class="col-lg-5 mb-3 mb-lg-0 recouvrement-side-col">
+    <div class="col-lg-3 mb-3 mb-lg-0 recouvrement-side-col">
         <div class="card shadow-sm administration-card">
             <div class="card-header">
                 <i class="fa fa-chart-column me-2"></i> Résumé sélection
@@ -696,23 +627,23 @@ require_once '../includes/layout_header.php';
                     </div>
                     <div class="recouvrement-summary-grid">
                         <div class="input-group mb-0">
-                            <span class="input-group-text">Recharges</span>
+                            <span class="input-group-text">Lignes payantes</span>
                             <input type="text" class="form-control" id="recouvrementMetricRecharges" value="0" readonly>
                         </div>
                         <div class="input-group mb-0">
-                            <span class="input-group-text">Lots vouchers</span>
+                            <span class="input-group-text">Vouchers utilisés</span>
                             <input type="text" class="form-control" id="recouvrementMetricVoucherBatches" value="0" readonly>
                         </div>
                         <div class="input-group mb-0">
-                            <span class="input-group-text">Vouchers</span>
+                            <span class="input-group-text">Recharges compte</span>
                             <input type="text" class="form-control" id="recouvrementMetricVouchers" value="0" readonly>
                         </div>
                         <div class="input-group mb-0">
-                            <span class="input-group-text">Montant total</span>
+                            <span class="input-group-text">Montant lignes</span>
                             <input type="text" class="form-control" id="recouvrementMetricAmount" value="0,00" readonly>
                         </div>
                         <div class="input-group mb-0">
-                            <span class="input-group-text">Opérateurs</span>
+                            <span class="input-group-text">Revendeurs</span>
                             <input type="text" class="form-control" id="recouvrementMetricOperators" value="0" readonly>
                         </div>
                         <div class="input-group mb-0">
@@ -720,7 +651,7 @@ require_once '../includes/layout_header.php';
                             <input type="text" class="form-control" id="recouvrementMetricProfiles" value="0" readonly>
                         </div>
                         <div class="input-group mb-0">
-                            <span class="input-group-text">Op. commerciales</span>
+                            <span class="input-group-text">Autres opérations</span>
                             <input type="text" class="form-control" id="recouvrementMetricCommercialOperations" value="0" readonly>
                         </div>
                         <div class="input-group mb-0">

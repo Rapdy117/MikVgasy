@@ -6,6 +6,14 @@ require_once __DIR__ . '/../includes/auth.php';
 require_once __DIR__ . '/../includes/message.php';
 require_once __DIR__ . '/../includes/admin_notifications.php';
 
+function queueAdminNotificationsToast(string $message, string $type = 'info'): void
+{
+    $_SESSION['admin_notifications_toast'] = [
+        'message' => $message,
+        'type' => $type,
+    ];
+}
+
 if (!isset($_SESSION['logged_in']) || $_SESSION['logged_in'] !== true) {
     set_message('Veuillez vous connecter pour accéder à cette page.', 'danger');
     header('Location: ../index.php');
@@ -31,10 +39,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $action = trim((string)($_POST['notification_action'] ?? ''));
         if ($action === 'mark_read') {
             markAdminNotificationRead($pdo, (int)($_POST['notification_id'] ?? 0));
-            set_message('Notification marquée comme lue.', 'success');
+            queueAdminNotificationsToast('Notification marquée comme lue.', 'success');
         } elseif ($action === 'mark_all_read') {
             markAllAdminNotificationsRead($pdo);
-            set_message('Toutes les notifications sont marquées comme lues.', 'success');
+            queueAdminNotificationsToast('Toutes les notifications ont été marquées comme lues.', 'success');
         } elseif ($action === 'delete_selected') {
             $notificationIds = $_POST['notification_ids'] ?? [];
             if (!is_array($notificationIds)) {
@@ -53,10 +61,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $placeholders = implode(',', array_fill(0, count($notificationIds), '?'));
             $stmt = $pdo->prepare("DELETE FROM admin_notifications WHERE id IN ($placeholders)");
             $stmt->execute($notificationIds);
-            set_message(count($notificationIds) > 1 ? 'Notifications supprimées.' : 'Notification supprimée.', 'success');
+            queueAdminNotificationsToast(count($notificationIds) > 1 ? 'Notifications supprimées.' : 'Notification supprimée.', 'success');
         }
     } catch (Throwable $e) {
-        set_message($e->getMessage(), 'danger');
+        queueAdminNotificationsToast($e->getMessage(), 'danger');
     }
 
     header('Location: /pages/admin_notifications.php');
@@ -65,49 +73,51 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
 $notifications = listAdminNotifications($pdo, 150);
 $unreadCount = countUnreadAdminNotifications($pdo);
+$adminNotificationsToast = $_SESSION['admin_notifications_toast'] ?? null;
+unset($_SESSION['admin_notifications_toast']);
 ?>
 <?php
-$pageTitle = 'Notifications';
+$pageTitle = 'Notifications système';
+$bodyClass = 'admin-notifications-page';
 $extraCss = array (
-  0 => '../css/admin_notifications.css',
+  0 => '../css/admin_notifications.css?v=20260504b',
 );
 require_once __DIR__ . '/../includes/layout_header.php';
 ?>
 
-<div class="card shadow-sm mb-3">
-    <div class="card-body py-3">
-        <div class="d-flex align-items-center text-white" style="font-size: calc(0.875rem + 2px);">
-            <i class="fa fa-bell me-2"></i>
-            <span class="small fw-semibold">Notifications Système</span>
-        </div>
-    </div>
-</div>
-
 <div class="card shadow-sm admin-notifications-card">
-    <div class="card-header d-flex flex-wrap align-items-center admin-notifications-header-row standard-card-header">
-        <div class="admin-notifications-title-wrap">
-            <span><i class="fa fa-triangle-exclamation me-2"></i> Événements importants</span>
+    <div class="card-header admin-notifications-card-header d-flex align-items-center justify-content-between flex-wrap gap-2">
+        <div class="d-flex align-items-center admin-notifications-card-title text-truncate">
+            <i class="fa fa-bell me-2 flex-shrink-0"></i>
+            <span>Notifications système</span>
             <span class="badge <?= $unreadCount > 0 ? 'bg-warning text-dark' : 'bg-success' ?>">
                 <?= $unreadCount ?> non lue<?= $unreadCount > 1 ? 's' : '' ?>
             </span>
         </div>
-        <div class="admin-notifications-toolbar">
+        <div class="d-flex align-items-center gap-2 flex-shrink-0 admin-notifications-actions">
+            <label for="adminNotificationsSearch" class="form-label visually-hidden">Recherche</label>
             <div class="input-group admin-notifications-search-group">
-                <span class="input-group-text"><i class="fa fa-search"></i></span>
+                <span class="input-group-text">
+                    <i class="fa fa-search me-2"></i>Recherche
+                </span>
                 <input type="text" class="form-control" id="adminNotificationsSearch" placeholder="Rechercher...">
             </div>
-            <select class="form-select admin-notifications-filter" id="adminNotificationsSeverity">
-                <option value="">Sévérité</option>
-                <option value="critical">Critique</option>
-                <option value="warning">Avertissement</option>
-                <option value="success">Succès</option>
-                <option value="info">Info</option>
-            </select>
+            <label for="adminNotificationsSeverity" class="form-label visually-hidden">Niveau</label>
+            <div class="input-group admin-notifications-level-group">
+                <span class="input-group-text">Niveau</span>
+                <select class="form-select admin-notifications-filter" id="adminNotificationsSeverity">
+                    <option value="">Tous</option>
+                    <option value="critical">Critique</option>
+                    <option value="warning">Avertissement</option>
+                    <option value="success">Succès</option>
+                    <option value="info">Info</option>
+                </select>
+            </div>
             <form method="POST" class="mb-0">
                 <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($_SESSION['csrf_token']) ?>">
                 <input type="hidden" name="notification_action" value="mark_all_read">
                 <button type="submit" class="btn btn-test">
-                    <i class="fa fa-check-double me-1"></i> Tout lire
+                    <i class="fa fa-check-double me-1"></i> Tout marquer lu
                 </button>
             </form>
             <form method="POST" class="mb-0" id="adminNotificationsDeleteForm">
@@ -120,7 +130,7 @@ require_once __DIR__ . '/../includes/layout_header.php';
             </form>
         </div>
     </div>
-    <div class="card-body p-0">
+    <div class="card-body">
         <div class="table-responsive">
             <table class="table table-dark table-hover table-striped mb-0 admin-notifications-table table-standard" id="adminNotificationsTable">
                 <thead>
@@ -132,9 +142,9 @@ require_once __DIR__ . '/../includes/layout_header.php';
                         <th>Titre</th>
                         <th>Catégorie</th>
                         <th>Message</th>
-                        <th>Sévérité</th>
-                        <th>Lecture</th>
-                        <th>Action</th>
+                        <th>Niveau</th>
+                        <th>État</th>
+                        <th>Actions</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -157,7 +167,7 @@ require_once __DIR__ . '/../includes/layout_header.php';
                         <td class="text-nowrap"><?= htmlspecialchars(date('Y-m-d H:i:s', strtotime((string)$notification['created_at']))) ?></td>
                         <td class="fw-semibold"><?= htmlspecialchars((string)($notification['title'] ?? '-')) ?></td>
                         <td><?= htmlspecialchars(adminNotificationCategoryLabel((string)($notification['category'] ?? 'system'))) ?></td>
-                        <td class="admin-notifications-message small text-white-50"><?= htmlspecialchars((string)($notification['message'] ?? '-')) ?></td>
+                        <td class="admin-notifications-message"><?= htmlspecialchars((string)($notification['message'] ?? '-')) ?></td>
                         <td><span class="badge <?= adminNotificationSeverityBadgeClass($severity) ?>"><?= htmlspecialchars(adminNotificationSeverityLabel($severity)) ?></span></td>
                         <td><?= $isRead ? '<span class="badge bg-secondary opacity-50">Lue</span>' : '<span class="badge bg-warning text-dark">Nouvelle</span>' ?></td>
                         <td>
@@ -176,6 +186,13 @@ require_once __DIR__ . '/../includes/layout_header.php';
                         </td>
                     </tr>
                     <?php endforeach; ?>
+                    <?php if ($notifications === []): ?>
+                    <tr>
+                        <td colspan="8" class="admin-notifications-empty">
+                            <i class="fa fa-circle-check me-2"></i>Aucune notification à afficher.
+                        </td>
+                    </tr>
+                    <?php endif; ?>
                 </tbody>
             </table>
         </div>
@@ -185,6 +202,11 @@ require_once __DIR__ . '/../includes/layout_header.php';
 <?php
 $extraScript = "
 document.addEventListener('DOMContentLoaded', () => {
+    const initialToast = " . json_encode($adminNotificationsToast, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) . ";
+    if (initialToast && initialToast.message && window.AppToast) {
+        AppToast.flash(initialToast.message, initialToast.type || 'info');
+    }
+
     const searchInput = document.getElementById('adminNotificationsSearch');
     const severityFilter = document.getElementById('adminNotificationsSeverity');
     const rows = Array.from(document.querySelectorAll('#adminNotificationsTable tbody tr'));

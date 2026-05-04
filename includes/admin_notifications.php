@@ -174,6 +174,8 @@ function createAdminNotification(PDO $pdo, array $payload): int
         ':details_json' => trim((string)($details ?? '')) ?: null,
     ]);
 
+    clearAdminNotificationsUnreadCache();
+
     return (int)$pdo->lastInsertId();
 }
 
@@ -255,7 +257,7 @@ function syncInvalidPasswordNotifications(PDO $pdo, int $minFailures = 3, int $r
             'source_type' => 'portal_invalid_password',
             'source_ref' => $sourceRef,
             'title' => 'Mot de passe invalide',
-            'message' => sprintf('Echecs de connexion repetes pour %s: %d en %d min.', $username, (int)($row['fail_count'] ?? 0), $repeatWindowMinutes),
+            'message' => sprintf('Échecs de connexion répétés pour « %s » : %d en %d min.', $username, (int)($row['fail_count'] ?? 0), $repeatWindowMinutes),
             'details_json' => [
                 'username' => $username,
                 'fail_count' => (int)($row['fail_count'] ?? 0),
@@ -298,7 +300,7 @@ function syncInvalidPasswordNotifications(PDO $pdo, int $minFailures = 3, int $r
             'source_type' => 'portal_invalid_password',
             'source_ref' => $sourceRef,
             'title' => 'Mot de passe invalide',
-            'message' => sprintf('Tentatives de connexion pour un utilisateur inconnu: %s (%d essai%s).', $username, (int)($row['fail_count'] ?? 0), ((int)($row['fail_count'] ?? 0) > 1 ? 's' : '')),
+            'message' => sprintf('Tentatives de connexion pour un utilisateur inconnu : « %s » (%d essai%s).', $username, (int)($row['fail_count'] ?? 0), ((int)($row['fail_count'] ?? 0) > 1 ? 's' : '')),
             'details_json' => [
                 'username' => $username,
                 'fail_count' => (int)($row['fail_count'] ?? 0),
@@ -316,6 +318,37 @@ function countUnreadAdminNotifications(PDO $pdo): int
     return (int)($count ?: 0);
 }
 
+function clearAdminNotificationsUnreadCache(): void
+{
+    if (session_status() !== PHP_SESSION_ACTIVE) {
+        return;
+    }
+
+    unset($_SESSION['admin_notifications_unread_cache']);
+}
+
+function countUnreadAdminNotificationsCached(PDO $pdo, int $ttlSeconds = 60): int
+{
+    if (session_status() !== PHP_SESSION_ACTIVE) {
+        return countUnreadAdminNotifications($pdo);
+    }
+
+    $cache = $_SESSION['admin_notifications_unread_cache'] ?? null;
+    if (is_array($cache) && isset($cache['expires_at'], $cache['count'])) {
+        if ((int)$cache['expires_at'] >= time()) {
+            return max(0, (int)$cache['count']);
+        }
+    }
+
+    $count = countUnreadAdminNotifications($pdo);
+    $_SESSION['admin_notifications_unread_cache'] = [
+        'count' => $count,
+        'expires_at' => time() + max(1, $ttlSeconds),
+    ];
+
+    return $count;
+}
+
 function markAdminNotificationRead(PDO $pdo, int $notificationId): void
 {
     ensureAdminNotificationsTable($pdo);
@@ -326,6 +359,7 @@ function markAdminNotificationRead(PDO $pdo, int $notificationId): void
         WHERE id = ?
     ");
     $stmt->execute([$notificationId]);
+    clearAdminNotificationsUnreadCache();
 }
 
 function markAllAdminNotificationsRead(PDO $pdo): void
@@ -337,6 +371,7 @@ function markAllAdminNotificationsRead(PDO $pdo): void
             read_at = CURRENT_TIMESTAMP
         WHERE is_read = 0
     ");
+    clearAdminNotificationsUnreadCache();
 }
 
 function adminNotificationSeverityLabel(string $severity): string
@@ -362,7 +397,7 @@ function adminNotificationSeverityBadgeClass(string $severity): string
 function adminNotificationCategoryLabel(string $category): string
 {
     return match (strtolower(trim($category))) {
-        'device' => 'Equipement',
+        'device' => 'Équipement',
         'user' => 'Utilisateur',
         'commercial' => 'Commercial',
         'portal' => 'Portail',

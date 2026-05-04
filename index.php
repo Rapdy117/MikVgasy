@@ -28,16 +28,16 @@ if (isset($_SESSION['logged_in']) && $_SESSION['logged_in'] === true) {
 
         :root {
             --accent: #17a2b8;
-            --accent-glow: rgba(23, 162, 184, 0.35);
-            --accent-soft: rgba(23, 162, 184, 0.12);
+            --accent-glow: rgba(23, 162, 184, 0.25);
+            --accent-soft: rgba(23, 162, 184, 0.15);
             --bg-dark: #030820;
-            --glass-bg: rgba(8, 16, 32, 0.20);
-            --glass-border: rgba(148, 163, 184, 0.14);
-            --text-primary: #f1f5f9;
-            --text-muted: rgba(255,255,255,0.52);
-            --input-bg: rgba(255,255,255,0.07);
-            --input-border: rgba(148, 163, 184, 0.20);
-            --radius: 16px;
+            --glass-bg: rgba(26, 26, 46, 0.30);
+            --glass-border: rgba(60, 60, 88, 0.50);
+            --text-primary: #e0e0e0;
+            --text-muted: #b0b0b0;
+            --input-bg: rgba(31, 32, 56, 0.50);
+            --input-border: rgba(60, 60, 88, 0.50);
+            --radius: 6px;
             --transition: 0.25s cubic-bezier(0.4, 0, 0.2, 1);
         }
 
@@ -62,9 +62,9 @@ if (isset($_SESSION['logged_in']) && $_SESSION['logged_in'] === true) {
             position: fixed; border-radius: 50%; filter: blur(80px); z-index: 0; pointer-events: none;
             animation: float-orb linear infinite;
         }
-        .orb-1 { width: 500px; height: 500px; background: radial-gradient(circle, rgba(23,162,184,0.12), transparent 70%); top: -15%; left: -10%; animation-duration: 20s; }
-        .orb-2 { width: 400px; height: 400px; background: radial-gradient(circle, rgba(99,102,241,0.10), transparent 70%); bottom: -10%; right: -8%; animation-duration: 26s; animation-direction: reverse; }
-        .orb-3 { width: 300px; height: 300px; background: radial-gradient(circle, rgba(16,185,129,0.08), transparent 70%); top: 40%; left: 55%; animation-duration: 32s; }
+        .orb-1 { width: 500px; height: 500px; background: radial-gradient(circle, rgba(23,162,184,0.10), transparent 70%); top: -15%; left: -10%; animation-duration: 20s; }
+        .orb-2 { width: 400px; height: 400px; background: radial-gradient(circle, rgba(23,162,184,0.08), transparent 70%); bottom: -10%; right: -8%; animation-duration: 26s; animation-direction: reverse; }
+        .orb-3 { width: 300px; height: 300px; background: radial-gradient(circle, rgba(224,224,224,0.05), transparent 70%); top: 40%; left: 55%; animation-duration: 32s; }
 
         @keyframes float-orb {
             0%   { transform: translate(0, 0) scale(1); }
@@ -94,7 +94,7 @@ if (isset($_SESSION['logged_in']) && $_SESSION['logged_in'] === true) {
             backdrop-filter: blur(48px) saturate(180%);
             -webkit-backdrop-filter: blur(48px) saturate(180%);
             border: 1px solid var(--glass-border);
-            border-radius: 24px;
+            border-radius: 8px;
             padding: 44px 40px 36px;
             box-shadow:
                 0 32px 80px rgba(0,0,0,0.5),
@@ -140,7 +140,7 @@ if (isset($_SESSION['logged_in']) && $_SESSION['logged_in'] === true) {
 
         .brand-icon {
             width: 56px; height: 56px;
-            border-radius: 16px;
+            border-radius: var(--radius);
             display: flex; align-items: center; justify-content: center;
             font-size: 1.4rem;
             color: var(--accent);
@@ -189,7 +189,7 @@ if (isset($_SESSION['logged_in']) && $_SESSION['logged_in'] === true) {
             background: rgba(239, 68, 68, 0.12);
             border: 1px solid rgba(239, 68, 68, 0.25);
             color: #fca5a5;
-            border-radius: 12px;
+            border-radius: var(--radius);
             padding: 10px 14px;
             font-size: 0.82rem;
             display: flex;
@@ -242,7 +242,7 @@ if (isset($_SESSION['logged_in']) && $_SESSION['logged_in'] === true) {
             padding: 0 42px 0 40px;
             background: var(--input-bg);
             border: 1px solid var(--input-border);
-            border-radius: 12px;
+            border-radius: var(--radius);
             color: var(--text-primary);
             font-family: 'Inter', sans-serif;
             font-size: 0.9rem;
@@ -291,7 +291,7 @@ if (isset($_SESSION['logged_in']) && $_SESSION['logged_in'] === true) {
             margin-top: 8px;
             background: linear-gradient(135deg, rgba(23,162,184,0.9) 0%, rgba(14,130,150,0.95) 100%);
             border: 1px solid rgba(23,162,184,0.4);
-            border-radius: 12px;
+            border-radius: var(--radius);
             color: #fff;
             font-family: 'Inter', sans-serif;
             font-size: 0.9rem;
@@ -366,16 +366,16 @@ if (isset($_SESSION['logged_in']) && $_SESSION['logged_in'] === true) {
         .status-bar {
             position: absolute;
             top: -1px; right: -1px;
-            background: rgba(16,185,129,0.12);
-            border: 1px solid rgba(16,185,129,0.2);
-            border-top-right-radius: 24px;
-            border-bottom-left-radius: 12px;
+            background: var(--accent-soft);
+            border: 1px solid var(--glass-border);
+            border-top-right-radius: 8px;
+            border-bottom-left-radius: var(--radius);
             padding: 6px 14px;
             display: flex;
             align-items: center;
             gap: 6px;
             font-size: 0.68rem;
-            color: #6ee7b7;
+            color: var(--text-primary);
             font-weight: 500;
             letter-spacing: 0.04em;
         }
@@ -383,8 +383,8 @@ if (isset($_SESSION['logged_in']) && $_SESSION['logged_in'] === true) {
         .status-dot {
             width: 6px; height: 6px;
             border-radius: 50%;
-            background: #10b981;
-            box-shadow: 0 0 6px #10b981;
+            background: var(--accent);
+            box-shadow: 0 0 6px var(--accent);
             animation: pulse-dot 2s ease-in-out infinite;
         }
 
@@ -533,4 +533,3 @@ document.getElementById('loginForm').addEventListener('submit', function () {
 
 </body>
 </html>
-

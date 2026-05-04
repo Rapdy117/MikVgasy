@@ -85,7 +85,7 @@ Implication :
 
 Decision observee :
 
-- presence de [api/test_opnsense.php](/var/www/html/api/test_opnsense.php)
+- `api/test_opnsense.php` a ete archive: `api/test_device.php` est l endpoint de test device actif
 - presence de [api/network_devices_api.php](/var/www/html/api/network_devices_api.php)
 - presence de [api/disconnect_session.php](/var/www/html/api/disconnect_session.php)
 - presence de [config/config.php](/var/www/html/config/config.php) avec constantes OPNsense
@@ -157,6 +157,17 @@ Implication :
 Decision observee :
 
 - au lieu d'un service externe, le projet ecrit directement dans les tables FreeRADIUS
+
+## 13. Verrou Agent Windows Pour Ecritures Sensibles
+
+Decision observee :
+
+- les endpoints d'ecriture sensibles appellent `backend-agent.exe` avant modification runtime
+- les imports standard qui creent/mettent a jour des profils et utilisateurs utilisent l'action `standard-import`
+- en cas d'agent absent, licence invalide ou integrite refusee, l'action PHP est bloquee sans fallback
+- V2 expose `backend-agent.exe serve` sur `127.0.0.1` et PHP appelle ce service local au lieu de relancer l'EXE a chaque action
+- la recharge RADIUS/OPNsense est executee par `backend-agent.exe`; `api/users/apply_recharge.php` reste une facade session/CSRF et historique
+- la recharge MikroTik est bloquee tant que son execution directe n est pas migree dans `backend-agent.exe`
 
 Implication :
 
@@ -385,3 +396,24 @@ Implication pour toute evolution UI :
 - `nas_id` appele a devenir la cle centrale de routage backend
 - une seule base physique actuelle, mais deux couches logiques : metier et RADIUS
 - identite visuelle : transparence (glassmorphism) + bleu cyan `#17a2b8` — non negociable
+
+## 23. Agent Windows Local Pour Les Actions Sensibles
+
+Decision formalisee :
+
+- la V1 de l agent Windows est implementee en Go statique dans `tools/windows-agent`
+- les executables runtime client attendus vivent dans `bin/agent`, hors `docs/`
+- les outils editeur `license-admin.exe` et `license-generator.exe` vivent dans `tools/editor-license` et ne sont pas livrables au client
+- l activation locale ecrit son etat dans `config/license/activation.json`
+- PHP appelle `backend-agent.exe` via `includes/backend_agent.php` pour les actions sensibles
+- le premier flux protege est l application des lots vouchers dans `api/vouchers/apply_batch.php`
+- `api/license/activate_license.php` reste une facade session/CSRF, mais la validation est executee par `activation-key.exe`
+- les anciens outils PHP de generation licence et signature sont archives dans `archive/replaced-by-agent-2026-05-04`
+- `backend-agent.exe authorize-action` contient une allowlist et refuse toute action inconnue
+- les ecritures utilisateurs, profils, recharge et vouchers passent par l autorisation agent avant execution
+
+Implication :
+
+- aucune cle privee de generation licence ne doit etre versionnee ni livree au client
+- si `backend-agent.exe` est absent, invalide ou refuse, l action sensible est bloquee
+- l execution technique PHP restante est transitoire et devra etre deplacee progressivement dans l agent

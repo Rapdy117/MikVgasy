@@ -2,6 +2,7 @@ const DASHBOARD_REFRESH_MS = 45000;
 const OPN_LIVE_REFRESH_MS = 2000;
 const TRAFFIC_DURATION_MS = 20000;
 const TRAFFIC_DELAY_MS = 2000;
+const RECENT_EVENTS_LIMIT = 20;
 const CPU_TYPE_PATH = `../api/get_cpu_type.php`;
 const DEVICE_STREAM_PATH = `../api/device_stream.php`;
 const WAN_INTERFACE_KEY = 'wan';
@@ -30,7 +31,9 @@ document.addEventListener('DOMContentLoaded', () => {
     const cpuGaugeRamLabel = document.getElementById('cpuGaugeRamLabel');
     const connectedUsersCount = document.getElementById('connectedUsersCount');
     const summarySalesToday = document.getElementById('summarySalesToday');
+    const summarySalesTodayMeta = document.getElementById('summarySalesTodayMeta');
     const summarySalesMonthly = document.getElementById('summarySalesMonthly');
+    const summarySalesMonthlyMeta = document.getElementById('summarySalesMonthlyMeta');
     const salesTrendBars = document.getElementById('salesTrendBars');
     const salesTrendMonthLabel = document.getElementById('salesTrendMonthLabel');
     const salesActiveDays = document.getElementById('salesActiveDays');
@@ -76,6 +79,11 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         return 'Inconnu';
+    }
+
+    function formatTransactionCount(count) {
+        const total = Math.max(0, Number(count || 0));
+        return `${total} transaction${total > 1 ? 's' : ''}`;
     }
 
     function setGaugeCircleProgress(circle, percent, color) {
@@ -622,6 +630,64 @@ document.addEventListener('DOMContentLoaded', () => {
         })
         .catch(() => {});
 
+    function normalizeRecentEvent(item) {
+        if (!item || typeof item !== 'object') {
+            return null;
+        }
+
+        const event = {
+            time: String(item.time ?? '').trim(),
+            user: String(item.user ?? '').trim(),
+            action: String(item.action ?? '').trim(),
+        };
+
+        if (event.time === '' && event.user === '' && event.action === '') {
+            return null;
+        }
+
+        if (event.action === '') {
+            return null;
+        }
+
+        return event;
+    }
+
+    function recentEventKey(item) {
+        return [
+            String(item.time ?? '').trim().toLowerCase(),
+            String(item.user ?? '').trim().toLowerCase(),
+            String(item.action ?? '').trim().toLowerCase(),
+        ].join('|');
+    }
+
+    function mergeRecentEvents(events) {
+        const merged = [];
+        const seen = new Set();
+
+        const addEvent = (item) => {
+            const event = normalizeRecentEvent(item);
+            if (!event) {
+                return;
+            }
+
+            const key = recentEventKey(event);
+            if (seen.has(key)) {
+                return;
+            }
+
+            seen.add(key);
+            merged.push(event);
+        };
+
+        if (Array.isArray(events)) {
+            events.forEach(addEvent);
+        }
+
+        lastRecentEvents.forEach(addEvent);
+
+        return merged.slice(0, RECENT_EVENTS_LIMIT);
+    }
+
     function renderRecentEvents(events) {
         if (!recentEventsTableBody) {
             return;
@@ -657,8 +723,12 @@ document.addEventListener('DOMContentLoaded', () => {
             return `<span class="recent-user-name">${userName || '-'}</span><span class="recent-user-ip">${userIp || '-'}</span>`;
         };
 
-        if (Array.isArray(events) && events.length > 0) {
-            recentEventsTableBody.innerHTML = events.slice(0, 20).map(item => `
+        const safeEvents = Array.isArray(events)
+            ? events.map(normalizeRecentEvent).filter(Boolean).slice(0, RECENT_EVENTS_LIMIT)
+            : [];
+
+        if (safeEvents.length > 0) {
+            recentEventsTableBody.innerHTML = safeEvents.map(item => `
                 <tr>
                     <td class="recent-time-cell">${formatTimeCell(item.time)}</td>
                     <td class="recent-user-cell">${formatUserCell(item.user)}</td>
@@ -699,7 +769,9 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         }
         if (summarySalesToday) summarySalesToday.innerText = data.sales_today || '0';
+        if (summarySalesTodayMeta) summarySalesTodayMeta.innerText = formatTransactionCount(data.sales_today_count);
         if (summarySalesMonthly) summarySalesMonthly.innerText = data.sales_monthly || '0';
+        if (summarySalesMonthlyMeta) summarySalesMonthlyMeta.innerText = formatTransactionCount(data.sales_monthly_count);
         if (salesTrendMonthLabel) {
             salesTrendMonthLabel.innerText = new Date().toLocaleDateString('fr-FR', { month: 'long', year: 'numeric' });
         }
@@ -718,9 +790,16 @@ document.addEventListener('DOMContentLoaded', () => {
         const events = Array.isArray(recentEventsOverride)
             ? recentEventsOverride
             : (Array.isArray(data.recent_events) ? data.recent_events : null);
-        if (Array.isArray(events) && events.length > 0) {
-            lastRecentEvents = events;
-            renderRecentEvents(events);
+        if (Array.isArray(events)) {
+            const mergedEvents = mergeRecentEvents(events);
+            if (mergedEvents.length > 0) {
+                lastRecentEvents = mergedEvents;
+                renderRecentEvents(lastRecentEvents);
+            } else if (lastRecentEvents.length > 0) {
+                renderRecentEvents(lastRecentEvents);
+            } else {
+                renderRecentEvents([]);
+            }
         }
         renderSalesTrend(data.sales_daily_trend);
     }
@@ -803,9 +882,12 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
                 if (payload.stats) {
                     applyDashboardStats(payload.stats, Array.isArray(payload.recent_events) ? payload.recent_events : undefined);
-                } else if (Array.isArray(payload.recent_events) && payload.recent_events.length > 0) {
-                    lastRecentEvents = payload.recent_events;
-                    renderRecentEvents(payload.recent_events);
+                } else if (Array.isArray(payload.recent_events)) {
+                    const mergedEvents = mergeRecentEvents(payload.recent_events);
+                    if (mergedEvents.length > 0) {
+                        lastRecentEvents = mergedEvents;
+                        renderRecentEvents(lastRecentEvents);
+                    }
                 }
             } catch (error) {
                 console.error('Erreur flux dashboard:', error);

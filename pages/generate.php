@@ -345,7 +345,7 @@ require_once '../includes/layout_header.php';
 <button type="button" id="applyAndPrintBtn" class="btn btn-success<?= $hasPendingBatch ? '' : ' d-none' ?>">
     <i class="fa fa-print me-1"></i> Appliquer &amp; Imprimer
 </button>
-<button type="button" id="printDisabledBtn" class="btn btn-test<?= $hasPendingBatch ? ' d-none' : '' ?>" disabled>
+<button type="button" id="printDisabledBtn" class="btn btn-test<?= $hasPendingBatch ? ' d-none' : '' ?>">
 <i class="fa fa-print me-1"></i> Imprimer
 </button>
 </div>

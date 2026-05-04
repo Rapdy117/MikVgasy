@@ -1,6 +1,7 @@
 <?php
 
 require_once __DIR__ . '/mikrotik_backend.php';
+require_once __DIR__ . '/crypto.php';
 
 function insertReply($pdo, $group, $attribute, $value)
 {
@@ -256,7 +257,8 @@ function deleteProfileFromRadius($pdo, string $groupname): void
 function syncUserToRadius($pdo, array $user, string $groupname): void
 {
     $username = $user['username'];
-    $password = $user['password'];
+    /* Déchiffre le mot de passe stocké en DB avant écriture dans radcheck */
+    $password = decryptField((string)($user['password'] ?? ''));
     $status = strtolower(trim((string)($user['status'] ?? 'active')));
     $nasType = (string)($user['nas_type'] ?? '');
     if ($nasType === '') {
@@ -316,9 +318,11 @@ function syncUserToRadius($pdo, array $user, string $groupname): void
 
 function updateUserInRadius($pdo, array $user, string $groupname): void
 {
-    $username = $user['username'];
+    $username    = $user['username'];
     $oldUsername = $user['old_username'] ?? $username;
-    $status = strtolower(trim((string)($user['status'] ?? 'active')));
+    $status      = strtolower(trim((string)($user['status'] ?? 'active')));
+    /* Déchiffre le mot de passe stocké en DB avant écriture dans radcheck */
+    $user['password'] = decryptField((string)($user['password'] ?? ''));
     $nasType = (string)($user['nas_type'] ?? '');
     if ($nasType === '') {
         throw new InvalidArgumentException('nas_type requis pour updateUserInRadius');

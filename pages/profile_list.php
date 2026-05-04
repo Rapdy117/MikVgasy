@@ -83,10 +83,12 @@ require_once '../includes/layout_header.php';
 </div>
 <?php endif; ?>
 
-<div class="alert alert-info page-flow-explanation py-2 px-3 small mb-3">
-    <div class="fw-semibold"><?= htmlspecialchars($profileStorageLabel) ?></div>
-    <div><?= htmlspecialchars($profileStorageDescription) ?></div>
-</div>
+<div
+    class="d-none"
+    id="profilesFlowExplanation"
+    data-toast-title="<?= htmlspecialchars($profileStorageLabel, ENT_QUOTES) ?>"
+    data-toast-message="<?= htmlspecialchars($profileStorageDescription, ENT_QUOTES) ?>"
+></div>
 
 <div class="card shadow-sm profiles-table-card">
 <div class="card-header profiles-list-card-header users-list-card-header d-flex align-items-center justify-content-between flex-wrap gap-2">
@@ -187,7 +189,7 @@ require_once '../includes/layout_header.php';
         </div>
 
         <a href="add_profile.php" class="btn btn-save">
-            <i class="fa fa-plus me-1"></i> Ajouter Profil
+            <i class="fa fa-plus me-1"></i> Nouveau
         </a>
     </div>
 </div>

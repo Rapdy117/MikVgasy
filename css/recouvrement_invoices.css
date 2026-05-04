@@ -54,6 +54,12 @@ html.recouvrement-invoices-page .recouvrement-invoices-main-card {
     flex-direction: column;
     overflow: hidden;
     margin-bottom: 0 !important;
+    border: 1px solid rgba(125, 172, 255, 0.2) !important;
+    border-radius: 8px;
+    background: rgba(11, 18, 31, 0.29);
+    box-shadow: 0 10px 24px rgba(2, 10, 22, 0.14);
+    backdrop-filter: blur(4px);
+    -webkit-backdrop-filter: blur(4px);
 }
 
 html.recouvrement-invoices-page .recouvrement-invoices-main-card > .card-header {
@@ -66,6 +72,7 @@ html.recouvrement-invoices-page .recouvrement-invoices-main-card > .card-body {
     display: flex;
     flex-direction: column;
     overflow: hidden;
+    background: linear-gradient(180deg, rgba(10, 17, 29, 0.41), rgba(7, 12, 22, 0.45));
 }
 
 .recouvrement-invoices-table-scroll {
@@ -75,6 +82,8 @@ html.recouvrement-invoices-page .recouvrement-invoices-main-card > .card-body {
     overflow-y: auto;
     position: relative;
     border-radius: 8px;
+    border: 1px solid rgba(125, 172, 255, 0.18);
+    background: linear-gradient(160deg, rgba(17, 30, 52, 0.21), rgba(10, 18, 30, 0.29));
     overscroll-behavior: contain;
     scrollbar-width: thin;
     scrollbar-color: var(--theme-scrollbar-thumb) var(--theme-scrollbar-track);
@@ -115,7 +124,7 @@ html.recouvrement-invoices-page .recouvrement-invoices-table-scroll thead th {
     position: sticky;
     top: 0;
     z-index: 7;
-    font-size: calc(0.78rem + 1px);
+    font-size: 11px;
     font-weight: 600;
     vertical-align: middle;
     background-color: rgba(18, 24, 41, 0.58) !important;
@@ -127,42 +136,43 @@ html.recouvrement-invoices-page .recouvrement-invoices-table-scroll thead th {
 
 /* ----- Ex styles inline ----- */
 
-.administration-card .card-header {
-    background-color: var(--theme-card-soft) !important;
+html.recouvrement-invoices-page .administration-card .card-header {
+    background: transparent !important;
     color: var(--theme-primary) !important;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.08) !important;
+    border-bottom: 0 !important;
+    padding: 0.45rem 0.55rem 0.4rem;
+    font-size: 11px;
+    font-weight: 600;
 }
 
-.administration-table thead th {
-    font-size: 14px;
+html.recouvrement-invoices-page .administration-table thead th {
     text-align: center;
     vertical-align: middle;
-    color: var(--theme-text);
 }
 
-.administration-table tbody td {
-    font-size: 14px;
+html.recouvrement-invoices-page .administration-table tbody td {
+    font-size: 12px;
     vertical-align: middle;
 }
 
-.administration-status-badge {
+html.recouvrement-invoices-page .administration-status-badge {
     min-width: 88px;
     font-size: 11px;
 }
 
-.recouvrement-invoice-table tbody td:nth-child(1),
-.recouvrement-invoice-table tbody td:nth-child(2),
-.recouvrement-invoice-table tbody td:nth-child(3),
-.recouvrement-invoice-table tbody td:nth-child(4),
-.recouvrement-invoice-table tbody td:nth-child(7),
-.recouvrement-invoice-table tbody td:nth-child(8) {
+html.recouvrement-invoices-page .recouvrement-invoice-table tbody td:nth-child(1),
+html.recouvrement-invoices-page .recouvrement-invoice-table tbody td:nth-child(2),
+html.recouvrement-invoices-page .recouvrement-invoice-table tbody td:nth-child(3),
+html.recouvrement-invoices-page .recouvrement-invoice-table tbody td:nth-child(4),
+html.recouvrement-invoices-page .recouvrement-invoice-table tbody td:nth-child(7),
+html.recouvrement-invoices-page .recouvrement-invoice-table tbody td:nth-child(8) {
     text-align: left;
 }
 
-.recouvrement-invoice-table tbody td:nth-child(5) {
+html.recouvrement-invoices-page .recouvrement-invoice-table tbody td:nth-child(5) {
     text-align: right;
 }
 
-.recouvrement-invoice-table tbody td:not(:nth-child(1)):not(:nth-child(2)):not(:nth-child(3)):not(:nth-child(4)):not(:nth-child(5)):not(:nth-child(7)):not(:nth-child(8)) {
+html.recouvrement-invoices-page .recouvrement-invoice-table tbody td:not(:nth-child(1)):not(:nth-child(2)):not(:nth-child(3)):not(:nth-child(4)):not(:nth-child(5)):not(:nth-child(7)):not(:nth-child(8)) {
     text-align: center;
 }

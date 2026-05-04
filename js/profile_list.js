@@ -9,6 +9,23 @@ document.addEventListener('DOMContentLoaded', () => {
     const searchableRows = Array.from(document.querySelectorAll('#profilesTableBody tr[data-profile-search]'));
     const storageKey = 'profile_list_visible_columns_v1';
 
+    function showProfilesFlowExplanationToast() {
+        const flowExplanation = document.getElementById('profilesFlowExplanation');
+        if (!flowExplanation || flowExplanation.dataset.toastShown === '1') {
+            return;
+        }
+
+        const title = String(flowExplanation.dataset.toastTitle || '').trim();
+        const message = String(flowExplanation.dataset.toastMessage || '').trim();
+        const text = [title, message].filter(Boolean).join(' — ');
+        if (text === '') {
+            return;
+        }
+
+        flowExplanation.dataset.toastShown = '1';
+        AppToast.flash(text, 'info');
+    }
+
     function getStoredColumnMap() {
         try {
             const raw = window.localStorage.getItem(storageKey);
@@ -205,4 +222,5 @@ document.addEventListener('DOMContentLoaded', () => {
     syncColumnVisibility();
     bindColumnToggles();
     applySearchFilter();
+    showProfilesFlowExplanationToast();
 });

@@ -1,31 +1,32 @@
-.admin-notifications-card .card-header {
+.admin-notifications-page {
+    --accent: #17a2b8;
+}
+
+.admin-notifications-card-header {
     background-color: var(--theme-card-soft) !important;
     color: var(--theme-primary) !important;
     border-bottom: 1px solid rgba(255, 255, 255, 0.08) !important;
 }
 
 .admin-notifications-search-group {
-    width: min(100%, 320px);
+    width: 280px;
+    flex: 0 0 280px;
 }
 
-.admin-notifications-header-row {
-    gap: 12px;
-    flex-wrap: nowrap;
-    justify-content: space-between;
-}
-
-.admin-notifications-toolbar {
+.admin-notifications-actions {
     display: flex;
     align-items: center;
     justify-content: flex-end;
     gap: 8px;
     flex-wrap: nowrap;
-    flex: 1 1 auto;
-    min-width: 0;
-    margin-left: auto;
 }
 
-.admin-notifications-title-wrap {
+.admin-notifications-level-group {
+    width: 170px;
+    flex: 0 0 170px;
+}
+
+.admin-notifications-card-title {
     display: flex;
     align-items: center;
     gap: 8px;
@@ -35,9 +36,9 @@
 }
 
 .admin-notifications-search-group .input-group-text {
-    background: rgba(59, 130, 246, 0.12);
+    background: rgba(23, 162, 184, 0.12);
     border-color: rgba(148, 163, 184, 0.18);
-    color: var(--theme-text);
+    color: var(--accent);
 }
 
 .admin-notifications-search-group .form-control,
@@ -49,16 +50,15 @@
 
 .admin-notifications-search-group .form-control:focus,
 .admin-notifications-filter:focus {
-    border-color: rgba(59, 130, 246, 0.45);
-    box-shadow: 0 0 0 0.2rem rgba(59, 130, 246, 0.12);
+    border-color: rgba(23, 162, 184, 0.48);
+    box-shadow: 0 0 0 0.2rem rgba(23, 162, 184, 0.14);
 }
 
 .admin-notifications-filter {
-    width: 130px;
-    flex: 0 0 130px;
+    width: 100%;
 }
 
-.admin-notifications-toolbar form {
+.admin-notifications-actions form {
     flex: 0 0 auto;
     margin-bottom: 0;
 }
@@ -89,29 +89,30 @@
 }
 
 .admin-notifications-unread {
-    background: rgba(255, 193, 7, 0.08);
+    background: rgba(23, 162, 184, 0.08);
 }
 
 .admin-notifications-message {
     white-space: normal;
     line-height: 1.45;
     max-width: 520px;
+    color: rgba(226, 232, 240, 0.82);
+}
+
+.admin-notifications-empty {
+    padding: 28px 16px !important;
+    color: rgba(226, 232, 240, 0.68) !important;
+    text-align: center !important;
 }
 
 @media (max-width: 1200px) {
-    .admin-notifications-header-row {
-        flex-wrap: wrap;
-    }
-
-    .admin-notifications-toolbar {
+    .admin-notifications-actions {
         width: 100%;
-        margin-left: 0;
         justify-content: flex-start;
         flex-wrap: wrap;
-        flex: 1 1 100%;
     }
 
-    .admin-notifications-title-wrap {
-        white-space: normal;
+    .admin-notifications-search-group {
+        flex: 1 1 280px;
     }
 }

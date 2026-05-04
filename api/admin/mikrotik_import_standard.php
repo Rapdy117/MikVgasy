@@ -12,6 +12,7 @@ require_once __DIR__ . '/../../includes/recharge_preview_service.php';
 require_once __DIR__ . '/../../includes/operation_history.php';
 require_once __DIR__ . '/../../includes/mikrotik_standard_import_radius.php';
 require_once __DIR__ . '/../../includes/admin_mikrotik_standard_runtime.php';
+require_once __DIR__ . '/../../includes/backend_agent.php';
 
 header('Content-Type: application/json; charset=UTF-8');
 
@@ -401,6 +402,16 @@ try {
             . '" au lieu de "mikrotik_local".'
         );
     }
+
+    backendAgentAuthorizeDeviceAction($device, 'standard-import', [
+        'source' => 'mikrotik_standard',
+        'target_device_id' => $deviceId,
+        'business_source' => $businessSource,
+        'resolved_nas_id' => $nasId,
+        'resolved_nas_type' => $resolvedNasType,
+        'mode' => $mode,
+        'include_sensitive' => $includeSensitive,
+    ]);
 
     if ($businessSource === 'mikrotik_local') {
         $adminMikrotikContext = adminMikrotikStandardContextFromDevice($device);

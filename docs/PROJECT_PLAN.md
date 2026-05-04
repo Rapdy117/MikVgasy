@@ -75,9 +75,9 @@ Docs a mettre a jour :
 - `docs/DECISIONS.md`
 - `docs/PROJECT_DEPENDENCIES.md`
 
-Avancement constate (2026-04-17) :
+Avancement constate (2026-05-04) :
 
-- la compatibilite technique `api/test_opnsense.php` -> `api/test_device.php` reste active (non fermee)
+- la compatibilite technique `api/test_opnsense.php` -> `api/test_device.php` est fermee par archive
 - la fermeture des compatibilites est en cours mais pas terminee
 
 ### P2 - Resolution NAS / Device / Backend
@@ -200,19 +200,19 @@ Critere de fin :
 
 ### INC-002 - `test_opnsense.php` passerelle vers `test_device.php`
 
-Statut : `TODO`
+Statut : `DONE`
 
-Type : compatibilite active
+Type : compatibilite retiree
 
 Probleme :
 
-- `api/test_opnsense.php` inclut `api/test_device.php`
+- `api/test_opnsense.php` incluait `api/test_device.php`
 - `api/test_device.php` est l endpoint mutualise cible
 
 Critere de fin :
 
-- les consommateurs et docs utilisent `test_device.php`
-- `test_opnsense.php` est retire ou conserve avec raison documentee
+- les consommateurs actifs utilisent `test_device.php`
+- `test_opnsense.php` est archive dans `archive/unused-php-2026-05-04/`
 
 ### INC-003 - Resolution routeur MikroTik multiple
 
@@ -337,8 +337,7 @@ Critere de fin :
 
 1. Finaliser `INC-003` : retirer les derniers chemins MikroTik implicites encore presents dans `includes/mikrotik_backend.php`.
 2. Finaliser `INC-004` : clarifier le contrat `portal` entre cumul total metier et session active pour MikroTik / OPNsense.
-3. Fermer `INC-002` ou documenter explicitement pourquoi la compatibilite `test_opnsense.php` reste active.
-4. Traiter `INC-005` comme blocage visible : `portal_profiles.php` depend d un module absent.
+3. Traiter `INC-005` comme blocage visible : `portal_profiles.php` depend d un module absent.
 
 ## Definition De Fini
 

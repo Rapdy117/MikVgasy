@@ -2,6 +2,7 @@
 
 require_once __DIR__ . '/device_manager.php';
 require_once __DIR__ . '/mikrotik_backend.php';
+require_once __DIR__ . '/profile_catalog.php';
 require_once __DIR__ . '/user_provisioning.php';
 require_once __DIR__ . '/operation_history.php';
 
@@ -19,6 +20,10 @@ function ensureVouchersTable(PDO $pdo): void
             username VARCHAR(100) DEFAULT NULL,
             password VARCHAR(100) DEFAULT NULL,
             profile_id INT(11) DEFAULT NULL,
+            device_id VARCHAR(100) DEFAULT NULL,
+            profile_name VARCHAR(100) DEFAULT NULL,
+            price DECIMAL(10,2) DEFAULT NULL,
+            selling_price DECIMAL(10,2) DEFAULT NULL,
             printed_by VARCHAR(100) DEFAULT NULL,
             used TINYINT(1) DEFAULT 0,
             used_by VARCHAR(100) DEFAULT NULL,
@@ -28,6 +33,8 @@ function ensureVouchersTable(PDO $pdo): void
             UNIQUE KEY code (code),
             UNIQUE KEY idx_vouchers_username (username),
             KEY profile_id (profile_id),
+            KEY idx_vouchers_device_id (device_id),
+            KEY idx_vouchers_profile_name (profile_name),
             KEY idx_vouchers_used (used),
             KEY idx_vouchers_used_at (used_at)
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci"
@@ -44,6 +51,18 @@ function ensureVouchersTable(PDO $pdo): void
         if (!in_array('printed_by', $columns, true)) {
             $pdo->exec("ALTER TABLE vouchers ADD COLUMN printed_by VARCHAR(100) DEFAULT NULL AFTER profile_id");
         }
+        if (!in_array('device_id', $columns, true)) {
+            $pdo->exec("ALTER TABLE vouchers ADD COLUMN device_id VARCHAR(100) DEFAULT NULL AFTER profile_id");
+        }
+        if (!in_array('profile_name', $columns, true)) {
+            $pdo->exec("ALTER TABLE vouchers ADD COLUMN profile_name VARCHAR(100) DEFAULT NULL AFTER device_id");
+        }
+        if (!in_array('price', $columns, true)) {
+            $pdo->exec("ALTER TABLE vouchers ADD COLUMN price DECIMAL(10,2) DEFAULT NULL AFTER profile_name");
+        }
+        if (!in_array('selling_price', $columns, true)) {
+            $pdo->exec("ALTER TABLE vouchers ADD COLUMN selling_price DECIMAL(10,2) DEFAULT NULL AFTER price");
+        }
         foreach ($pdo->query("SHOW COLUMNS FROM vouchers WHERE Field = 'profile_id'")->fetchAll(PDO::FETCH_ASSOC) ?: [] as $column) {
             if (strtoupper((string)($column['Null'] ?? '')) === 'NO') {
                 $pdo->exec("ALTER TABLE vouchers MODIFY profile_id INT(11) DEFAULT NULL");
@@ -55,11 +74,164 @@ function ensureVouchersTable(PDO $pdo): void
         ), true)) {
             $pdo->exec("ALTER TABLE vouchers ADD UNIQUE KEY idx_vouchers_username (username)");
         }
+        $indexNames = array_map(
+            static fn(array $row): string => (string)($row['Key_name'] ?? ''),
+            $pdo->query("SHOW INDEX FROM vouchers")->fetchAll(PDO::FETCH_ASSOC) ?: []
+        );
+        if (!in_array('idx_vouchers_device_id', $indexNames, true)) {
+            $pdo->exec("ALTER TABLE vouchers ADD KEY idx_vouchers_device_id (device_id)");
+        }
+        if (!in_array('idx_vouchers_profile_name', $indexNames, true)) {
+            $pdo->exec("ALTER TABLE vouchers ADD KEY idx_vouchers_profile_name (profile_name)");
+        }
     } catch (Throwable $e) {
         // migration best effort
     }
 
     $schemaEnsured = true;
+}
+
+function normalizeVoucherCommercialAmount($value): ?string
+{
+    $raw = trim((string)($value ?? ''));
+    if ($raw === '' || $raw === '-') {
+        return null;
+    }
+
+    if (!is_numeric($raw)) {
+        return null;
+    }
+
+    $amount = (float)$raw;
+    if ($amount <= 0) {
+        return null;
+    }
+
+    return number_format($amount, 2, '.', '');
+}
+
+function resolveVoucherProfileCommercialSnapshot(PDO $pdo, array $deviceStore, string $deviceId, string $profileName): array
+{
+    $profileName = trim($profileName);
+    if ($profileName === '') {
+        return ['price' => null, 'selling_price' => null];
+    }
+
+    $device = findDeviceById($deviceStore, trim($deviceId));
+    if (!is_array($device)) {
+        return ['price' => null, 'selling_price' => null];
+    }
+
+    $catalog = loadProfileCatalogForDevice($pdo, $device, ['sort' => 'none']);
+    $profile = findProfileCatalogEntryByName($catalog, $profileName);
+    if (!is_array($profile)) {
+        return ['price' => null, 'selling_price' => null];
+    }
+
+    return [
+        'price' => normalizeVoucherCommercialAmount($profile['price'] ?? null),
+        'selling_price' => normalizeVoucherCommercialAmount($profile['selling_price'] ?? null),
+    ];
+}
+
+function syncVoucherCommercialSnapshots(PDO $pdo): void
+{
+    ensureVouchersTable($pdo);
+    ensureVoucherHistoryTable($pdo);
+
+    $deviceStore = loadDeviceStore();
+    $snapshotCache = [];
+    $histories = $pdo->query("
+        SELECT id, device_id, profile_name, operator_username, quantity, created_at
+        FROM voucher_history
+        WHERE profile_name IS NOT NULL
+          AND profile_name <> ''
+          AND created_at IS NOT NULL
+        ORDER BY id DESC
+        LIMIT 500
+    ")->fetchAll(PDO::FETCH_ASSOC) ?: [];
+
+    $update = $pdo->prepare("
+        UPDATE vouchers
+        SET
+            device_id = CASE WHEN device_id IS NULL OR device_id = '' THEN :device_id ELSE device_id END,
+            profile_name = CASE WHEN profile_name IS NULL OR profile_name = '' THEN :profile_name ELSE profile_name END,
+            price = CASE WHEN (price IS NULL OR price = 0) AND :price IS NOT NULL THEN :price ELSE price END,
+            selling_price = CASE WHEN (selling_price IS NULL OR selling_price = 0) AND :selling_price IS NOT NULL THEN :selling_price ELSE selling_price END
+        WHERE created_at BETWEEN DATE_SUB(:created_at, INTERVAL 20 SECOND) AND DATE_ADD(:created_at, INTERVAL 3 SECOND)
+          AND (
+              (printed_by = :operator_username)
+              OR (printed_by IS NULL AND :operator_username = '')
+          )
+          AND (
+              device_id IS NULL OR device_id = ''
+              OR profile_name IS NULL OR profile_name = ''
+              OR price IS NULL OR price = 0
+              OR selling_price IS NULL OR selling_price = 0
+          )
+    ");
+
+    foreach ($histories as $history) {
+        $deviceId = trim((string)($history['device_id'] ?? ''));
+        $profileName = trim((string)($history['profile_name'] ?? ''));
+        $createdAt = trim((string)($history['created_at'] ?? ''));
+        if ($deviceId === '' || $profileName === '' || $createdAt === '') {
+            continue;
+        }
+
+        $cacheKey = $deviceId . '|' . $profileName;
+        if (!array_key_exists($cacheKey, $snapshotCache)) {
+            try {
+                $snapshotCache[$cacheKey] = resolveVoucherProfileCommercialSnapshot($pdo, $deviceStore, $deviceId, $profileName);
+            } catch (Throwable $e) {
+                $snapshotCache[$cacheKey] = ['price' => null, 'selling_price' => null];
+            }
+        }
+
+        $snapshot = $snapshotCache[$cacheKey];
+        $update->execute([
+            ':device_id' => $deviceId,
+            ':profile_name' => $profileName,
+            ':price' => $snapshot['price'] ?? null,
+            ':selling_price' => $snapshot['selling_price'] ?? null,
+            ':created_at' => $createdAt,
+            ':operator_username' => trim((string)($history['operator_username'] ?? '')),
+        ]);
+    }
+}
+
+function runVoucherUsageMaintenanceIfDue(PDO $pdo, string $scope, int $ttlSeconds = 300): void
+{
+    $safeScope = preg_replace('/[^a-z0-9_\-]/i', '_', $scope);
+    $dir = sys_get_temp_dir() . DIRECTORY_SEPARATOR . 'radius_manager_maintenance';
+    if (!is_dir($dir)) {
+        @mkdir($dir, 0775, true);
+    }
+
+    $stamp = $dir . DIRECTORY_SEPARATOR . $safeScope . '.stamp';
+    if (is_file($stamp) && (time() - (int)filemtime($stamp)) < $ttlSeconds) {
+        return;
+    }
+
+    syncVoucherUsage($pdo);
+    @touch($stamp);
+}
+
+function runVoucherCommercialSnapshotMaintenanceIfDue(PDO $pdo, string $scope, int $ttlSeconds = 1800): void
+{
+    $safeScope = preg_replace('/[^a-z0-9_\-]/i', '_', $scope);
+    $dir = sys_get_temp_dir() . DIRECTORY_SEPARATOR . 'radius_manager_maintenance';
+    if (!is_dir($dir)) {
+        @mkdir($dir, 0775, true);
+    }
+
+    $stamp = $dir . DIRECTORY_SEPARATOR . $safeScope . '.stamp';
+    if (is_file($stamp) && (time() - (int)filemtime($stamp)) < $ttlSeconds) {
+        return;
+    }
+
+    syncVoucherCommercialSnapshots($pdo);
+    @touch($stamp);
 }
 
 function ensureVoucherHistoryTable(PDO $pdo): void
@@ -93,6 +265,8 @@ function recordVoucherBatchHistory(PDO $pdo, array $batch, array $saveResult): v
     }
 
     $entries = is_array($batch['entries'] ?? null) ? $batch['entries'] : [];
+    $profileDefaults = is_array($batch['profile_defaults'] ?? null) ? $batch['profile_defaults'] : [];
+    $unitAmount = normalizeVoucherCommercialAmount($profileDefaults['price'] ?? null);
     $firstEntry = $entries[0] ?? [];
     $lastEntry = $entries !== [] ? $entries[count($entries) - 1] : [];
 
@@ -117,6 +291,7 @@ function recordVoucherBatchHistory(PDO $pdo, array $batch, array $saveResult): v
         trim((string)($firstEntry['username'] ?? '')) ?: null,
         trim((string)($lastEntry['username'] ?? '')) ?: null,
     ]);
+    $voucherHistoryId = (int)$pdo->lastInsertId();
 
     recordOperationHistory($pdo, [
         'operation_scope' => 'commercial',
@@ -128,11 +303,35 @@ function recordVoucherBatchHistory(PDO $pdo, array $batch, array $saveResult): v
         'device_id' => trim((string)($batch['device_id'] ?? '')) ?: null,
         'profile_name' => trim((string)($batch['profile_name'] ?? '')) ?: null,
         'quantity' => $saved,
+        'amount_value' => $unitAmount,
         'summary' => sprintf('%d voucher(s) enregistrés et imprimés', $saved),
         'details_json' => [
             'first_username' => trim((string)($firstEntry['username'] ?? '')),
             'last_username' => trim((string)($lastEntry['username'] ?? '')),
             'profile_id' => (int)($batch['profile_id'] ?? 0),
+            'profile_defaults' => $profileDefaults,
+        ],
+    ]);
+
+    createAdminNotification($pdo, [
+        'severity' => 'info',
+        'category' => 'voucher',
+        'source_type' => 'voucher_batch_print',
+        'source_ref' => (string)$voucherHistoryId,
+        'title' => 'Lot vouchers imprimé',
+        'message' => sprintf(
+            '%d voucher(s) imprimés pour le profil %s par %s.',
+            $saved,
+            trim((string)($batch['profile_name'] ?? '')) ?: 'Voucher',
+            trim((string)($batch['printed_by'] ?? '')) ?: 'system'
+        ),
+        'details_json' => [
+            'voucher_history_id' => $voucherHistoryId,
+            'quantity' => $saved,
+            'profile_name' => trim((string)($batch['profile_name'] ?? '')) ?: null,
+            'operator_username' => trim((string)($batch['printed_by'] ?? '')) ?: null,
+            'first_username' => trim((string)($firstEntry['username'] ?? '')) ?: null,
+            'last_username' => trim((string)($lastEntry['username'] ?? '')) ?: null,
         ],
     ]);
 }
@@ -149,12 +348,26 @@ function savePreparedVoucherBatch(PDO $pdo, array $batch): array
 
     $pdo->beginTransaction();
     try {
-        $insert = $pdo->prepare('INSERT INTO vouchers (code, username, password, profile_id, printed_by) VALUES (?, ?, ?, ?, ?)');
+        $insert = $pdo->prepare('
+            INSERT INTO vouchers (
+                code,
+                username,
+                password,
+                profile_id,
+                device_id,
+                profile_name,
+                price,
+                selling_price,
+                printed_by
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+        ');
         $savedIds = [];
         $savedUsers = [];
         $batchDeviceId = trim((string)($batch['device_id'] ?? ''));
         $batchProfileName = trim((string)($batch['profile_name'] ?? ''));
         $profileDefaults = is_array($batch['profile_defaults'] ?? null) ? $batch['profile_defaults'] : [];
+        $voucherPrice = normalizeVoucherCommercialAmount($profileDefaults['price'] ?? null);
+        $voucherSellingPrice = normalizeVoucherCommercialAmount($profileDefaults['selling_price'] ?? null);
         $printedBy = trim((string)($batch['printed_by'] ?? ''));
 
         foreach ($entries as $index => $entry) {
@@ -178,7 +391,17 @@ function savePreparedVoucherBatch(PDO $pdo, array $batch): array
                     'profile_defaults' => $profileDefaults,
                 ]);
 
-                $insert->execute([$code, $username, $password, $profileId > 0 ? $profileId : null, $printedBy !== '' ? $printedBy : null]);
+                $insert->execute([
+                    $code,
+                    $username,
+                    $password,
+                    $profileId > 0 ? $profileId : null,
+                    $batchDeviceId !== '' ? $batchDeviceId : null,
+                    $batchProfileName !== '' ? $batchProfileName : null,
+                    $voucherPrice,
+                    $voucherSellingPrice,
+                    $printedBy !== '' ? $printedBy : null,
+                ]);
                 $savedIds[] = (int)$pdo->lastInsertId();
                 $savedUsers[] = [
                     'id' => (int)($provisioned['user_id'] ?? 0),

@@ -8,6 +8,7 @@ require_once __DIR__ . '/../../includes/operation_history.php';
 require_once __DIR__ . '/../../includes/radius_standard_io.php';
 require_once __DIR__ . '/../../includes/profile_schema.php';
 require_once __DIR__ . '/../../includes/user_schema.php';
+require_once __DIR__ . '/../../includes/backend_agent.php';
 
 header('Content-Type: application/json; charset=UTF-8');
 
@@ -45,6 +46,14 @@ try {
     $nasType = (string)$target['nas_type'];
     $mode = radiusStandardNormalizeImportMode((string)($_POST['mode'] ?? 'skip'));
     $includeSensitive = radiusStandardNormalizeSensitiveImport((string)($_POST['include_sensitive'] ?? '0'));
+
+    backendAgentAuthorizeDeviceAction($device, 'standard-import', [
+        'source' => 'radius_standard',
+        'target_nas_id' => (int)($nasContext['nas_id'] ?? 0),
+        'target_nas_type' => $nasType,
+        'mode' => $mode,
+        'include_sensitive' => $includeSensitive,
+    ]);
 
     $upload = $_FILES['standard_file'] ?? null;
     if (!is_array($upload) || (int)($upload['error'] ?? 0) !== UPLOAD_ERR_OK) {

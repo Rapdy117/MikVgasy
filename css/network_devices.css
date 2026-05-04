@@ -135,3 +135,122 @@
         width: 100%;
     }
 }
+
+/* ══════════════════════════════════════
+   MODAL ACTIVATION LICENCE — LED RGB
+══════════════════════════════════════ */
+.licence-modal-dialog { max-width: 580px; }
+
+/* Wrapper avec bordure LED RGB */
+.licence-modal-wrap {
+    position: relative;
+    border-radius: 13px;
+    padding: 2px;
+    overflow: hidden;
+}
+
+.licence-modal-wrap::before {
+    content: '';
+    position: absolute;
+    width: 200%;
+    height: 200%;
+    top: 50%;
+    left: 50%;
+    background: conic-gradient(
+        from 0deg,
+        transparent     0deg,
+        transparent   325deg,
+        rgba(255,160,  0, 0.08) 334deg,
+        rgba(255,220,  0, 0.55) 342deg,
+        rgba(255,255,255, 1)    348deg,
+        rgba(255,220,  0, 0.55) 354deg,
+        rgba(255,160,  0, 0.06) 360deg
+    );
+    transform: translate(-50%, -50%) rotate(0deg);
+    animation: rgb-led-chase 2.4s linear infinite, rgb-led-hue 7s linear infinite;
+    z-index: 0;
+}
+
+@keyframes rgb-led-chase { to { transform: translate(-50%, -50%) rotate(360deg); } }
+@keyframes rgb-led-hue { from { filter: hue-rotate(0deg); } to { filter: hue-rotate(360deg); } }
+
+@media (prefers-reduced-motion: reduce) {
+    .licence-modal-wrap::before { animation: none; }
+}
+
+.licence-modal-content {
+    position: relative;
+    z-index: 1;
+    background: rgba(10, 14, 26, 0.97);
+    border: 0;
+    border-radius: 11px;
+    backdrop-filter: blur(16px);
+}
+
+.licence-modal-header {
+    background: linear-gradient(135deg, rgba(30,58,95,0.9), rgba(15,42,74,0.8));
+    border-radius: 11px 11px 0 0;
+    padding: 1rem 1.25rem;
+}
+
+/* Étapes */
+.lic-step {
+    border-left: 3px solid transparent;
+    padding-left: .9rem;
+}
+
+.lic-step-title {
+    font-size: .74rem;
+    font-weight: 700;
+    letter-spacing: .07em;
+    text-transform: uppercase;
+    margin-bottom: .5rem;
+    display: flex;
+    align-items: center;
+    gap: .5rem;
+}
+
+.lic-step-num {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 1.4rem;
+    height: 1.4rem;
+    border-radius: 50%;
+    background: rgba(255,255,255,.08);
+    font-size: .78rem;
+    font-weight: 700;
+    flex-shrink: 0;
+}
+
+.lic-step-body {
+    background: rgba(255,255,255,.03);
+    border-radius: 8px;
+    padding: .75rem .9rem;
+    border: 1px solid rgba(255,255,255,.05);
+}
+
+/* Badge connecté */
+.device-badge-connected {
+    display: inline-flex;
+    align-items: center;
+    gap: .35rem;
+    font-size: .72rem;
+    padding: 2px 8px;
+    border-radius: 12px;
+    background: rgba(74,222,128,.12);
+    color: #4ade80;
+    border: 1px solid rgba(74,222,128,.25);
+}
+
+.device-badge-unlicensed {
+    display: inline-flex;
+    align-items: center;
+    gap: .35rem;
+    font-size: .72rem;
+    padding: 2px 8px;
+    border-radius: 12px;
+    background: rgba(251,191,36,.12);
+    color: #fbbf24;
+    border: 1px solid rgba(251,191,36,.25);
+}
