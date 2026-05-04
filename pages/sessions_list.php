@@ -33,33 +33,22 @@ if (isset($_GET['_partial']) && $_GET['_partial'] === 'sessions'
     exit;
 }
 ?>
-<!DOCTYPE html>
-<html lang="fr" class="sessions-list-page">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Sessions Actives</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
-    <link rel="stylesheet" href="../css/theme.css">
-        <link rel="stylesheet" href="../css/sessions_list.css">
-</head>
 
-<body data-session-mode="<?= htmlspecialchars($isMikrotikSessions ? 'mikrotik' : ($isOpnsenseSessions ? 'opnsense' : 'radius'), ENT_QUOTES) ?>">
+<?php
+$pageTitle = 'Sessions Actives';
+$htmlClass = 'sessions-list-page';
+$bodyClass = 'sessions-list-page';
+$contentClass = 'sessions-list-shell';
+$bodyAttributes = [
+    'data-session-mode' => $isMikrotikSessions ? 'mikrotik' : ($isOpnsenseSessions ? 'opnsense' : 'radius'),
+];
+$extraCss = [
+    '../css/sessions_list.css',
+];
+require_once '../includes/layout_header.php';
+?>
 
-<div class="d-flex" id="wrapper">
-    <?php include '../includes/sidebar.php'; ?>
-
-    <div id="page-content-wrapper">
-        <div class="container-fluid py-3 sessions-list-shell">
-            <?php display_message(); ?>
-            <div id="messageArea" style="display: none;"></div>
-
-            <div class="alert alert-info py-2 px-3 small mb-3 page-flow-explanation">
-                <div class="fw-semibold">Sessions / Logs</div>
-                <div>Source active : <?= htmlspecialchars($sessionSourceLabel) ?></div>
-            </div>
+<div id="messageArea" style="display: none;"></div>
 
             <div class="card shadow-sm mb-4">
                 <div class="card-header users-list-card-header d-flex align-items-center justify-content-between flex-wrap gap-2">
@@ -144,19 +133,16 @@ if (isset($_GET['_partial']) && $_GET['_partial'] === 'sessions'
     </div>
 </div>
 
-<div id="spinner-overlay">
-    <div class="spinner"></div>
-</div>
-
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
-<script src="../js/sidebar.js?v=20260402a"></script>
-<script src="../js/table_sort.js"></script>
 <script>
 window.SESSIONS_LIST_CONFIG = {
     csrfToken: '<?= htmlspecialchars($_SESSION['csrf_token'], ENT_QUOTES) ?>',
     isOpnsenseSessions: <?= $isOpnsenseSessions ? 'true' : 'false' ?>
 };
 </script>
-<script src="../js/pages/sessions_list.js?v=20260408b"></script>
-</body>
-</html>
+<?php
+$extraJs = array (
+  0 => '../js/table_sort.js',
+  1 => '../js/pages/sessions_list.js?v=20260408b',
+);
+require_once '../includes/layout_footer.php';
+?>

@@ -232,6 +232,21 @@ Implication :
 - les endpoints metier devront cesser d'embarquer des decisions backend implicites
 - les attributs utilisables devront dependre du NAS selectionne
 
+## 18.b MikroTik : Cumuls Metier Depuis `/ip/hotspot/user`, Session Live Depuis `/ip/hotspot/active`
+
+Decision actee (2026-04-23) :
+
+- pour MikroTik, le cumul data metier vient de `/ip/hotspot/user.bytes-in + bytes-out`
+- pour MikroTik, la duree cumulee metier vient de `/ip/hotspot/user.uptime`
+- la session active live vient de `/ip/hotspot/active` et reste un flux d observation distinct
+- les colonnes locales `users.imported_*` et `user_counter_baselines` ne sont pas une source de verite metier pour MikroTik
+
+Implication :
+
+- `users_list` et le detail inline doivent lire les cumuls MikroTik directement depuis le routeur
+- `sessions_list` et les vues live peuvent continuer a utiliser la session active comme observation instantanee
+- un affichage MikroTik ne doit plus merger routeur + base locale pour une meme verite metier
+
 ## 16. FreeRADIUS Comme Backend Standard Multi-NAS
 
 Decision documentaire retenue :
@@ -339,6 +354,25 @@ Implication :
 - toute valeur `other`, `generic` ou entree NAS synthetique est exclue du contrat courant
 - les consommateurs JS doivent utiliser `business_source` / `backend_driver` plutot qu'un champ `backend` ambigu seul
 
+## 22. Identite Visuelle Du Projet
+
+Decision actee (2026-04-20) — validee par le proprietaire du projet :
+
+Le theme visuel du projet repose sur deux piliers non negociables :
+
+- **Transparence** : glassmorphism — fond sombre avec `backdrop-filter: blur()`, calques semi-transparents (`rgba`), bordures subtiles (`rgba(148, 163, 184, 0.12)`)
+- **Bleu cyan** : couleur d'accent principale `#17a2b8` (alias CSS `--accent`)
+
+Implication pour toute evolution UI :
+
+- ne jamais introduire une couleur d'accent concurrente sans autorisation explicite
+- les nouveaux composants doivent heriter de `--accent` et des patterns glassmorphism
+- les fonds de page doivent rester sombres (`#060d18` ou proches)
+- les boutons, focus, bordures actives et indicateurs utilisent `#17a2b8` et ses variantes
+- les animations et effets visuels (vagues, particules, orbs) renforcent ce theme sans le surcharger
+
+---
+
 ## Resume Des Choix Actuels
 
 - monolithe PHP sans framework
@@ -350,3 +384,4 @@ Implication :
 - transition MikroTik -> OPNsense/FreeRADIUS non terminee
 - `nas_id` appele a devenir la cle centrale de routage backend
 - une seule base physique actuelle, mais deux couches logiques : metier et RADIUS
+- identite visuelle : transparence (glassmorphism) + bleu cyan `#17a2b8` — non negociable

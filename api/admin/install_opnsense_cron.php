@@ -40,6 +40,30 @@ function current_os_username(): string
     return 'unknown';
 }
 
+function detect_php_cli_binary(): string
+{
+    $candidates = array_values(array_unique(array_filter([
+        PHP_BINARY ?? '',
+        '/usr/bin/php',
+        '/usr/local/bin/php',
+    ])));
+
+    foreach ($candidates as $candidate) {
+        if ($candidate !== '' && is_file($candidate) && is_executable($candidate)) {
+            return $candidate;
+        }
+    }
+
+    $output = [];
+    $code = 0;
+    @exec('command -v php 2>/dev/null', $output, $code);
+    if ($code === 0 && !empty($output[0])) {
+        return trim((string)$output[0]);
+    }
+
+    throw new RuntimeException('Binaire PHP CLI introuvable.');
+}
+
 function install_opnsense_sync_cron(): array
 {
     $scriptPath = realpath(__DIR__ . '/../../scripts/run_opnsense_session_sync.sh');
@@ -47,13 +71,28 @@ function install_opnsense_sync_cron(): array
         throw new RuntimeException('Script cron introuvable.');
     }
 
+    $monitorScriptPath = realpath(__DIR__ . '/../../scripts/monitor_network_devices.php');
+    if ($monitorScriptPath === false || !is_file($monitorScriptPath)) {
+        throw new RuntimeException('Script de supervision des devices introuvable.');
+    }
+
+    $phpBinary = detect_php_cli_binary();
+
     $beginMarker = '# BEGIN OPNsense session sync';
     $endMarker = '# END OPNsense session sync';
-    $cronBlock = implode(PHP_EOL, [
+    $deviceBeginMarker = '# BEGIN device monitor';
+    $deviceEndMarker = '# END device monitor';
+
+    $sessionCronBlock = implode(PHP_EOL, [
         $beginMarker,
         '* * * * * ' . $scriptPath . ' >/dev/null 2>&1',
         '* * * * * sleep 30; ' . $scriptPath . ' >/dev/null 2>&1',
         $endMarker,
+    ]);
+    $deviceCronBlock = implode(PHP_EOL, [
+        $deviceBeginMarker,
+        '*/10 * * * * ' . escapeshellarg($phpBinary) . ' ' . escapeshellarg($monitorScriptPath) . ' >/dev/null 2>&1',
+        $deviceEndMarker,
     ]);
 
     $existing = [];
@@ -61,9 +100,18 @@ function install_opnsense_sync_cron(): array
     @exec('crontab -l 2>/dev/null', $existing, $code);
     $current = trim(implode(PHP_EOL, $existing));
 
-    $pattern = '/' . preg_quote($beginMarker, '/') . '.*?' . preg_quote($endMarker, '/') . '\s*/s';
-    $cleaned = trim((string)preg_replace($pattern, '', $current));
-    $newContent = trim($cleaned . PHP_EOL . PHP_EOL . $cronBlock) . PHP_EOL;
+    $patterns = [
+        '/' . preg_quote($beginMarker, '/') . '.*?' . preg_quote($endMarker, '/') . '\s*/s',
+        '/' . preg_quote($deviceBeginMarker, '/') . '.*?' . preg_quote($deviceEndMarker, '/') . '\s*/s',
+    ];
+    $cleaned = $current;
+    foreach ($patterns as $pattern) {
+        $cleaned = (string)preg_replace($pattern, '', $cleaned);
+    }
+    $cleaned = trim($cleaned);
+
+    $combinedCronBlock = trim($sessionCronBlock . PHP_EOL . PHP_EOL . $deviceCronBlock);
+    $newContent = trim($cleaned . PHP_EOL . PHP_EOL . $combinedCronBlock) . PHP_EOL;
 
     $tmpFile = tempnam(sys_get_temp_dir(), 'opnsense-cron-');
     if ($tmpFile === false) {
@@ -87,8 +135,10 @@ function install_opnsense_sync_cron(): array
 
     return [
         'script_path' => $scriptPath,
+        'monitor_script_path' => $monitorScriptPath,
+        'php_binary' => $phpBinary,
         'os_user' => current_os_username(),
-        'cron_block' => $cronBlock,
+        'cron_block' => $combinedCronBlock,
     ];
 }
 
@@ -130,19 +180,23 @@ try {
         'actor_username' => (string)($_SESSION['username'] ?? ''),
         'actor_role' => (string)($_SESSION['user_role'] ?? 'administrator'),
         'target_type' => 'system',
-        'target_name' => 'opnsense_shaper_cron',
-        'summary' => 'Cron OPNsense installe',
+        'target_name' => 'opnsense_and_device_monitor_cron',
+        'summary' => 'Cron OPNsense et supervision devices installes',
         'details_json' => [
             'os_user' => (string)($result['os_user'] ?? ''),
             'script_path' => (string)($result['script_path'] ?? ''),
+            'monitor_script_path' => (string)($result['monitor_script_path'] ?? ''),
+            'php_binary' => (string)($result['php_binary'] ?? ''),
         ],
     ]);
 
     echo json_encode([
         'success' => true,
-        'message' => 'Cron OPNsense installe',
+        'message' => 'Cron OPNsense et supervision devices installes',
         'os_user' => (string)($result['os_user'] ?? ''),
         'script_path' => (string)($result['script_path'] ?? ''),
+        'monitor_script_path' => (string)($result['monitor_script_path'] ?? ''),
+        'php_binary' => (string)($result['php_binary'] ?? ''),
         'cron_block' => (string)($result['cron_block'] ?? ''),
     ]);
 } catch (Throwable $e) {

@@ -12,20 +12,85 @@ if (!function_exists('formatNumberWithThousands')) {
     }
 }
 
-if (!function_exists('formatMikrotikBytesLimit')) {
-    function formatMikrotikBytesLimit($bytes): string
+if (!function_exists('formatDataUnitNumber')) {
+    function formatDataUnitNumber(float $value): string
     {
-        $value = (float)$bytes;
+        return formatNumberWithThousands($value, 2);
+    }
+}
+
+if (!function_exists('formatDataKilobytesLabel')) {
+    function formatDataKilobytesLabel(float $kilobytes): string
+    {
+        $value = max(0, $kilobytes);
         if ($value <= 0) {
             return '-';
         }
 
-        $units = ['B', 'KB', 'MB', 'GB', 'TB'];
-        $power = (int)floor(log($value, 1024));
-        $power = max(0, min($power, count($units) - 1));
-        $normalized = $value / (1024 ** $power);
+        if ($value < 1000) {
+            return formatDataUnitNumber($value) . ' KB';
+        }
 
-        return formatNumberWithThousands($normalized, 2) . ' ' . $units[$power];
+        $megabytes = $value / 1024;
+        if ($megabytes < 1000) {
+            return formatDataUnitNumber($megabytes) . ' MB';
+        }
+
+        return formatDataUnitNumber($megabytes / 1024) . ' GB';
+    }
+}
+
+if (!function_exists('formatDataBytesLabel')) {
+    function formatDataBytesLabel($bytes): string
+    {
+        return formatDataKilobytesLabel(max(0, (float)$bytes) / 1024);
+    }
+}
+
+if (!function_exists('formatDataMegabytesLabel')) {
+    function formatDataMegabytesLabel($megabytes): string
+    {
+        return formatDataKilobytesLabel(max(0, (float)($megabytes ?? 0)) * 1024);
+    }
+}
+
+if (!function_exists('splitMegabytesToDataUnitParts')) {
+    function splitMegabytesToDataUnitParts($megabytes): array
+    {
+        $value = max(0, (float)($megabytes ?? 0));
+        if ($value <= 0) {
+            return [
+                'value' => '',
+                'unit' => 'GB',
+            ];
+        }
+
+        $kilobytes = $value * 1024;
+        if ($kilobytes < 1000) {
+            return [
+                'value' => formatDataUnitNumber($kilobytes),
+                'unit' => 'KB',
+            ];
+        }
+
+        if ($value < 1000) {
+            return [
+                'value' => formatDataUnitNumber($value),
+                'unit' => 'MB',
+            ];
+        }
+
+        return [
+            'value' => formatDataUnitNumber($value / 1024),
+            'unit' => 'GB',
+        ];
+    }
+}
+
+if (!function_exists('formatMikrotikBytesLimit')) {
+    function formatMikrotikBytesLimit($bytes): string
+    {
+        return formatDataBytesLabel($bytes);
     }
 }
 
@@ -93,16 +158,7 @@ if (!function_exists('formatDurationCompactLabel')) {
 if (!function_exists('formatQuotaMbLabel')) {
     function formatQuotaMbLabel($value): string
     {
-        $quota = (float)($value ?? 0);
-        if ($quota <= 0) {
-            return '-';
-        }
-
-        if ($quota >= 1024 && fmod($quota, 1024.0) === 0.0) {
-            return formatNumberWithThousands($quota / 1024, 2) . ' Go';
-        }
-
-        return formatNumberWithThousands($quota, 2) . ' Mo';
+        return formatDataMegabytesLabel($value);
     }
 }
 
@@ -213,12 +269,7 @@ if (!function_exists('formatProfileMoneyLabel')) {
 if (!function_exists('formatProfileDataQuotaLabel')) {
     function formatProfileDataQuotaLabel($value): string
     {
-        $quota = (int)($value ?? 0);
-        if ($quota <= 0) {
-            return '-';
-        }
-
-        return number_format($quota, 0, '.', ' ') . ' MB';
+        return formatDataMegabytesLabel($value);
     }
 }
 

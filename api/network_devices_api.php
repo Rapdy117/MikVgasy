@@ -2,6 +2,8 @@
 header('Content-Type: application/json');
 
 require_once __DIR__ . '/../includes/device_manager.php';
+require_once __DIR__ . '/../includes/auth.php';
+require_once __DIR__ . '/../config/db.php';
 
 session_start();
 
@@ -21,6 +23,68 @@ function stripDeviceSecretsForPublicApi(?array $device): ?array
     unset($out['api_key'], $out['api_secret'], $out['secret']);
 
     return $out;
+}
+
+function shouldExposeDeviceSecretsForCurrentRequest(): bool
+{
+    if ((string)($_GET['include_secrets'] ?? '0') !== '1') {
+        return false;
+    }
+
+    if (!isAdministrator()) {
+        http_response_code(403);
+        echo json_encode([
+            'success' => false,
+            'message' => 'Accès réservé à l administrateur.',
+        ]);
+        exit;
+    }
+
+    return true;
+}
+
+function syncRadiusNasForDevice(PDO $pdo, array $device): ?int
+{
+    $type = normalizeDeviceType((string)($device['type'] ?? ''));
+    if (!in_array($type, ['opnsense', 'radius'], true)) {
+        return null;
+    }
+
+    $address = extractDeviceAddress((string)($device['host'] ?? ''));
+    if ($address === '') {
+        $address = trim((string)($device['ip'] ?? ''));
+    }
+    if ($address === '') {
+        throw new RuntimeException('Adresse NAS introuvable pour le device OPNsense / RADIUS.');
+    }
+
+    $shortname = trim((string)($device['name'] ?? ''));
+    if ($shortname === '') {
+        $shortname = $address;
+    }
+
+    $stmt = $pdo->prepare('SELECT id FROM nas WHERE nasname = ? LIMIT 1');
+    $stmt->execute([$address]);
+    $nasId = (int)($stmt->fetchColumn() ?: 0);
+
+    if ($nasId > 0) {
+        $update = $pdo->prepare('
+            UPDATE nas
+            SET shortname = ?, type = ?, description = ?
+            WHERE id = ?
+        ');
+        $update->execute([$shortname, $type, $shortname, $nasId]);
+
+        return $nasId;
+    }
+
+    $insert = $pdo->prepare('
+        INSERT INTO nas (nasname, shortname, type, description)
+        VALUES (?, ?, ?, ?)
+    ');
+    $insert->execute([$address, $shortname, $type, $shortname]);
+
+    return (int)$pdo->lastInsertId();
 }
 
 if (!isset($_SESSION['logged_in']) || $_SESSION['logged_in'] !== true) {
@@ -167,6 +231,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 
     $found = false;
+    $savedDevice = null;
 
     foreach ($data['devices'] as &$device) {
         if (($device['id'] ?? '') === $id) {
@@ -186,13 +251,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 'updated_at' => date('Y-m-d H:i:s')
             ]);
 
+            $savedDevice = $device;
             $found = true;
             break;
         }
     }
+    unset($device);
 
     if (!$found) {
-        $data['devices'][] = normalizeDeviceRecord([
+        $savedDevice = normalizeDeviceRecord([
             'id' => $id,
             'name' => $name,
             'type' => $type,
@@ -203,7 +270,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             'verify_ssl' => $verify_ssl,
             'created_at' => date('Y-m-d H:i:s')
         ]);
+        $data['devices'][] = $savedDevice;
     }
+
+    $syncedNasId = $savedDevice !== null ? syncRadiusNasForDevice($pdo, $savedDevice) : null;
 
     if ($setActive || empty($data['active_device_id'])) {
         $data['active_device_id'] = $id;
@@ -216,6 +286,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     echo json_encode([
         'success' => true,
         'id' => $id,
+        'synced_nas_id' => $syncedNasId,
         'active_device_id' => $data['active_device_id'] ?? null,
         'active_device' => stripDeviceSecretsForPublicApi($activeAfterSave),
         'connection_state' => buildDeviceConnectionState($activeAfterSave),
@@ -227,10 +298,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 // GET DEVICES
 // =========================
 $activeDevice = getActiveDeviceRecord($data);
+$includeSecrets = shouldExposeDeviceSecretsForCurrentRequest();
 $data['active_device_id'] = $activeDevice['id'] ?? ($data['active_device_id'] ?? null);
-$data['active_device'] = stripDeviceSecretsForPublicApi($activeDevice);
-$data['devices'] = array_map(static function (array $device): array {
-    return stripDeviceSecretsForPublicApi($device) ?? $device;
+$data['active_device'] = $includeSecrets
+    ? $activeDevice
+    : stripDeviceSecretsForPublicApi($activeDevice);
+$data['devices'] = array_map(static function (array $device) use ($includeSecrets): array {
+    return $includeSecrets
+        ? $device
+        : (stripDeviceSecretsForPublicApi($device) ?? $device);
 }, $data['devices'] ?? []);
 $data['connection_state'] = buildDeviceConnectionState($activeDevice);
 echo json_encode($data);

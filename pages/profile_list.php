@@ -62,28 +62,17 @@ try {
     }
 }
 ?>
-<!DOCTYPE html>
-<html lang="fr" class="profile-list-page">
-<head>
-<meta charset="UTF-8">
-<title>Liste des Profils</title>
 
-<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
-<link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="../css/theme.css">
-<link rel="stylesheet" href="../css/profile_liste.css?v=20260410b">
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
-
-</head>
-
-<body class="profile-list-page">
-
-<div class="d-flex" id="wrapper">
-
-<?php include_once '../includes/sidebar.php'; ?>
-
-<div id="page-content-wrapper">
-<div class="container-fluid py-3 profile-list-shell">
+<?php
+$pageTitle = 'Liste des Profils';
+$htmlClass = 'profile-list-page';
+$bodyClass = 'profile-list-page';
+$contentClass = 'profile-list-shell';
+$extraCss = [
+    '../css/profile_liste.css?v=20260417c',
+];
+require_once '../includes/layout_header.php';
+?>
 
 <div class="row profiles-layout-row" id="profilesLayoutRow">
 <div class="col-12 profiles-list-column users-list-column" id="profilesListColumn">
@@ -366,24 +355,11 @@ try {
 </div>
 </div>
 
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
-<script src="../js/sidebar.js?v=20260402a"></script>
-<script src="../js/table_sort.js"></script>
-<script src="../js/profile_list.js"></script>
-<script>
-document.addEventListener('DOMContentLoaded', () => {
-    const wrap = document.getElementById('profilesTableWrap');
-    if (!wrap) {
-        return;
-    }
-    const applyScrollableState = () => {
-        const needsScroll = wrap.scrollHeight > wrap.clientHeight + 2;
-        wrap.classList.toggle('is-scrollable', needsScroll);
-    };
-    applyScrollableState();
-    window.addEventListener('resize', applyScrollableState);
-});
-</script>
 
-</body>
-</html>
+<?php
+$extraJs = array (
+  0 => '../js/table_sort.js',
+  1 => '../js/profile_list.js',
+);
+require_once '../includes/layout_footer.php';
+?>

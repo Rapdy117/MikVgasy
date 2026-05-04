@@ -29,6 +29,20 @@ function post_int_or_default(string $key, int $default = 0): ?int
     return (int)$value;
 }
 
+function post_float_or_default(string $key, float $default = 0.0): ?float
+{
+    $value = trim((string)($_POST[$key] ?? ''));
+    if ($value === '') {
+        return $default;
+    }
+
+    if (!is_numeric($value)) {
+        return null;
+    }
+
+    return (float)$value;
+}
+
 function convertDurationToSeconds(int $value, string $unit): int
 {
     if ($value <= 0) {
@@ -80,6 +94,19 @@ function buildRouterOsDurationFromSeconds(int $seconds): ?string
     }
 
     return implode('', $parts);
+}
+
+function convertDataValueToMegabytes(float $value, string $unit): int
+{
+    if ($value <= 0) {
+        return 0;
+    }
+
+    return match (strtoupper(trim($unit))) {
+        'KB' => (int)round($value / 1024),
+        'GB' => (int)round($value * 1024),
+        default => (int)round($value),
+    };
 }
 
 function buildRateLimitFromParts(?string $uploadValue, ?string $uploadUnit, ?string $downloadValue, ?string $downloadUnit): ?string
@@ -193,8 +220,19 @@ try {
     $idle = post_int_or_default('idle_timeout', 0);
     $data = post_int_or_default('data_limit', 0);
     $dataQuota = post_int_or_default('data_quota_mb', 0);
+    $dataQuotaValue = post_float_or_default('data_quota_value', 0.0);
+    $dataQuotaUnit = strtoupper(post_string_or_null('data_quota_unit') ?? 'GB');
+    if (!in_array($dataQuotaUnit, ['KB', 'MB', 'GB'], true)) {
+        throw new Exception("Unite de quota invalide");
+    }
+    if ($dataQuotaValue === null) {
+        throw new Exception("Valeur de quota invalide");
+    }
     if ($dataQuota !== null && $dataQuota > 0) {
         $data = $dataQuota;
+    }
+    if ($dataQuotaValue > 0) {
+        $data = convertDataValueToMegabytes($dataQuotaValue, $dataQuotaUnit);
     }
     $simu = post_int_or_default('simultaneous_use', 1);
     $device_id = post_string_or_null('device_id');

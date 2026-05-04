@@ -1,5 +1,7 @@
 let isNew = false;
 document.addEventListener("DOMContentLoaded", function () {
+    const deviceApiUrl = '../api/network_devices_api.php';
+    const deviceAdminLoadUrl = `${deviceApiUrl}?include_secrets=1`;
 
     const form = document.getElementById("networkDeviceForm");
     const testBtn = document.getElementById("testDevice");
@@ -320,7 +322,7 @@ document.addEventListener("DOMContentLoaded", function () {
             console.log("SUBMIT INTERCEPTED");
 
             if (!getSelectedDeviceType()) {
-                alert('Veuillez sélectionner un type de device.');
+                AppToast.flash('Veuillez sélectionner un type de device.', 'warning');
                 return;
             }
 
@@ -336,7 +338,7 @@ document.addEventListener("DOMContentLoaded", function () {
             console.log("ID VALUE:", form.querySelector('[name="id"]').value);
             console.log("SAVE DATA:", [...formData.entries()]);
 
-            fetch('../api/network_devices_api.php', {
+            fetch(deviceApiUrl, {
                 method: 'POST',
                 body: formData
             })
@@ -356,7 +358,7 @@ document.addEventListener("DOMContentLoaded", function () {
             .then(({ ok, json, text }) => {
                 if (!json || !ok || !json.success) {
                     console.error("SAVE FAILED:", json?.message || text);
-                    alert((json && json.message) || "La sauvegarde du device a echoue.");
+                    AppToast.flash((json && json.message) || 'La sauvegarde du device a echoue.', 'danger');
                     return;
                 }
 
@@ -443,7 +445,7 @@ document.addEventListener("DOMContentLoaded", function () {
     // LOAD DEVICES
     // =========================
     function loadDevices() {
-        fetch('../api/network_devices_api.php?t=' + Date.now())
+        fetch(deviceAdminLoadUrl + '&t=' + Date.now())
             .then(res => res.json())
             .then(data => {
 
@@ -607,7 +609,7 @@ document.addEventListener("DOMContentLoaded", function () {
             return;
         }
 
-        fetch('../api/network_devices_api.php', {
+        fetch(deviceApiUrl, {
             method: 'POST',
             headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
             body: `action=delete&id=${encodeURIComponent(identifier)}`
@@ -615,7 +617,7 @@ document.addEventListener("DOMContentLoaded", function () {
         .then(res => res.json())
         .then(data => {
             if (!data.success) {
-                alert(data.message || "La suppression du device a echoue.");
+                AppToast.flash(data.message || 'La suppression du device a echoue.', 'danger');
                 return;
             }
 
@@ -664,7 +666,7 @@ document.addEventListener("DOMContentLoaded", function () {
                 id: currentDevice.id,
             });
 
-            fetch('../api/network_devices_api.php', {
+            fetch(deviceApiUrl, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
                 body: body.toString(),
@@ -672,7 +674,7 @@ document.addEventListener("DOMContentLoaded", function () {
             .then(res => res.json())
             .then(data => {
                 if (!data.success) {
-                    alert(data.message || "L activation du device a echoue.");
+                    AppToast.flash(data.message || 'L activation du device a echoue.', 'danger');
                     return;
                 }
 

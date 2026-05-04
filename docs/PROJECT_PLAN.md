@@ -57,7 +57,7 @@ Docs a mettre a jour :
 
 ### P1 - Chantiers Incomplets Et Compatibilites Temporaires
 
-Statut : `TODO`
+Statut : `IN_PROGRESS`
 
 Objectif :
 
@@ -75,9 +75,14 @@ Docs a mettre a jour :
 - `docs/DECISIONS.md`
 - `docs/PROJECT_DEPENDENCIES.md`
 
+Avancement constate (2026-04-17) :
+
+- la compatibilite technique `api/test_opnsense.php` -> `api/test_device.php` reste active (non fermee)
+- la fermeture des compatibilites est en cours mais pas terminee
+
 ### P2 - Resolution NAS / Device / Backend
 
-Statut : `TODO`
+Statut : `IN_PROGRESS`
 
 Objectif :
 
@@ -95,9 +100,23 @@ Docs a mettre a jour :
 - `docs/NAS_ABSTRACTION.md`
 - `docs/BACKEND_STATUS.md`
 
+Avancement constate (2026-04-17) :
+
+- les flux profils ont ete alignees sur une source commune par device via `includes/profile_catalog.php`
+- `profile_options.php`, `recharge_options.php`, `profile_list.php`, `add_profile.php`, `generate.php`, `add_hotspot_user.php`, `user_provisioning.php` et `voucher_batch_service.php` consomment cette source
+- `api/users/update_mikrotik_user.php`, `api/users/delete_mikrotik_user.php` et `api/users/get_user_profile_details.php` exigent maintenant `device_id` et resolvent explicitement le routeur MikroTik cible
+- la fermeture complete des chemins historiques (routeur implicite / fallback actif) reste a terminer
+
+Avancement constate (2026-04-23) :
+
+- `pages/users_list.php` et `api/users/get_user_sessions.php` ne melangent plus routeur + base locale pour les cumuls MikroTik
+- les cumuls metier MikroTik sont explicitement réalignes sur `/ip/hotspot/user`, la session courante restant sur `/ip/hotspot/active`
+- les recharges MikroTik invalident maintenant aussi le cache principal `mikrotik_hotspot_users`
+- le chantier reste `IN_PROGRESS` car des chemins historiques `connectToActiveMikrotikApi()` existent encore dans `includes/mikrotik_backend.php`
+
 ### P3 - Alignement RADIUS / OPNsense Sur Cycle Metier
 
-Statut : `TODO`
+Statut : `IN_PROGRESS`
 
 Objectif :
 
@@ -108,6 +127,13 @@ Objectif :
 Critere de fin :
 
 - ce qui est applique, synchronise, previsualise ou observe est explicite pour chaque backend
+
+Avancement constate (2026-04-23) :
+
+- `preview`, `apply`, `users_list` et `get_user_sessions` partagent maintenant un calcul aligne pour le flux `RADIUS / OPNsense`
+- la baseline de reset du cycle courant est unifiee cote `RADIUS / OPNsense`
+- la documentation du flux a ete posee dans `docs/RECHARGE_FLOW_ANALYSIS.md`
+- reste a clarifier et valider le perimetre `portal` : cumul total metier vs session active selon la page et le backend
 
 Docs a mettre a jour :
 
@@ -190,7 +216,7 @@ Critere de fin :
 
 ### INC-003 - Resolution routeur MikroTik multiple
 
-Statut : `TODO`
+Statut : `IN_PROGRESS`
 
 Type : risque architecture
 
@@ -203,9 +229,42 @@ Critere de fin :
 
 - lecture et ecriture MikroTik resolvent le routeur cible par `device_id` ou cible technique documentee
 
+Avancement constate (2026-04-17) :
+
+- les lectures de catalogue profil sont desormais unifiees par `device_id` cible
+- les ecritures profil MikroTik (`syncProfileToMikrotik` / `updateProfileInMikrotik`) exigent un contexte NAS explicite MikroTik
+- l edition, la suppression utilisateur MikroTik et la lecture des details de profil utilisateur passent desormais par un ciblage explicite `device_id` (plus de connexion implicite sur device actif dans ces endpoints)
+- sous-lot `users` (update/delete/profile details) : `DONE`
+- sous-lot `dashboard` (`api/get_stats.php`) : `DONE` (considere traite par decision de perimetre)
+- des chemins historiques de connexion sur device actif existent encore dans `includes/mikrotik_backend.php` pour compatibilite
+
+Detail d analyse ciblee `includes/mikrotik_backend.php` (2026-04-17) :
+
+- fichier analyse de la ligne 1 a la ligne 2920
+- 45 occurrences de `connectToActiveMikrotikApi()` restent presentes
+- points de fallback centraux identifies autour de `connectToMikrotikApiForNasContext` et du helper actif
+- fonctions avec `?array $nasContext = null` encore actives sur plusieurs operations (session, profil, user, recharge)
+- conclusion chantier : sous-lots `users` et `dashboard` fermes, refactor final `INC-003` encore bloque par le legacy de `includes/mikrotik_backend.php`
+
+### INC-008 - Catalogue profils unifie par device
+
+Statut : `DONE`
+
+Type : unification source de verite
+
+Probleme :
+
+- les pages profils (`profile_list.php`, `generate.php`, `add_hotspot_user.php`, `add_profile.php`) ne chargeaient pas toujours les memes profils selon le flux
+
+Resultat :
+
+- une source unique `includes/profile_catalog.php` est utilisee pour les lectures profils selon le device cible
+- MikroTik lit RouterOS, RADIUS/OPNsense lit SQL `profiles`
+- le JS de chargement profils est mutualise via `js/profile_options_loader.js`
+
 ### INC-004 - Recharge RADIUS / OPNsense preview/apply
 
-Statut : `TODO`
+Statut : `IN_PROGRESS`
 
 Type : flux metier partiel
 
@@ -217,6 +276,14 @@ Critere de fin :
 
 - preview et apply partagent la meme logique metier
 - l execution reelle et les limites connues sont documentees
+
+Avancement constate (2026-04-23) :
+
+- `preview`, `apply`, `users_list` et `get_user_sessions` ont ete realignes sur une logique commune
+- reste a fermer le sous-sujet `portal` pour distinguer clairement :
+  - cumul total metier
+  - session active en cours
+  - historique SQL/RADIUS quand il existe
 
 ### INC-005 - `portal_profiles.php` depend de `modules/portal`
 
@@ -268,9 +335,10 @@ Critere de fin :
 
 ## Prochain Chantier Recommande
 
-1. Traiter `INC-005` comme blocage visible : `portal_profiles.php` depend d un module absent.
-2. Classer les orphelins confirmes listés dans `docs/PROJECT_DEPENDENCIES.md`.
+1. Finaliser `INC-003` : retirer les derniers chemins MikroTik implicites encore presents dans `includes/mikrotik_backend.php`.
+2. Finaliser `INC-004` : clarifier le contrat `portal` entre cumul total metier et session active pour MikroTik / OPNsense.
 3. Fermer `INC-002` ou documenter explicitement pourquoi la compatibilite `test_opnsense.php` reste active.
+4. Traiter `INC-005` comme blocage visible : `portal_profiles.php` depend d un module absent.
 
 ## Definition De Fini
 

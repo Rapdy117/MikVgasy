@@ -58,13 +58,14 @@ try {
         throw new RuntimeException('Le device cible n est pas de type MikroTik.');
     }
 
-    $routerIdentity = adminMikrotikStandardReadIdentity($device);
+    $targetInfo = adminMikrotikStandardReadTargetInfo($device);
 
     echo json_encode([
         'success' => true,
         'message' => 'Routeur MikroTik cible joignable.',
         'device_id' => $deviceId,
-        'router_identity' => $routerIdentity,
+        'router_identity' => $targetInfo['router_identity'] ?? null,
+        'address_pools' => $targetInfo['address_pools'] ?? [],
     ], JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
     exit;
 } catch (Throwable $e) {

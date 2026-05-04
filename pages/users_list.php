@@ -7,6 +7,7 @@ require_once '../includes/app_context.php';
 require_once '../includes/formatters.php';
 require_once '../includes/mikrotik_backend.php';
 require_once '../includes/page_helpers.php';
+require_once '../includes/radius_credit_runtime.php';
 require_once '../includes/user_schema.php';
 
 /* =========================
@@ -22,11 +23,7 @@ requireCurrentPageAccess();
 $csrfToken = ensureCsrfToken();
 
 $canManageUsersFromList = isAdministrator();
-ensureUsersExtendedSchema($pdo);
 
-$input = [
-    'users_limit' => 100,
-];
 $context = [
     'app' => buildAppContext(),
 ];
@@ -48,6 +45,11 @@ $activeDeviceType = $context['device_type'];
 $isMikrotikUsers = $context['is_mikrotik'];
 $usersFlowLabel = $view['users_flow_label'];
 $usersFlowDescription = $view['users_flow_description'];
+
+if (!$isMikrotikUsers) {
+    ensureUsersExtendedSchema($pdo);
+    ensureUserCounterBaselinesSchema($pdo);
+}
 
 $profileOptionsStmt = $pdo->query("
     SELECT
@@ -97,6 +99,8 @@ if ($isMikrotikUsers) {
         u.data_limit AS user_data_limit,
         u.current_credit_time,
         u.current_credit_data,
+        u.imported_session_total_seconds,
+        u.imported_data_consumed_bytes,
         n.shortname AS nas_shortname,
         n.nasname AS nas_name,
         n.type AS nas_type,
@@ -133,7 +137,6 @@ if ($isMikrotikUsers) {
 
     $usersSql .= "
     ORDER BY u.id DESC
-    LIMIT " . (int)$input['users_limit'] . "
     ";
 
     $stmt = $pdo->prepare($usersSql);
@@ -149,6 +152,7 @@ if ($isMikrotikUsers) {
     }
 
     $radacctStats = [];
+    $radiusCounterBaselinesByUser = [];
     if ($usernames !== []) {
         $placeholders = implode(',', array_fill(0, count($usernames), '?'));
         $radacctSql = "
@@ -172,18 +176,34 @@ if ($isMikrotikUsers) {
         foreach ($radacctStmt->fetchAll(PDO::FETCH_ASSOC) as $row) {
             $radacctStats[(string)($row['username'] ?? '')] = $row;
         }
+
+        $activeRadiusDeviceId = trim((string)($context['device']['id'] ?? ''));
+        $baselineScopeId = resolveUserCounterBaselineScopeId('radius', $activeRadiusDeviceId);
+        if ($baselineScopeId !== '') {
+            $radiusCounterBaselinesByUser = loadUserCounterBaselinesByDevice($pdo, $baselineScopeId, $usernames);
+        }
     }
 
     foreach ($result['users'] as $index => $userRow) {
         $username = (string)($userRow['username'] ?? '');
         $stats = $radacctStats[$username] ?? null;
-        $result['users'][$index]['first_login'] = $stats['first_login'] ?? null;
-        $result['users'][$index]['session_total_seconds'] = isset($stats['session_total_seconds'])
-            ? (int)$stats['session_total_seconds']
+        $rawRadacctSessionTotalSeconds = isset($stats['session_total_seconds'])
+            ? max(0, (int)$stats['session_total_seconds'])
             : 0;
-        $result['users'][$index]['data_consumed_bytes'] = isset($stats['data_consumed_bytes'])
-            ? (float)$stats['data_consumed_bytes']
+        $rawRadacctDataConsumedBytes = isset($stats['data_consumed_bytes'])
+            ? max(0.0, (float)$stats['data_consumed_bytes'])
             : 0.0;
+        $counterBaseline = $radiusCounterBaselinesByUser[strtolower($username)] ?? null;
+        $runtimeState = buildRadiusRuntimeState($userRow, [
+            'session_total_seconds' => $rawRadacctSessionTotalSeconds,
+            'data_consumed_bytes' => $rawRadacctDataConsumedBytes,
+        ], $counterBaseline ?? []);
+
+        $result['users'][$index]['first_login'] = $stats['first_login'] ?? null;
+        $result['users'][$index]['radacct_session_total_seconds'] = $rawRadacctSessionTotalSeconds;
+        $result['users'][$index]['radacct_data_consumed_bytes'] = $rawRadacctDataConsumedBytes;
+        $result['users'][$index]['session_total_seconds'] = $runtimeState['display_session_seconds'];
+        $result['users'][$index]['data_consumed_bytes'] = $runtimeState['display_data_bytes'];
     }
 }
 
@@ -259,13 +279,23 @@ ksort($availableProfileOptions);
 
 <?php
 $pageTitle = 'Users';
+$bodyClass = 'users-list-page';
+$contentClass = 'users-list-shell';
+$bodyAttributes = [
+    'data-users-list-readonly' => $canManageUsersFromList ? '0' : '1',
+];
+$extraCss = [
+    '../css/users_list.css?v=20260404c',
+];
 require_once '../includes/layout_header.php';
 ?>
 
-<div class="alert alert-info py-2 px-3 small mb-3 page-flow-explanation" id="usersFlowExplanation">
-    <div class="fw-semibold"><?= htmlspecialchars($usersFlowLabel) ?></div>
-    <div><?= htmlspecialchars($usersFlowDescription) ?></div>
-</div>
+<div
+    class="d-none"
+    id="usersFlowExplanation"
+    data-toast-title="<?= htmlspecialchars($usersFlowLabel, ENT_QUOTES) ?>"
+    data-toast-message="<?= htmlspecialchars($usersFlowDescription, ENT_QUOTES) ?>"
+></div>
 
 <div class="row users-layout-row" id="usersLayoutRow">
 
@@ -298,6 +328,10 @@ require_once '../includes/layout_header.php';
             <i class="fa fa-table-columns me-1"></i> Colonnes
         </button>
         <div class="dropdown-menu dropdown-menu-end profile-columns-menu p-2" aria-labelledby="usersColumnsToggle">
+                <label class="dropdown-item-text profile-column-option">
+                    <input class="form-check-input mt-0 me-2 js-users-column-toggle" type="checkbox" data-column-key="select" checked>
+                    <span>Sélection</span>
+                </label>
                 <label class="dropdown-item-text profile-column-option">
                     <input class="form-check-input mt-0 me-2 js-users-column-toggle" type="checkbox" data-column-key="id" checked>
                     <span>ID</span>
@@ -340,7 +374,7 @@ require_once '../includes/layout_header.php';
                 </label>
                 <label class="dropdown-item-text profile-column-option">
                     <input class="form-check-input mt-0 me-2 js-users-column-toggle" type="checkbox" data-column-key="validity_profile" checked>
-                    <span>Validité</span>
+                    <span>Valide</span>
                 </label>
                 <label class="dropdown-item-text profile-column-option">
                     <input class="form-check-input mt-0 me-2 js-users-column-toggle" type="checkbox" data-column-key="expired_mode" checked>
@@ -360,6 +394,9 @@ require_once '../includes/layout_header.php';
                 </label>
         </div>
     </div>
+    <button type="button" class="btn btn-delete" id="usersBulkDeleteBtn" title="Supprimer les utilisateurs sélectionnés" disabled>
+        <i class="fa fa-trash me-1"></i> Supprimer
+    </button>
     </div>
 </div>
 <div class="card-body">
@@ -423,17 +460,20 @@ require_once '../includes/layout_header.php';
 
 <thead>
 <tr>
+    <th class="users-select-col" data-column-key="select">
+        <input type="checkbox" class="form-check-input mt-0" id="usersSelectAll" aria-label="Tout sélectionner">
+    </th>
     <th class="users-sortable<?= $isMikrotikUsers ? ' d-none' : '' ?>" data-column-key="id" data-sort-key="id" data-sort-type="number">ID</th>
     <th class="users-col-left users-sortable" data-column-key="server" data-sort-key="server_display" data-sort-type="text">Serveur</th>
     <th class="users-sortable users-col-left" data-column-key="username" data-sort-key="username" data-sort-type="text"><?= $isMikrotikUsers ? 'Nom' : 'Nom d\'utilisateur' ?></th>
     <th class="users-sortable" data-column-key="plan" data-sort-key="plan" data-sort-type="text">Profil</th>
-    <th class="users-sortable" data-column-key="rate_limit" data-sort-key="rate_limit" data-sort-type="text">Limite de débit</th>
-    <th class="users-sortable" data-column-key="shared_users" data-sort-key="simultaneous_use" data-sort-type="number">Partagés</th>
-    <th class="users-sortable" data-column-key="time_limit" data-sort-key="session_timeout" data-sort-type="duration">Limite de temps</th>
-    <th class="users-sortable" data-column-key="session_total" data-sort-key="session_total_seconds" data-sort-type="duration">Durée cumulée</th>
-    <th class="users-sortable" data-column-key="data_limit" data-sort-key="data_limit" data-sort-type="number">Limite de données</th>
-    <th class="users-sortable" data-column-key="data_consumed" data-sort-key="data_consumed_bytes" data-sort-type="number">Data consommée</th>
-    <th class="users-sortable" data-column-key="validity_profile" data-sort-key="validity" data-sort-type="text">Validité</th>
+    <th class="users-sortable" data-column-key="rate_limit" data-sort-key="rate_limit" data-sort-type="text">TX/RX</th>
+    <th class="users-sortable" data-column-key="shared_users" data-sort-key="simultaneous_use" data-sort-type="number">Part</th>
+    <th class="users-sortable" data-column-key="time_limit" data-sort-key="session_timeout" data-sort-type="duration">Lim temps</th>
+    <th class="users-sortable" data-column-key="session_total" data-sort-key="session_total_seconds" data-sort-type="duration">Cumule Durée</th>
+    <th class="users-sortable" data-column-key="data_limit" data-sort-key="data_limit" data-sort-type="number">Lim données</th>
+    <th class="users-sortable" data-column-key="data_consumed" data-sort-key="data_consumed_bytes" data-sort-type="number">Conso</th>
+    <th class="users-sortable" data-column-key="validity_profile" data-sort-key="validity" data-sort-type="text">Valite</th>
     <th class="users-sortable" data-column-key="expired_mode" data-sort-key="expired_mode" data-sort-type="text">Mode d'expiration</th>
     <th class="users-sortable" data-column-key="expiration" data-sort-key="expiration" data-sort-type="date">Expiration</th>
     <th class="users-sortable" data-column-key="status" data-sort-key="status" data-sort-type="text">Statut</th>
@@ -445,7 +485,7 @@ require_once '../includes/layout_header.php';
 <tbody>
 
 <tr class="users-details-row">
-    <td colspan="15">
+    <td colspan="16">
         <div id="usersDetailsInlineSlot"></div>
     </td>
 </tr>
@@ -491,8 +531,8 @@ require_once '../includes/layout_header.php';
         $mikrotikSharedUsers = array_key_exists('shared_users', $u) && $u['shared_users'] !== null
             ? (string)$u['shared_users']
             : '-';
-        /* Durée cumulée : user_session_time_seconds depuis /ip/hotspot/user (champ uptime routeur), pas active_uptime */
-        $mikrotikSessionTotalSeconds = (int)($u['user_session_time_seconds'] ?? 0);
+        /* Durée cumulée : compteur utilisateur routeur (/ip/hotspot/user.uptime). */
+        $mikrotikSessionTotalSeconds = max(0, (int)($u['user_session_time_seconds'] ?? 0));
         $mikrotikSessionTotalLabel = $mikrotikSessionTotalSeconds > 0
             ? formatConsumedDurationLabel($mikrotikSessionTotalSeconds)
             : 'N/D';
@@ -509,11 +549,11 @@ require_once '../includes/layout_header.php';
     $radiusSessionTotal = formatConsumedDurationLabel($radiusSessionTotalSeconds);
     $radiusDataConsumedBytes = (float)($u['data_consumed_bytes'] ?? 0);
     $radiusDataConsumed = formatMikrotikBytesLimit($radiusDataConsumedBytes);
+    $radiusAllocatedSeconds = resolveRadiusAllocatedSessionSeconds($u);
+    $radiusAllocatedMegabytes = resolveRadiusAllocatedDataMegabytes($u);
     $radiusConsumedMegabytes = (int)round($radiusDataConsumedBytes / 1024 / 1024);
-    $radiusCreditSeconds = max(0, (int)($u['current_credit_time'] ?? 0));
-    $radiusCreditMegabytes = normalizeStoredCreditDataToMegabytes((int)($u['current_credit_data'] ?? 0));
-    $radiusRemainingSeconds = max(0, $radiusCreditSeconds - $radiusSessionTotalSeconds);
-    $radiusRemainingMegabytes = max(0, $radiusCreditMegabytes - $radiusConsumedMegabytes);
+    $radiusRemainingSeconds = max(0, $radiusAllocatedSeconds - $radiusSessionTotalSeconds);
+    $radiusRemainingMegabytes = max(0, $radiusAllocatedMegabytes - $radiusConsumedMegabytes);
     $radiusTimeLimit = formatConsumedDurationLabel($radiusRemainingSeconds);
     $radiusDataLimit = formatQuotaMbLabel($radiusRemainingMegabytes);
     $rowExpiredMode = trim((string)($u['expired_mode'] ?? '')) !== '' ? (string)$u['expired_mode'] : '-';
@@ -605,6 +645,9 @@ require_once '../includes/layout_header.php';
     data-session_total_seconds="<?= htmlspecialchars((string)($isMikrotikUsers ? ($mikrotikSessionTotalSeconds ?? 0) : $radiusSessionTotalSeconds)) ?>"
     data-data_consumed_bytes="<?= htmlspecialchars((string)($isMikrotikUsers ? $mikrotikDataConsumedBytes : $radiusDataConsumedBytes)) ?>"
 >
+    <td data-column-key="select" class="users-select-col">
+        <input type="checkbox" class="form-check-input user-row-select" value="<?= htmlspecialchars((string)($u['id'] ?? '')) ?>" aria-label="Sélectionner cet utilisateur">
+    </td>
     <td data-column-key="id"<?= $isMikrotikUsers ? ' class="d-none"' : '' ?>><?= htmlspecialchars((string)($u['id'] ?? '')) ?></td>
     <td class="users-col-left" data-column-key="server"><?= htmlspecialchars($isMikrotikUsers ? ($mikrotikServer !== '' ? $mikrotikServer : '-') : $radiusServer) ?></td>
     <td class="users-col-left" data-column-key="username"><?= htmlspecialchars($u['username']) ?></td>
@@ -615,7 +658,7 @@ require_once '../includes/layout_header.php';
     <td class="text-end" data-column-key="session_total"><?= htmlspecialchars($isMikrotikUsers ? $mikrotikSessionTotalLabel : $radiusSessionTotal) ?></td>
     <td class="text-end" data-column-key="data_limit"><?= htmlspecialchars($isMikrotikUsers ? $mikrotikDataLimit : $radiusDataLimit) ?></td>
     <td class="text-end" data-column-key="data_consumed"><?= htmlspecialchars($isMikrotikUsers ? $mikrotikDataConsumedLabel : $radiusDataConsumed) ?></td>
-    <td data-column-key="validity_profile"><?= htmlspecialchars($isMikrotikUsers ? $mikrotikValidityLabel : $radiusValidity) ?></td>
+    <td class="text-end" data-column-key="validity_profile"><?= htmlspecialchars($isMikrotikUsers ? $mikrotikValidityLabel : $radiusValidity) ?></td>
     <td data-column-key="expired_mode"><?= htmlspecialchars($isMikrotikUsers ? '-' : $rowExpiredMode) ?></td>
     <td data-column-key="expiration">
         <?= htmlspecialchars($isMikrotikUsers ? $mikrotikExpiration : ($computedExpirationDate ? date('Y-m-d', strtotime($computedExpirationDate)) : '-')) ?>
@@ -679,144 +722,65 @@ require_once '../includes/layout_header.php';
 <input type="hidden" id="data_limit" name="data_limit">
 <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($csrfToken) ?>">
 
-<!-- HEADER ACTIONS -->
-<div class="d-flex justify-content-between align-items-center mb-3 user-detail-sticky-header">
+<div class="mb-3 text-start user-detail-title">
     <h6 class="text-white mt-0 mb-0">
-    <i class="fa fa-id-card me-2"></i> Compte utilisateur <span class="text-white-50" id="selectedUsernameLabel">-</span>
+        <i class="fa fa-id-card me-2"></i> Compte utilisateur <span class="text-white-50" id="selectedUsernameLabel">-</span>
     </h6>
-
-    <div class="d-flex gap-2<?= $canManageUsersFromList ? '' : ' d-none' ?>" id="userActionBar">
-        <button type="button" class="btn btn-test" id="reloadBtn">
-            <i class="fa fa-rotate-right me-1"></i> Recharger
-        </button>
-        <button type="button" class="btn btn-test" id="editBtn">
-            <i class="fa fa-edit me-1"></i> Modifier
-        </button>
-        <button type="button" class="btn btn-delete" id="deleteBtn">
-            <i class="fa fa-trash me-1"></i> Supprimer
-        </button>
-
-        <button type="button" class="btn btn-save d-none" id="saveBtn">
-            <i class="fa fa-save me-1"></i> Enregistrer
-        </button>
-
-        <button type="button" class="btn btn-test d-none" id="cancelBtn">
-            <i class="fa fa-times me-1"></i> Annuler
-        </button>
-    </div>
-
-
 </div>
 
-    <div class="users-details-layout row g-3" id="usersDetailsContent">
+<input type="hidden" id="profile_id" name="profile_id" value="">
+<input type="hidden" id="status" name="status" value="">
+<input type="hidden" id="expiration" name="expiration_date" value="">
+
+<div class="users-details-layout row g-3" id="usersDetailsContent">
     <div class="col-12 col-lg-6 users-details-left">
-        <div class="users-summary-grid users-summary-grid-compact mb-3">
+        <div class="card user-detail-block users-identity-card mb-3">
+            <div class="card-body py-3">
+                <div class="input-group mb-2">
+                    <span class="input-group-text">Nom</span>
+                    <input type="text" class="form-control editable-only" id="username" name="username" disabled>
+                </div>
+                <div class="input-group mb-3">
+                    <span class="input-group-text">Mot de passe</span>
+                    <input type="text" class="form-control editable-only" id="password" name="password" disabled>
+                </div>
+                <div class="d-flex flex-wrap justify-content-end gap-2<?= $canManageUsersFromList ? '' : ' d-none' ?>" id="userActionBar">
+                    <button type="button" class="btn btn-test" id="reloadBtn">
+                        <i class="fa fa-rotate-right me-1"></i> Recharger
+                    </button>
+                    <button type="button" class="btn btn-delete" id="disableAccountBtn" disabled>
+                        <i class="fa fa-user-slash me-1"></i> Désactiver
+                    </button>
+                    <button type="button" class="btn btn-test" id="editBtn">
+                        <i class="fa fa-edit me-1"></i> Modifier
+                    </button>
+                    <button type="button" class="btn btn-delete" id="deleteBtn" disabled>
+                        <i class="fa fa-trash me-1"></i> Supprimer
+                    </button>
+                    <button type="button" class="btn btn-save d-none" id="saveBtn">
+                        <i class="fa fa-save me-1"></i> Enregistrer
+                    </button>
+                    <button type="button" class="btn btn-test d-none" id="cancelBtn">
+                        <i class="fa fa-times me-1"></i> Annuler
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <div class="users-summary-grid users-summary-grid-compact">
+            <div class="users-summary-card"><span class="users-summary-label">Serveur</span><span class="users-summary-value" id="summary_server">-</span></div>
             <div class="users-summary-card"><span class="users-summary-label">Date de création</span><span class="users-summary-value" id="summary_created_at">-</span></div>
             <div class="users-summary-card"><span class="users-summary-label">Profil</span><span class="users-summary-value" id="summary_profile">-</span></div>
+            <div class="users-summary-card"><span class="users-summary-label">Statut</span><span class="users-summary-value" id="summary_status">-</span></div>
+            <div class="users-summary-card"><span class="users-summary-label">Expiration</span><span class="users-summary-value" id="summary_expiration">-</span></div>
+            <div class="users-summary-card"><span class="users-summary-label">Limite de débit</span><span class="users-summary-value" id="summary_rate_limit">-</span></div>
+            <div class="users-summary-card"><span class="users-summary-label">Partagés</span><span class="users-summary-value" id="summary_shared_users">-</span></div>
             <div class="users-summary-card"><span class="users-summary-label">Limite de temps</span><span class="users-summary-value" id="summary_time">-</span></div>
             <div class="users-summary-card"><span class="users-summary-label">Limite de données</span><span class="users-summary-value" id="summary_data_limit">-</span></div>
             <div class="users-summary-card"><span class="users-summary-label">Durée cumulée</span><span class="users-summary-value" id="summary_session_total">-</span></div>
             <div class="users-summary-card"><span class="users-summary-label">Data consommée</span><span class="users-summary-value" id="summary_data">-</span></div>
-            <div class="users-summary-card"><span class="users-summary-label">Expiration</span><span class="users-summary-value" id="summary_expiration">-</span></div>
-            <div class="users-summary-card"><span class="users-summary-label">Statut</span><span class="users-summary-value" id="summary_status">-</span></div>
-        </div>
-
-        <div class="row g-3 users-details-fields">
-            <div class="col-12 col-md-6">
-                <div class="card user-detail-block h-100">
-                    <div class="card-body py-3">
-                        <div class="input-group mb-2">
-                            <span class="input-group-text">Serveur</span>
-                            <input type="text" class="form-control" id="server" disabled>
-                        </div>
-                        <div class="input-group mb-2">
-                            <span class="input-group-text">Nom</span>
-                            <input type="text" class="form-control editable-only" id="username" name="username" disabled>
-                        </div>
-                        <div class="input-group mb-2">
-                            <span class="input-group-text">Mot de passe</span>
-                            <input type="text" class="form-control editable-only" id="password" name="password" disabled>
-                        </div>
-                        <div class="input-group mb-2">
-                            <span class="input-group-text">Date de création</span>
-                            <input type="text" class="form-control" id="created_at_display" disabled>
-                        </div>
-                        <div class="input-group mb-2">
-                            <span class="input-group-text">Profil</span>
-                            <select class="form-select" id="profile_id" name="profile_id" disabled>
-                                <option value="">-- Choisir un profil --</option>
-                                <?php foreach ($profileOptions as $profileOption): ?>
-                                <option
-                                    value="<?= (int)$profileOption['id'] ?>"
-                                    data-plan="<?= htmlspecialchars($profileOption['name']) ?>"
-                                    data-service="<?= htmlspecialchars($profileOption['service_type'] ?? '') ?>"
-                                    data-rate_limit="<?= htmlspecialchars($profileOption['rate_limit'] ?? '') ?>"
-                                    data-session_timeout="<?= htmlspecialchars((string)($profileOption['session_timeout'] ?? '')) ?>"
-                                    data-idle_timeout="<?= htmlspecialchars((string)($profileOption['idle_timeout'] ?? '')) ?>"
-                                    data-simultaneous_use="<?= htmlspecialchars((string)($profileOption['simultaneous_use'] ?? '')) ?>"
-                                    data-data_limit="<?= htmlspecialchars((string)($profileOption['data_quota_mb'] ?? '')) ?>"
-                                    data-account_type="<?= htmlspecialchars($profileOption['account_type'] ?? '') ?>"
-                                >
-                                    <?= htmlspecialchars($profileOption['name']) ?>
-                                </option>
-                                <?php endforeach; ?>
-                            </select>
-                        </div>
-                        <div class="input-group mb-0">
-                            <span class="input-group-text">Statut</span>
-                            <select class="form-select editable-only" id="status" name="status" disabled>
-                                <option value="">-</option>
-                                <option value="active">ACTIVE</option>
-                                <option value="expired" disabled>EXPIRE</option>
-                                <option value="disabled">DESACTIVE</option>
-                            </select>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <div class="col-12 col-md-6">
-                <div class="card user-detail-block h-100">
-                    <div class="card-body py-3">
-                        <div class="input-group mb-2">
-                            <span class="input-group-text">Expiration</span>
-                            <input type="text" class="form-control" id="expiration" name="expiration_date" readonly>
-                        </div>
-                        <div class="input-group mb-2">
-                            <span class="input-group-text">Limite de temps</span>
-                            <input type="text" class="form-control" id="time_limit_display" disabled>
-                        </div>
-                        <div class="input-group mb-2">
-                            <span class="input-group-text">Limite de données</span>
-                            <input type="text" class="form-control" id="data_limit_display" disabled>
-                        </div>
-                        <div class="input-group mb-2">
-                            <span class="input-group-text">Durée cumulée</span>
-                            <input type="text" class="form-control" id="session_total_display" disabled>
-                        </div>
-                        <div class="input-group mb-2">
-                            <span class="input-group-text">Data consommée</span>
-                            <input type="text" class="form-control" id="data_consumed_display" disabled>
-                        </div>
-                        <div class="input-group mb-2">
-                            <span class="input-group-text">Limite de débit</span>
-                            <input type="text" class="form-control" id="rate_limit_display" disabled>
-                        </div>
-                        <div class="input-group mb-2">
-                            <span class="input-group-text">Partagés</span>
-                            <input type="text" class="form-control" id="shared_users_display" disabled>
-                        </div>
-                        <div class="input-group mb-2<?= $isMikrotikUsers ? '' : ' d-none' ?>" id="priceDisplayWrap">
-                            <span class="input-group-text">Prix</span>
-                            <input type="text" class="form-control" id="price_display" disabled>
-                        </div>
-                        <div class="input-group mb-0<?= $isMikrotikUsers ? '' : ' d-none' ?>" id="sellingPriceDisplayWrap">
-                            <span class="input-group-text">Prix de vente</span>
-                            <input type="text" class="form-control" id="selling_price_display" disabled>
-                        </div>
-                    </div>
-                </div>
-            </div>
+            <div class="users-summary-card<?= $isMikrotikUsers ? '' : ' d-none' ?>" id="priceSummaryWrap"><span class="users-summary-label">Prix</span><span class="users-summary-value" id="summary_price">-</span></div>
+            <div class="users-summary-card<?= $isMikrotikUsers ? '' : ' d-none' ?>" id="sellingPriceSummaryWrap"><span class="users-summary-label">Prix de vente</span><span class="users-summary-value" id="summary_selling_price">-</span></div>
         </div>
     </div>
 
@@ -878,7 +842,7 @@ require_once '../includes/layout_header.php';
 <?php
 $extraJs = array (
   0 => '../js/table_sort.js',
-  1 => '../js/users_list.js?v=20260404i',
+  1 => '../js/users_list.js?v=20260430a',
 );
 require_once '../includes/layout_footer.php';
 ?>

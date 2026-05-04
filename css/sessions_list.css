@@ -1,5 +1,5 @@
 .sessions-list-page #page-content-wrapper {
-    min-height: 100vh;
+    min-height: calc(100vh - var(--navbar-height) - var(--page-content-offset-y));
     display: flex;
     flex-direction: column;
 }
@@ -193,18 +193,22 @@ html.sessions-list-page .sessions-table-scroll thead th[data-sort-key].sort-desc
     padding: 5px 8px;
 }
 
-.sessions-list-page .sessions-table .session-action-btn {
-    background-color: rgba(23, 162, 184, 0.2);
-    border: 1px solid var(--theme-primary);
-    color: var(--theme-primary);
+.sessions-list-page .sessions-table .session-action-btn,
+.sessions-list-page .users-table .session-action-btn {
+    min-width: calc(100px - 15px);
+    background-color: rgba(220, 53, 69, 0.15);
+    border: 1px solid #dc3545;
+    color: #dc3545;
 }
 
 .sessions-list-page .sessions-table .session-action-btn:hover,
-.sessions-list-page .sessions-table .session-action-btn:focus {
-    background-color: var(--theme-primary);
-    border-color: var(--theme-primary);
+.sessions-list-page .sessions-table .session-action-btn:focus,
+.sessions-list-page .users-table .session-action-btn:hover,
+.sessions-list-page .users-table .session-action-btn:focus {
+    background-color: #dc3545;
+    border-color: #dc3545;
     color: #fff;
-    box-shadow: 0 0 8px rgba(23, 162, 184, 0.6);
+    box-shadow: 0 0 8px rgba(220, 53, 69, 0.6);
 }
 
 .sessions-list-page .sessions-table .action-header,
@@ -232,6 +236,23 @@ html.sessions-list-page .sessions-table-scroll thead th[data-sort-key].sort-desc
 
 .sessions-list-page .sessions-table-actions .btn {
     min-height: 32px;
+}
+
+.sessions-list-page #sessionsManualRefreshBtn,
+.sessions-list-page #sessionsColumnsToggle {
+    background-color: rgba(23, 162, 184, 0.2);
+    border-color: var(--theme-primary);
+    color: var(--theme-primary);
+}
+
+.sessions-list-page #sessionsManualRefreshBtn:hover,
+.sessions-list-page #sessionsManualRefreshBtn:focus,
+.sessions-list-page #sessionsColumnsToggle:hover,
+.sessions-list-page #sessionsColumnsToggle:focus {
+    background-color: var(--theme-primary);
+    border-color: var(--theme-primary);
+    color: #fff;
+    box-shadow: 0 0 8px rgba(23, 162, 184, 0.6);
 }
 
 .sessions-list-page .sessions-table-actions .dropdown-toggle {

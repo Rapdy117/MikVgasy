@@ -549,23 +549,11 @@ try {
     $resellerOptions = [];
 }
 ?>
-<!DOCTYPE html>
-<html lang="fr" class="recouvrement-page">
-<head>
-<meta charset="UTF-8">
-<title>Recouvrement</title>
-<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
-<link rel="stylesheet" href="../css/theme.css">
-<link rel="stylesheet" href="../css/recouvrement.css?v=20260403a">
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
-</head>
-<body class="recouvrement-page">
-<div class="d-flex" id="wrapper">
-<?php include '../includes/sidebar.php'; ?>
 
-<div id="page-content-wrapper">
-<div class="container-fluid py-3">
-<?php display_message(); ?>
+<?php
+$pageTitle = 'Recouvrement';
+require_once '../includes/layout_header.php';
+?>
 
 <div class="row recouvrement-page-layout-row g-3">
     <div class="col-lg-7 mb-3 mb-lg-0 recouvrement-main-col">
@@ -771,9 +759,11 @@ window.recouvrementData = <?= json_encode([
     'csrfToken' => (string)($_SESSION['csrf_token'] ?? ''),
 ], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) ?>;
 </script>
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
-<script src="../js/sidebar.js?v=20260402a"></script>
-<script src="../js/table_sort.js"></script>
-<script src="../js/recouvrement.js?v=20260328a"></script>
-</body>
-</html>
+
+<?php
+$extraJs = array (
+  0 => '../js/table_sort.js',
+  1 => '../js/recouvrement.js?v=20260328a',
+);
+require_once '../includes/layout_footer.php';
+?>

@@ -17,11 +17,16 @@ function formatVoucherDataLimitLabel(?int $dataQuotaMb): string
         return '';
     }
 
-    if ($value >= 1024) {
-        return formatVoucherNumber($value / 1024, 2) . ' GB';
+    $kilobytes = $value * 1024;
+    if ($kilobytes < 1000) {
+        return formatVoucherNumber($kilobytes, 2) . ' KB';
     }
 
-    return formatVoucherNumber($value, 0) . ' MB';
+    if ($value < 1000) {
+        return formatVoucherNumber($value, 2) . ' MB';
+    }
+
+    return formatVoucherNumber($value / 1024, 2) . ' GB';
 }
 
 function formatVoucherTimeLimitLabel(?int $seconds): string
@@ -197,9 +202,7 @@ function renderVoucherTicketCard(array $item, int $index, string $hotspotName, a
     $sellingPriceLabel = formatVoucherPriceLabel($item['selling_price'] ?? '');
     $priceLabel = $sellingPriceLabel !== '' ? $sellingPriceLabel : formatVoucherPriceLabel($item['price'] ?? '');
     $dataQuota = isset($item['data_quota_mb']) ? (int)$item['data_quota_mb'] : 0;
-    $dataLabel = $dataQuota > 0
-        ? str_replace('GB', 'GO', formatVoucherDataLimitLabel($dataQuota))
-        : '';
+    $dataLabel = $dataQuota > 0 ? formatVoucherDataLimitLabel($dataQuota) : '';
     $validityLabel = formatVoucherTimeLimitLabel(isset($item['validity_time']) ? (int)$item['validity_time'] : 0);
     $sessionLimitLabel = formatVoucherTimeLimitLabel(isset($item['session_timeout']) ? (int)$item['session_timeout'] : 0);
     $metaPartsWide = [];

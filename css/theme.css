@@ -913,6 +913,21 @@ body::before {
     align-items: center;
 }
 
+.device-card-grid .dashboard-summary-list,
+.device-card-grid .dashboard-summary-item,
+.device-card-grid .dashboard-status-popover-wrap {
+    min-width: 0;
+}
+
+.device-card-grid .dashboard-summary-value {
+    min-width: 0;
+    max-width: 100%;
+    overflow: hidden;
+    text-align: right;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
 .dashboard-summary-label-stack {
     display: flex;
     flex-direction: column;
@@ -920,8 +935,25 @@ body::before {
 }
 
 .dashboard-summary-value-stack {
-    white-space: pre-line;
     line-height: 1.2;
+    white-space: pre-line;
+}
+
+.device-card-grid .dashboard-summary-item-zones .dashboard-summary-value {
+    overflow-wrap: anywhere;
+    white-space: normal !important;
+}
+
+.device-card-grid .cpu-gauge-wrap {
+    min-width: 180px;
+}
+
+.dashboard-device-row #deviceSummaryTitle,
+.dashboard-device-row #deviceSummarySubtitle {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
 }
 
 @media (max-width: 991.98px) {
@@ -1810,7 +1842,7 @@ body::before {
 .standard-card-header {
     background: var(--theme-primary-soft) !important;
     color: var(--theme-primary) !important;
-    font-size: calc(0.8rem - 1px);
+    font-size: 0.8rem;
     font-weight: 600;
     padding: 6px 10px;
     border-bottom: 1px solid rgba(0, 255, 255, 0.1) !important;

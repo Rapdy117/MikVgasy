@@ -34,6 +34,63 @@ function require_valid_csrf(): void
     }
 }
 
+function mikrotikImportStandardDecodePoolMap(?string $raw): array
+{
+    $value = trim((string)$raw);
+    if ($value === '') {
+        return [];
+    }
+
+    $decoded = json_decode($value, true);
+    if (!is_array($decoded)) {
+        throw new RuntimeException('Mapping address-pool invalide.');
+    }
+
+    $map = [];
+    foreach ($decoded as $source => $target) {
+        $sourcePool = trim((string)$source);
+        $targetPool = trim((string)$target);
+        if ($sourcePool !== '' && $targetPool !== '') {
+            $map[$sourcePool] = $targetPool;
+        }
+    }
+
+    return $map;
+}
+
+function mikrotikImportStandardResolveProfilePool(string $sourcePool, array $targetPools, array $poolMap): string
+{
+    $sourcePool = trim($sourcePool);
+    if ($sourcePool === '') {
+        return '';
+    }
+
+    $targetLookup = [];
+    foreach ($targetPools as $targetPool) {
+        $targetLookup[strtolower((string)$targetPool)] = (string)$targetPool;
+    }
+
+    $sourceKey = strtolower($sourcePool);
+    if (isset($targetLookup[$sourceKey])) {
+        return $targetLookup[$sourceKey];
+    }
+
+    foreach ($poolMap as $mapSource => $mapTarget) {
+        if (strtolower((string)$mapSource) !== $sourceKey) {
+            continue;
+        }
+
+        $targetKey = strtolower((string)$mapTarget);
+        if (!isset($targetLookup[$targetKey])) {
+            throw new RuntimeException('Mapping address-pool invalide: "' . $sourcePool . '" -> "' . (string)$mapTarget . '" absent du routeur cible.');
+        }
+
+        return $targetLookup[$targetKey];
+    }
+
+    throw new RuntimeException('Address-pool source "' . $sourcePool . '" absent du routeur cible. Selectionnez un pool cible avant import.');
+}
+
 function findLocalProfileByName(PDO $pdo, string $name): ?array
 {
     $stmt = $pdo->prepare('
@@ -308,6 +365,7 @@ try {
     $deviceId = trim((string)($_POST['device_id'] ?? ''));
     $mode = mikrotikStandardNormalizeImportMode((string)($_POST['mode'] ?? 'skip'));
     $includeSensitive = mikrotikStandardNormalizeSensitiveImport((string)($_POST['include_sensitive'] ?? '0'));
+    $poolMap = mikrotikImportStandardDecodePoolMap($_POST['pool_map'] ?? '');
 
     if ($deviceId === '') {
         throw new RuntimeException('Serveur cible requis.');
@@ -365,6 +423,28 @@ try {
 
         $api = adminMikrotikStandardConnectDevice($device);
         try {
+            $targetAddressPoolRows = $api->comm('/ip/pool/print');
+            $targetAddressPools = adminMikrotikStandardExtractAddressPoolNames(
+                is_array($targetAddressPoolRows) ? $targetAddressPoolRows : []
+            );
+
+            foreach ($document['profiles'] as $profileRow) {
+                if (!is_array($profileRow)) {
+                    continue;
+                }
+                $profileName = trim((string)($profileRow['name'] ?? ''));
+                if ($profileName === '' || mikrotikStandardIsProtectedProfile($profileName)) {
+                    continue;
+                }
+                $backendSpecificProfileRow = mikrotikStandardFindBackendSpecificProfileRow($payload, $profileName);
+                $normalizedProfile = adminMikrotikStandardBuildProfilePayload($profileRow, $backendSpecificProfileRow);
+                mikrotikImportStandardResolveProfilePool(
+                    (string)($normalizedProfile['ip_pool'] ?? ''),
+                    $targetAddressPools,
+                    $poolMap
+                );
+            }
+
             foreach ($document['profiles'] as $profileRow) {
                 try {
                     if (!is_array($profileRow)) {
@@ -383,6 +463,11 @@ try {
 
                     $backendSpecificProfileRow = mikrotikStandardFindBackendSpecificProfileRow($payload, $profileName);
                     $normalizedProfile = adminMikrotikStandardBuildProfilePayload($profileRow, $backendSpecificProfileRow);
+                    $normalizedProfile['ip_pool'] = mikrotikImportStandardResolveProfilePool(
+                        (string)($normalizedProfile['ip_pool'] ?? ''),
+                        $targetAddressPools,
+                        $poolMap
+                    );
                     $action = adminMikrotikStandardUpsertProfile($api, array_merge($normalizedProfile, [
                         'old_name' => $profileName,
                     ]), $mode, $device);
@@ -485,6 +570,7 @@ try {
                     'host' => (string)($device['host'] ?? ''),
                     'nas_id' => (int)($adminMikrotikContext['nas_id'] ?? 0),
                 ],
+                'address_pool_map' => $poolMap,
                 'profiles' => $profileSummary,
                 'users' => $userSummary,
             ],
@@ -496,6 +582,7 @@ try {
             'device_id' => $deviceId,
             'resolved_device_type' => $resolvedDeviceType,
             'resolved_business_source' => $businessSource,
+            'address_pool_map' => $poolMap,
             'profiles' => $profileSummary,
             'users' => $userSummary,
         ], JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);

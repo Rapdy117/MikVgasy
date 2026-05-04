@@ -41,14 +41,29 @@ if (!isAdministrator()) {
 
 try {
     require_valid_csrf();
-    requireActiveDeviceType('mikrotik');
 
     $username = post_string_or_null('username');
+    $deviceId = post_string_or_null('device_id');
     if ($username === null) {
         throw new RuntimeException('Utilisateur manquant.');
     }
+    if ($deviceId === null) {
+        throw new RuntimeException('Serveur requis.');
+    }
 
-    deleteUserFromMikrotik($username);
+    $deviceStore = loadDeviceStore();
+    $device = findDeviceById($deviceStore, $deviceId);
+    if (!is_array($device) || normalizeDeviceType((string)($device['type'] ?? '')) !== 'mikrotik') {
+        throw new RuntimeException('Serveur MikroTik introuvable.');
+    }
+
+    $nasContext = [
+        'device' => $device,
+        'device_type' => 'mikrotik',
+        'business_source' => 'mikrotik_local',
+        'backend_driver' => 'mikrotik_api',
+    ];
+    deleteUserFromMikrotik($username, $nasContext);
 
     recordOperationHistory($pdo, [
         'operation_scope' => 'admin',
@@ -60,6 +75,7 @@ try {
         'summary' => 'Utilisateur MikroTik supprimé',
         'details_json' => [
             'backend_driver' => 'mikrotik_api',
+            'device_id' => $deviceId,
         ],
     ]);
 

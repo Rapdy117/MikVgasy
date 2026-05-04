@@ -32,6 +32,109 @@ function ensureAdminNotificationsTable(PDO $pdo): void
     $done = true;
 }
 
+function ensureDeviceHealthMonitorTable(PDO $pdo): void
+{
+    static $done = false;
+
+    if ($done) {
+        return;
+    }
+
+    $pdo->exec(
+        "CREATE TABLE IF NOT EXISTS device_health_monitor (
+            device_id VARCHAR(120) NOT NULL,
+            device_name VARCHAR(180) DEFAULT NULL,
+            device_type VARCHAR(20) DEFAULT NULL,
+            host VARCHAR(255) DEFAULT NULL,
+            last_state VARCHAR(20) NOT NULL DEFAULT 'unknown',
+            last_error_message TEXT DEFAULT NULL,
+            last_checked_at DATETIME DEFAULT NULL,
+            last_success_at DATETIME DEFAULT NULL,
+            consecutive_failures INT(11) NOT NULL DEFAULT 0,
+            PRIMARY KEY (device_id),
+            KEY idx_device_health_monitor_state (last_state),
+            KEY idx_device_health_monitor_checked (last_checked_at)
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci"
+    );
+
+    $done = true;
+}
+
+function getDeviceHealthMonitorState(PDO $pdo, string $deviceId): ?array
+{
+    ensureDeviceHealthMonitorTable($pdo);
+
+    $stmt = $pdo->prepare("
+        SELECT
+            device_id,
+            device_name,
+            device_type,
+            host,
+            last_state,
+            last_error_message,
+            last_checked_at,
+            last_success_at,
+            consecutive_failures
+        FROM device_health_monitor
+        WHERE device_id = ?
+        LIMIT 1
+    ");
+    $stmt->execute([$deviceId]);
+    $row = $stmt->fetch(PDO::FETCH_ASSOC);
+
+    return is_array($row) ? $row : null;
+}
+
+function saveDeviceHealthMonitorState(PDO $pdo, array $payload): void
+{
+    ensureDeviceHealthMonitorTable($pdo);
+
+    $stmt = $pdo->prepare("
+        INSERT INTO device_health_monitor (
+            device_id,
+            device_name,
+            device_type,
+            host,
+            last_state,
+            last_error_message,
+            last_checked_at,
+            last_success_at,
+            consecutive_failures
+        ) VALUES (
+            :device_id,
+            :device_name,
+            :device_type,
+            :host,
+            :last_state,
+            :last_error_message,
+            :last_checked_at,
+            :last_success_at,
+            :consecutive_failures
+        )
+        ON DUPLICATE KEY UPDATE
+            device_name = VALUES(device_name),
+            device_type = VALUES(device_type),
+            host = VALUES(host),
+            last_state = VALUES(last_state),
+            last_error_message = VALUES(last_error_message),
+            last_checked_at = VALUES(last_checked_at),
+            last_success_at = VALUES(last_success_at),
+            consecutive_failures = VALUES(consecutive_failures)
+    ");
+
+    $stmt->execute([
+        ':device_id' => trim((string)($payload['device_id'] ?? '')),
+        ':device_name' => trim((string)($payload['device_name'] ?? '')) ?: null,
+        ':device_type' => trim((string)($payload['device_type'] ?? '')) ?: null,
+        ':host' => trim((string)($payload['host'] ?? '')) ?: null,
+        ':last_state' => trim((string)($payload['last_state'] ?? 'unknown')) ?: 'unknown',
+        ':last_error_message' => trim((string)($payload['last_error_message'] ?? '')) ?: null,
+        ':last_checked_at' => trim((string)($payload['last_checked_at'] ?? '')) ?: null,
+        ':last_success_at' => trim((string)($payload['last_success_at'] ?? '')) ?: null,
+        ':consecutive_failures' => max(0, (int)($payload['consecutive_failures'] ?? 0)),
+    ]);
+}
+
 function createAdminNotification(PDO $pdo, array $payload): int
 {
     ensureAdminNotificationsTable($pdo);
@@ -259,6 +362,7 @@ function adminNotificationSeverityBadgeClass(string $severity): string
 function adminNotificationCategoryLabel(string $category): string
 {
     return match (strtolower(trim($category))) {
+        'device' => 'Equipement',
         'user' => 'Utilisateur',
         'commercial' => 'Commercial',
         'portal' => 'Portail',

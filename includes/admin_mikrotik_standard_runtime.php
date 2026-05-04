@@ -54,6 +54,44 @@ function adminMikrotikStandardReadIdentity(array $device): ?string
     }
 }
 
+function adminMikrotikStandardExtractAddressPoolNames(array $rows): array
+{
+    $addressPools = [];
+    foreach ($rows as $row) {
+        if (!is_array($row)) {
+            continue;
+        }
+        $name = trim((string)($row['name'] ?? ''));
+        if ($name !== '') {
+            $addressPools[strtolower($name)] = $name;
+        }
+    }
+
+    natcasesort($addressPools);
+    return array_values($addressPools);
+}
+
+function adminMikrotikStandardReadTargetInfo(array $device): array
+{
+    $api = adminMikrotikStandardConnectDevice($device);
+
+    try {
+        $identityRows = $api->comm('/system/identity/print');
+        $firstRow = is_array($identityRows) ? ($identityRows[0] ?? []) : [];
+        $routerIdentity = is_array($firstRow) ? trim((string)($firstRow['name'] ?? '')) : '';
+
+        $poolRows = $api->comm('/ip/pool/print');
+        $addressPools = adminMikrotikStandardExtractAddressPoolNames(is_array($poolRows) ? $poolRows : []);
+
+        return [
+            'router_identity' => $routerIdentity !== '' ? $routerIdentity : null,
+            'address_pools' => $addressPools,
+        ];
+    } finally {
+        $api->disconnect();
+    }
+}
+
 function adminMikrotikStandardFindBackendSpecificUserRow(array $payload, string $username): ?array
 {
     $rows = $payload['backend_specific']['mikrotik']['users'] ?? [];

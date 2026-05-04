@@ -42,16 +42,13 @@ if ($isMikrotik) {
     }
 }
 ?>
-<!DOCTYPE html>
-<html lang="fr">
-<head>
-<meta charset="UTF-8">
-<title>Scheduler</title>
-<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
-<link rel="stylesheet" href="../css/theme.css">
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+
+<?php
+$pageTitle = 'Scheduler';
+require_once '../includes/layout_header.php';
+?>
 <style>
-    .scheduler-search-group {
+.scheduler-search-group {
         max-width: 320px;
     }
 
@@ -143,13 +140,6 @@ if ($isMikrotik) {
         line-height: 1.4;
     }
 </style>
-</head>
-<body>
-<div class="d-flex" id="wrapper">
-<?php include_once '../includes/sidebar.php'; ?>
-
-<div id="page-content-wrapper">
-<div class="container-fluid py-3">
 
 <div class="card mb-3">
     <div class="card-body py-3">
@@ -289,57 +279,11 @@ if ($isMikrotik) {
 </div>
 </div>
 
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
-<script src="../js/sidebar.js?v=20260402a"></script>
-<script src="../js/table_sort.js"></script>
-<script>
-document.addEventListener('DOMContentLoaded', () => {
-    const refreshBtn = document.getElementById('schedulerRefreshBtn');
-    const input = document.getElementById('schedulerSearchInput');
-    const body = document.getElementById('schedulerTableBody');
-    if (refreshBtn) {
-        refreshBtn.addEventListener('click', () => {
-            window.location.reload();
-        });
-    }
-    if (!input || !body) {
-        return;
-    }
 
-    input.addEventListener('input', () => {
-        const query = input.value.trim().toLowerCase();
-        body.querySelectorAll('tr').forEach((row) => {
-            if (row.dataset.sortDisabled === '1') {
-                row.style.display = query === '' ? '' : 'none';
-                return;
-            }
-
-            const text = row.textContent.toLowerCase();
-            row.style.display = query === '' || text.includes(query) ? '' : 'none';
-        });
-    });
-
-    body.querySelectorAll('.scheduler-row').forEach((row) => {
-        row.addEventListener('click', (event) => {
-            if (event.target.closest('.js-edit-scheduler')) {
-                return;
-            }
-            const schedulerId = row.dataset.id || '';
-            if (schedulerId !== '') {
-                window.location.href = `add_scheduler.php?scheduler_id=${encodeURIComponent(schedulerId)}`;
-            }
-        });
-    });
-
-    body.querySelectorAll('.js-edit-scheduler').forEach((button) => {
-        button.addEventListener('click', () => {
-            const schedulerId = button.dataset.schedulerId || '';
-            if (schedulerId !== '') {
-                window.location.href = `add_scheduler.php?scheduler_id=${encodeURIComponent(schedulerId)}`;
-            }
-        });
-    });
-});
-</script>
-</body>
-</html>
+<?php
+$extraJs = array (
+  0 => '../js/table_sort.js',
+  1 => '../js/scheduler.js',
+);
+require_once '../includes/layout_footer.php';
+?>

@@ -20,32 +20,22 @@ $activeDeviceType = strtoupper((string)($activeDevice['type'] ?? 'other'));
 $activeDeviceHost = trim((string)($activeDevice['host'] ?? ($activeDevice['ip'] ?? '')));
 
 ?>
-<!DOCTYPE html>
-<html lang="fr">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Surveillance du Trafic</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
-    <script src="../assets/vendor/chart/chart.umd.min.js"></script>
-    <script src="../assets/vendor/chart/moment-with-locales.min.js"></script>
-    <script src="../assets/vendor/chart/chartjs-adapter-moment.min.js"></script>
-    <script src="../assets/vendor/chart/chartjs-plugin-streaming.js"></script>
-    <link rel="stylesheet" href="../css/theme.css">
-    <link rel="stylesheet" href="../css/traffic_monitoring.css?v=20260403a">
-</head>
 
-<body>
+<?php
+$pageTitle = 'Surveillance du Trafic';
+$extraCss = [
+    '../css/traffic_monitoring.css',
+];
+$extraHeadJs = array (
+  0 => '../assets/vendor/chart/chart.umd.min.js',
+  1 => '../assets/vendor/chart/moment-with-locales.min.js',
+  2 => '../assets/vendor/chart/chartjs-adapter-moment.min.js',
+  3 => '../assets/vendor/chart/chartjs-plugin-streaming.js',
+);
+require_once '../includes/layout_header.php';
+?>
 
-    <div class="d-flex" id="wrapper">
-        <?php include '../includes/sidebar.php'; ?>
-
-        <div id="page-content-wrapper">
-            <div class="container-fluid py-3">
-                <?php display_message(); ?>
-                <div id="messageArea" style="display: none;"></div>
+<div id="messageArea" style="display: none;"></div>
                 <input type="hidden" id="trafficSourceLabel" value="<?= htmlspecialchars($activeDeviceLabel) ?>">
                 <input type="hidden" id="trafficSourceHost" value="<?= htmlspecialchars($activeDeviceHost) ?>">
                 <input type="hidden" id="trafficSourceType" value="<?= htmlspecialchars($activeDeviceType) ?>">
@@ -53,21 +43,25 @@ $activeDeviceHost = trim((string)($activeDevice['host'] ?? ($activeDevice['ip'] 
                 <div class="row">
                     <div class="col-12 mb-4">
                         <div class="card shadow-sm h-100">
-                            <div class="card-header standard-card-header d-flex align-items-center justify-content-between flex-wrap gap-2">
-                                <div class="d-flex align-items-center text-truncate">
+                            <div class="card-header standard-card-header traffic-monitoring-card-header d-flex align-items-center justify-content-between flex-nowrap gap-2 min-w-0">
+                                <div class="d-flex align-items-center min-w-0 text-truncate flex-shrink-1 me-1 me-sm-2">
                                     <i class="fas fa-chart-area me-2 flex-shrink-0"></i>
                                     <span>Bande Passante Live</span>
                                 </div>
-                                <div class="traffic-toolbar">
-                                    <div class="input-group traffic-source-group">
-                                        <span class="input-group-text">Source monitoring</span>
-                                        <select class="form-select" id="trafficInterfaceSelect">
+                                <div class="d-flex align-items-stretch flex-nowrap gap-1 gap-sm-2 flex-shrink-0 min-w-0 traffic-toolbar" role="group" aria-label="Paramètres du graphique">
+                                    <div class="input-group traffic-source-group traffic-monitoring-iface">
+                                        <span class="input-group-text" title="Interface ou source de mesure" aria-hidden="true">
+                                            <i class="fa fa-network-wired"></i>
+                                        </span>
+                                        <select class="form-select" id="trafficInterfaceSelect" aria-label="Source monitoring">
                                             <option value="">Chargement...</option>
                                         </select>
                                     </div>
                                     <div class="input-group traffic-source-group traffic-refresh-group">
-                                        <span class="input-group-text">Rafraîchissement</span>
-                                        <select class="form-select" id="trafficRefreshSelect">
+                                        <span class="input-group-text" title="Période de rafraîchissement" aria-hidden="true">
+                                            <i class="fa fa-clock"></i>
+                                        </span>
+                                        <select class="form-select" id="trafficRefreshSelect" aria-label="Période de rafraîchissement (secondes)">
                                             <option value="2000">2s</option>
                                             <option value="10000" selected>10s</option>
                                         </select>
@@ -131,12 +125,10 @@ $activeDeviceHost = trim((string)($activeDevice['host'] ?? ($activeDevice['ip'] 
             </div>
         </div>
         </div>
-    <div id="spinner-overlay">
-        <div class="spinner"></div>
-    </div>
-
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
-    <script src="../js/sidebar.js?v=20260402a"></script>
-    <script src="../js/traffic_monitoring.js"></script>
-</body>
-</html>
+    
+<?php
+$extraJs = array (
+  0 => '../js/traffic_monitoring.js',
+);
+require_once '../includes/layout_footer.php';
+?>

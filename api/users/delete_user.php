@@ -2,6 +2,7 @@
 require '../../config/db.php';
 require_once '../../includes/auth.php';
 require_once '../../includes/operation_history.php';
+require_once '../../includes/admin_notifications.php';
 
 session_start();
 header('Content-Type: application/json');
@@ -68,6 +69,7 @@ if ($id === null || $id <= 0) {
 
 try {
     ensureOperationHistoryTable($pdo);
+    ensureAdminNotificationsTable($pdo);
     $pdo->beginTransaction();
 
     /* =========================

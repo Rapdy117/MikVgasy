@@ -3,6 +3,7 @@
 require_once __DIR__ . '/device_manager.php';
 require_once __DIR__ . '/mikrotik_backend.php';
 require_once __DIR__ . '/nas_resolver.php';
+require_once __DIR__ . '/radius_credit_runtime.php';
 require_once __DIR__ . '/user_schema.php';
 
 function rechargePreviewFormatSecondsLabel(int $seconds): string
@@ -27,14 +28,7 @@ function rechargePreviewFormatSecondsLabel(int $seconds): string
 
 function rechargePreviewFormatMegabytesLabel(?int $megabytes): string
 {
-    $value = (int)($megabytes ?? 0);
-    if ($value <= 0) {
-        return '-';
-    }
-    if ($value >= 1024) {
-        return rtrim(rtrim(number_format($value / 1024, 2, '.', ''), '0'), '.') . ' GB';
-    }
-    return $value . ' MB';
+    return formatDataMegabytesLabel($megabytes);
 }
 
 function rechargePreviewParseExpirationDate(?string $value): ?DateTimeImmutable
@@ -74,18 +68,6 @@ function rechargePreviewAddSeconds(DateTimeImmutable $date, int $seconds): DateT
         return $date;
     }
     return $date->modify('+' . $seconds . ' seconds');
-}
-
-function rechargePreviewNormalizeStoredCreditDataToMegabytes(int $rawValue): int
-{
-    $value = max(0, $rawValue);
-    if ($value <= 0) {
-        return 0;
-    }
-    if ($value > 1024 * 1024) {
-        return (int)round($value / 1024 / 1024);
-    }
-    return $value;
 }
 
 function resolveRechargeBackendContext(PDO $pdo, array $device, ?array $nasContext = null): array
@@ -277,13 +259,16 @@ function buildRechargePreview(PDO $pdo, array $device, string $username, string 
         if ($mode === 'extend_offer') {
             $projectedProfile = $current['profile'];
             $projectedMegabytes = $currentMegabytes + $offerMegabytes;
-            if ($currentExpiration instanceof DateTimeImmutable && $currentExpiration >= $today) {
-                $candidateExpiration = rechargePreviewAddSeconds($today, $offerTimeSeconds);
-                $projectedExpiration = rechargePreviewFormatExpirationDate(
-                    $currentExpiration > $candidateExpiration ? $currentExpiration : $candidateExpiration
-                );
-            } else {
+            if (!$currentExpiration instanceof DateTimeImmutable || $currentExpiration < $today) {
                 $projectedExpiration = '-';
+                $projectedSeconds = $remainingTimeSec;
+                $projectedMegabytes = $currentMegabytes;
+                $canApplyNow = false;
+                $notes[] = 'Le rechargement est disponible uniquement pour un compte non expire.';
+            } else {
+                $projectedExpiration = rechargePreviewFormatExpirationDate(
+                    rechargePreviewAddSeconds($currentExpiration, $offerValiditySeconds)
+                );
             }
             $notes[] = 'En mode Rajout d offre, le profil courant est conserve. Temps restant et Data restante s ajoutent a l offre. L expiration ne bouge que si elle existe deja et que le compte est encore valide.';
         }
@@ -296,7 +281,7 @@ function buildRechargePreview(PDO $pdo, array $device, string $username, string 
                 $canApplyNow = false;
             }
             $projectedExpiration = ($currentExpiration instanceof DateTimeImmutable && $currentExpiration >= $today)
-                ? rechargePreviewFormatExpirationDate(rechargePreviewAddSeconds($currentExpiration, $offerTimeSeconds))
+                ? rechargePreviewFormatExpirationDate(rechargePreviewAddSeconds($currentExpiration, $offerValiditySeconds))
                 : '-';
             if (!$canApplyNow) {
                 $projectedSeconds = $remainingTimeSec;
@@ -330,9 +315,13 @@ function buildRechargePreview(PDO $pdo, array $device, string $username, string 
                 u.data_limit AS user_data_limit,
                 u.current_credit_time,
                 u.current_credit_data,
+                u.imported_session_total_seconds,
+                u.imported_data_consumed_bytes,
                 fl.first_login,
                 p.name AS profile_name,
+                p.session_timeout AS profile_session_timeout,
                 p.validity_time AS profile_validity_time,
+                p.data_quota_mb AS profile_data_quota_mb,
                 p.rate_limit,
                 p.simultaneous_use
             FROM users u
@@ -356,13 +345,12 @@ function buildRechargePreview(PDO $pdo, array $device, string $username, string 
         $acctStmt = $pdo->prepare('SELECT SUM(acctsessiontime) AS total_time, SUM(acctinputoctets) AS in_bytes, SUM(acctoutputoctets) AS out_bytes FROM radacct WHERE username = ?');
         $acctStmt->execute([$username]);
         $acctRow = $acctStmt->fetch(PDO::FETCH_ASSOC) ?: [];
-        $consumedSeconds = max(0, (int)($acctRow['total_time'] ?? 0));
-        $consumedBytes = max(0, (int)($acctRow['in_bytes'] ?? 0)) + max(0, (int)($acctRow['out_bytes'] ?? 0));
-        $consumedMegabytes = (int)round($consumedBytes / 1024 / 1024);
-        $currentCreditSeconds = max(0, (int)($userRow['current_credit_time'] ?? 0));
-        $currentCreditMegabytes = max(0, rechargePreviewNormalizeStoredCreditDataToMegabytes((int)($userRow['current_credit_data'] ?? 0)));
-        $currentSeconds = max(0, $currentCreditSeconds - $consumedSeconds);
-        $currentMegabytes = max(0, $currentCreditMegabytes - $consumedMegabytes);
+        $baselineScopeId = resolveUserCounterBaselineScopeId($businessSource, (string)($contextDevice['id'] ?? $device['id'] ?? ''));
+        $counterBaseline = loadUserCounterBaseline($pdo, $baselineScopeId, $username);
+        $runtimeState = buildRadiusRuntimeState($userRow, $acctRow, $counterBaseline);
+        $hasCounterReset = $runtimeState['has_counter_reset'];
+        $currentSeconds = $runtimeState['remaining_session_seconds'];
+        $currentMegabytes = $runtimeState['remaining_data_megabytes'];
         $current['time_limit'] = rechargePreviewFormatSecondsLabel($currentSeconds);
         $current['validity'] = rechargePreviewFormatSecondsLabel((int)($userRow['profile_validity_time'] ?? 0));
         $current['data_limit'] = rechargePreviewFormatMegabytesLabel($currentMegabytes);
@@ -370,7 +358,7 @@ function buildRechargePreview(PDO $pdo, array $device, string $username, string 
         $current['rate_limit'] = trim((string)($userRow['rate_limit'] ?? '')) !== '' ? trim((string)$userRow['rate_limit']) : '-';
         $explicitExpiration = trim((string)($userRow['expiration_date'] ?? ''));
         $computedExpiration = $explicitExpiration !== '' ? $explicitExpiration : null;
-        if ($computedExpiration === null) {
+        if ($computedExpiration === null && !$hasCounterReset) {
             $firstLogin = rechargePreviewParseDatetimeOrNull((string)($userRow['first_login'] ?? ''));
             $validitySeconds = (int)($userRow['profile_validity_time'] ?? 0);
             if ($firstLogin instanceof DateTimeImmutable && $validitySeconds > 0) {
@@ -411,6 +399,13 @@ function buildRechargePreview(PDO $pdo, array $device, string $username, string 
 
         if ($mode === 'extend_offer') {
             $projectedProfile = $current['profile'];
+            if (!$currentExpiration instanceof DateTimeImmutable || $currentExpiration < $today) {
+                $projectedSeconds = $currentSeconds;
+                $projectedMegabytes = $currentMegabytes;
+                $projectedExpiration = $current['expiration'];
+                $canApplyNow = false;
+                $notes[] = 'Le rechargement est disponible uniquement pour un compte non expire.';
+            }
             $notes[] = 'En mode Rajout d offre, le profil courant est conserve. Time Limit s ajoute uniquement si le profil apporte un session timeout. L expiration ne bouge que si elle existe deja et que le compte est encore valide.';
         }
 
@@ -445,10 +440,6 @@ function buildRechargePreview(PDO $pdo, array $device, string $username, string 
             'rate_limit' => $projectedRate,
             'expiration' => $projectedExpiration,
         ];
-    }
-
-    if ($mode !== 'accumulate_offer') {
-        $canApplyNow = true;
     }
 
     $modeLabel = match ($mode) {

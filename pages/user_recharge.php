@@ -18,17 +18,13 @@ $context = ['app' => buildAppContext()];
 $activeDeviceType = strtolower(trim((string)($context['app']['device']['type'] ?? 'other')));
 $activeDeviceId = (string)($context['app']['device']['id'] ?? '');
 ?>
-<!DOCTYPE html>
-<html lang="fr">
-<head>
-<meta charset="UTF-8">
-<title>Recharge</title>
 
-<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
-<link rel="stylesheet" href="../css/theme.css">
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+<?php
+$pageTitle = 'Recharge';
+require_once '../includes/layout_header.php';
+?>
 <style>
-    .user-recharge-wrapper {
+.user-recharge-wrapper {
         min-height: calc(100vh - var(--navbar-height) - 11px);
     }
 
@@ -45,12 +41,6 @@ $activeDeviceId = (string)($context['app']['device']['id'] ?? '');
         font-size: 12px;
     }
 
-    .user-recharge-guide .card-header {
-        background-color: var(--theme-card-soft) !important;
-        color: var(--theme-primary) !important;
-        border-bottom: 1px solid rgba(255, 255, 255, 0.08) !important;
-    }
-
     .user-recharge-guide h6 {
         color: var(--theme-primary);
     }
@@ -58,7 +48,8 @@ $activeDeviceId = (string)($context['app']['device']['id'] ?? '');
     .recharge-preview-grid {
         display: grid;
         grid-template-columns: repeat(3, minmax(0, 1fr));
-        gap: 14px;
+        column-gap: 14px;
+        row-gap: 6px;
     }
 
     .recharge-preview-items {
@@ -69,19 +60,23 @@ $activeDeviceId = (string)($context['app']['device']['id'] ?? '');
 
     .recharge-preview-item {
         display: flex;
-        align-items: center;
+        align-items: stretch;
         justify-content: space-between;
         gap: 8px;
         padding: 4px 8px;
         border-radius: 6px;
         background: rgba(22, 32, 51, 0.7);
         border: 1px solid rgba(148, 163, 184, 0.14);
+        min-height: 32px;
     }
 
     .recharge-preview-label {
         color: var(--theme-text-muted);
         font-weight: 600;
         font-size: 12px;
+        display: flex;
+        align-items: center;
+        flex: 0 0 auto;
     }
 
     .recharge-preview-value {
@@ -90,17 +85,122 @@ $activeDeviceId = (string)($context['app']['device']['id'] ?? '');
         font-size: 12px;
         text-align: right;
         margin-left: auto;
+        min-width: 0;
+        overflow-wrap: anywhere;
+        white-space: normal;
+        display: flex;
+        align-items: center;
+        justify-content: flex-end;
+    }
+
+    .recharge-state-message {
+        border-radius: 8px;
+        padding: 10px 12px;
+        border: 1px solid rgba(148, 163, 184, 0.18);
+        background: rgba(14, 22, 36, 0.72);
+        color: var(--theme-text);
+        font-size: 0.82rem;
+        line-height: 1.35;
+        backdrop-filter: blur(10px);
+    }
+
+    .recharge-state-message-warning {
+        border-color: rgba(245, 158, 11, 0.48);
+        background: linear-gradient(135deg, rgba(245, 158, 11, 0.16), rgba(14, 22, 36, 0.72));
+        color: #fff7df;
+    }
+
+    .recharge-preview-card-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 10px;
+    }
+
+    .recharge-preview-card-title {
+        display: flex;
+        align-items: center;
+        min-width: 0;
+    }
+
+    .recharge-data-unit-control {
+        flex: 0 0 200px;
+        max-width: 200px;
+        margin-bottom: 0 !important;
+    }
+
+    .recharge-toast {
+        background: rgba(14, 22, 36, 0.94) !important;
+        color: #fff !important;
+        border: 1px solid rgba(148, 163, 184, 0.22) !important;
+        border-radius: 9px;
+        box-shadow: 0 12px 30px rgba(0, 0, 0, 0.34);
+        backdrop-filter: blur(12px);
+        overflow: hidden;
+    }
+
+    .recharge-toast .d-flex {
+        background: linear-gradient(135deg, rgba(14, 22, 36, 0.9), rgba(22, 32, 51, 0.82));
+    }
+
+    .recharge-toast--success {
+        border-color: rgba(34, 197, 94, 0.95) !important;
+        box-shadow: 0 12px 30px rgba(0, 0, 0, 0.34), 0 0 8px rgba(34, 197, 94, 0.35);
+    }
+
+    .recharge-toast--success .d-flex {
+        background: linear-gradient(135deg, rgba(34, 197, 94, 0.16), rgba(14, 22, 36, 0.82));
+    }
+
+    .recharge-toast--info {
+        border-color: rgba(23, 162, 184, 0.95) !important;
+        box-shadow: 0 12px 30px rgba(0, 0, 0, 0.34), 0 0 8px rgba(23, 162, 184, 0.35);
+    }
+
+    .recharge-toast--info .d-flex {
+        background: linear-gradient(135deg, rgba(23, 162, 184, 0.16), rgba(14, 22, 36, 0.82));
+    }
+
+    .recharge-toast--warning {
+        border-color: #f59e0b !important;
+        box-shadow: 0 12px 30px rgba(0, 0, 0, 0.34), 0 0 8px rgba(245, 158, 11, 0.35);
+    }
+
+    .recharge-toast--warning .d-flex {
+        background: linear-gradient(135deg, rgba(245, 158, 11, 0.12), rgba(14, 22, 36, 0.82));
+    }
+
+    .recharge-toast--danger {
+        border-color: #dc3545 !important;
+        box-shadow: 0 12px 30px rgba(0, 0, 0, 0.34), 0 0 10px rgba(220, 53, 69, 0.35);
+    }
+
+    .recharge-toast--danger .d-flex {
+        background: linear-gradient(135deg, rgba(220, 53, 69, 0.15), rgba(14, 22, 36, 0.82));
+    }
+
+    @supports (grid-template-rows: subgrid) {
+        .recharge-preview-grid {
+            grid-template-rows: auto repeat(6, auto);
+        }
+
+        .recharge-preview-grid > div {
+            display: grid;
+            grid-row: span 7;
+            grid-template-rows: subgrid;
+            min-width: 0;
+        }
+
+        .recharge-preview-grid h6 {
+            align-self: end;
+        }
+
+        .recharge-preview-items {
+            display: contents;
+        }
     }
 </style>
-</head>
-<body data-active-device-type="<?= htmlspecialchars($activeDeviceType, ENT_QUOTES) ?>" data-active-device-id="<?= htmlspecialchars($activeDeviceId, ENT_QUOTES) ?>">
 
-<div class="d-flex user-recharge-wrapper" id="wrapper">
-<?php include_once '../includes/sidebar.php'; ?>
-
-<div id="page-content-wrapper">
-<div class="container-fluid user-recharge-container">
-<?php display_message(); ?>
 <div id="messageArea" style="display:none;"></div>
 
 <form id="userRechargeForm" class="network-device-form" method="POST" autocomplete="off">
@@ -110,7 +210,7 @@ $activeDeviceId = (string)($context['app']['device']['id'] ?? '');
 <div class="col-md-6 d-flex">
 <div class="w-100 d-flex flex-column gap-3">
 <div class="card text-white">
-<div class="card-header">
+<div class="card-header standard-card-header">
     <i class="fa fa-repeat me-2"></i> Recharge utilisateur
 </div>
 
@@ -162,25 +262,13 @@ $activeDeviceId = (string)($context['app']['device']['id'] ?? '');
 </div>
 
 <div class="card mt-3 text-white">
-    <div class="card-header">
-        <i class="fa fa-eye me-2"></i> Apercu
+    <div class="card-header recharge-preview-card-header">
+        <span class="recharge-preview-card-title"><i class="fa fa-eye me-2"></i> Apercu</span>
     </div>
     <div class="card-body text-white">
-        <div id="rechargePreviewEmpty" class="text-white-50 text-center py-4">
-            Choisissez un utilisateur, un profil et un mode pour preparer l apercu.
-        </div>
+        <div id="rechargePreviewEmpty" class="d-none"></div>
 
         <div id="rechargePreviewContent" class="d-none">
-            <div class="d-flex justify-content-end mb-2">
-                <div class="input-group input-group-sm" style="max-width: 200px;">
-                    <span class="input-group-text">Unite data</span>
-                    <select class="form-select" id="rechargeDataUnitSelect">
-                        <option value="KB">KB</option>
-                        <option value="MB" selected>MB</option>
-                        <option value="GB">GB</option>
-                    </select>
-                </div>
-            </div>
             <div class="recharge-preview-grid">
                 <div>
                     <h6 class="text-white">Actuel</h6>
@@ -217,7 +305,7 @@ $activeDeviceId = (string)($context['app']['device']['id'] ?? '');
                 </div>
             </div>
 
-            <div class="alert alert-warning small mt-3 mb-0 d-none" id="rechargeNotesBox"></div>
+            <div class="recharge-state-message recharge-state-message-warning mt-3 mb-0 d-none" id="rechargeNotesBox"></div>
         </div>
     </div>
 </div>
@@ -232,7 +320,7 @@ $activeDeviceId = (string)($context['app']['device']['id'] ?? '');
 </div>
 
 <div class="card">
-    <div class="card-header">
+    <div class="card-header standard-card-header">
         <i class="fa fa-history me-2"></i> Historique de recharge
     </div>
     <div class="card-body">
@@ -291,7 +379,7 @@ $activeDeviceId = (string)($context['app']['device']['id'] ?? '');
 
 <div class="col-md-6 d-flex">
 <div class="card shadow-sm h-100 w-100 guide-content user-recharge-guide">
-<div class="card-header py-2">
+<div class="card-header standard-card-header">
     <i class="fa fa-info-circle me-2"></i> Guide de recharge
 </div>
 
@@ -306,9 +394,9 @@ $activeDeviceId = (string)($context['app']['device']['id'] ?? '');
 
 <h6 class="fw-bold mb-1">Modes</h6>
 <ul class="mb-2 ps-3 text-light">
-    <li><b>Changement d’offre :</b> applique le nouveau profil. L’expiration reste vide (attente du premier login / cycle Hotspot).</li>
-    <li><b>Rechargement :</b> conserve le profil courant et ajoute à vos quotas le temps et la data de l’offre (à partir de votre temps restant et de votre data restante). L’expiration ne bouge que si elle existe déjà et que le compte est encore valide.</li>
-    <li><b>Réabonnement :</b> même profil obligatoire. Même principe d’ajout sur le temps restant et la data restante. L’expiration reste vide si elle est absente ou expirée ; sinon on prolonge avec la validité.</li>
+    <li><b>Changement d’offre :</b> applique le nouveau profil. L’expiration reste vide (attente du premier login / cycle Hotspot). Les compteurs data consommée et temps cumulé repartent à zéro.</li>
+    <li><b>Rechargement :</b> conserve le profil courant et ajoute à vos quotas le temps et la data de l’offre (à partir de votre temps restant et de votre data restante). Applicable uniquement si le compte n’est pas expiré ; l’expiration est prolongée avec la validité du profil.</li>
+    <li><b>Réabonnement :</b> même profil obligatoire. Même principe d’ajout sur le temps restant et la data restante. L’expiration reste vide si elle est absente ou expirée ; sinon on prolonge avec la validité du profil. Les compteurs repartent à zéro pour le nouveau cycle.</li>
 </ul>
 
 <h6 class="fw-bold mb-1">Par type de device</h6>
@@ -329,7 +417,7 @@ $activeDeviceId = (string)($context['app']['device']['id'] ?? '');
 </div>
 
 <div class="toast-container position-fixed bottom-0 end-0 p-3" style="z-index: 1080;">
-    <div id="rechargeToast" class="toast text-bg-success border-0" role="alert" aria-live="assertive" aria-atomic="true">
+    <div id="rechargeToast" class="toast recharge-toast recharge-toast--success" role="alert" aria-live="assertive" aria-atomic="true">
         <div class="d-flex">
             <div class="toast-body" id="rechargeToastBody">Recharge appliquee.</div>
             <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
@@ -337,8 +425,10 @@ $activeDeviceId = (string)($context['app']['device']['id'] ?? '');
     </div>
 </div>
 
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
-<script src="../js/sidebar.js?v=20260402a"></script>
-<script src="../js/user_recharge.js?v=20260402d"></script>
-</body>
-</html>
+
+<?php
+$extraJs = array (
+  0 => '../js/user_recharge.js?v=20260402d',
+);
+require_once '../includes/layout_footer.php';
+?>

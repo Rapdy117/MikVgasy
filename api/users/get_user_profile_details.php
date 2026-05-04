@@ -68,6 +68,7 @@ if (!isset($_SESSION['logged_in']) || $_SESSION['logged_in'] !== true) {
 $username = get_query_string_or_null('username');
 $profileId = get_query_int_or_null('profile_id');
 $profileName = get_query_string_or_null('profile_name');
+$deviceId = get_query_string_or_null('device_id');
 
 if ($username === null && $profileId === null && $profileName === null) {
     http_response_code(400);
@@ -100,10 +101,26 @@ try {
     ];
 
     if ($isMikrotik) {
+        if ($deviceId === null) {
+            throw new RuntimeException('Serveur requis.');
+        }
+
+        $deviceStore = loadDeviceStore();
+        $targetDevice = findDeviceById($deviceStore, $deviceId);
+        if (!is_array($targetDevice) || normalizeDeviceType((string)($targetDevice['type'] ?? '')) !== 'mikrotik') {
+            throw new RuntimeException('Serveur MikroTik introuvable.');
+        }
+
+        $nasContext = [
+            'device' => $targetDevice,
+            'device_type' => 'mikrotik',
+            'business_source' => 'mikrotik_local',
+            'backend_driver' => 'mikrotik_api',
+        ];
         $matchedUser = null;
 
         if ($username !== null) {
-            foreach (getMikrotikHotspotUsers(500) as $userRow) {
+            foreach (getMikrotikHotspotUsers(500, $targetDevice) as $userRow) {
                 if ((string)($userRow['username'] ?? '') === $username) {
                     $matchedUser = $userRow;
                     break;
@@ -116,7 +133,7 @@ try {
         }
 
         if ($profileName !== null && $profileName !== '') {
-            $api = connectToActiveMikrotikApi();
+            $api = connectToMikrotikApiForNasContext($nasContext);
 
             try {
                 $routerProfile = findMikrotikProfileByName($api, $profileName);
@@ -217,11 +234,7 @@ try {
             $response['user_time_limit'] = formatSecondsLabel($effectiveSessionTimeout);
 
             if ($effectiveDataLimit !== null && $effectiveDataLimit > 0) {
-                if ($effectiveDataLimit >= 1024 && $effectiveDataLimit % 1024 === 0) {
-                    $response['user_data_limit'] = rtrim(rtrim(number_format($effectiveDataLimit / 1024, 2, '.', ''), '0'), '.') . ' Go';
-                } else {
-                    $response['user_data_limit'] = rtrim(rtrim(number_format($effectiveDataLimit, 2, '.', ''), '0'), '.') . ' Mo';
-                }
+                $response['user_data_limit'] = formatQuotaMbLabel($effectiveDataLimit);
             }
         }
     }

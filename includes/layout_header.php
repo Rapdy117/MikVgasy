@@ -18,11 +18,13 @@ if (!isset($appContext)) {
 
 // Titre par défaut
 $pageTitle = $pageTitle ?? 'Radius Manager';
+$htmlClass = trim((string)($htmlClass ?? ''));
 $bodyClass = trim((string)($bodyClass ?? ''));
+$contentClass = trim((string)($contentClass ?? ''));
 $bodyAttributes = is_array($bodyAttributes ?? null) ? $bodyAttributes : [];
 ?>
 <!DOCTYPE html>
-<html lang="fr">
+<html lang="fr"<?= $htmlClass !== '' ? ' class="' . htmlspecialchars($htmlClass, ENT_QUOTES) . '"' : '' ?>>
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -37,6 +39,7 @@ $bodyAttributes = is_array($bodyAttributes ?? null) ? $bodyAttributes : [];
     
     <!-- Global CSS -->
     <link rel="stylesheet" href="../css/theme.css">
+    <link rel="stylesheet" href="../css/toast.css?v=20260430a">
     
     <!-- Page Specific CSS -->
     <?php if (isset($extraCss) && is_array($extraCss)): ?>
@@ -70,7 +73,7 @@ $bodyAttributes = is_array($bodyAttributes ?? null) ? $bodyAttributes : [];
 
     <!-- Page Content Wrapper -->
     <div id="page-content-wrapper">
-        <div class="container-fluid py-3 page-content">
+        <div class="container-fluid py-3 page-content<?= $contentClass !== '' ? ' ' . htmlspecialchars($contentClass, ENT_QUOTES) : '' ?>">
             <!-- Messages System -->
             <?php 
             require_once __DIR__ . '/message.php';

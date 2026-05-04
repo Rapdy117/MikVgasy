@@ -188,6 +188,7 @@ if (($session_timeout !== null && $session_timeout < 0) || $simultaneous_use < 0
 
 try {
     ensureOperationHistoryTable($pdo);
+    ensureAdminNotificationsTable($pdo);
     ensureUsersExtendedSchema($pdo);
     $pdo->beginTransaction();
 

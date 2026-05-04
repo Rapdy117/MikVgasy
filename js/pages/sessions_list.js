@@ -9,28 +9,7 @@
     let sessionsColumnsState = {};
 
     function showToast(message, type = 'info', duration = 3000) {
-        let container = document.getElementById('sessions-toast-container');
-        if (!container) {
-            container = document.createElement('div');
-            container.id = 'sessions-toast-container';
-            container.style.position = 'fixed';
-            container.style.top = '20px';
-            container.style.right = '20px';
-            container.style.zIndex = '9999';
-            document.body.appendChild(container);
-        }
-
-        const toast = document.createElement('div');
-        toast.className = `alert alert-${type}`;
-        toast.style.marginBottom = '10px';
-        toast.style.minWidth = '220px';
-        toast.textContent = message;
-
-        container.appendChild(toast);
-
-        setTimeout(() => {
-            toast.remove();
-        }, duration);
+        AppToast.flash(message, type, duration);
     }
 
     function showConfirm(message) {

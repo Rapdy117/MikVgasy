@@ -31,6 +31,7 @@ $extraHeadJs = array (
   2 => '../assets/vendor/chart/chartjs-adapter-moment.min.js',
   3 => '../assets/vendor/chart/chartjs-plugin-streaming.js',
 );
+$contentClass = 'dashboard-page';
 require_once '../includes/layout_header.php';
 ?>
 

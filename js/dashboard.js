@@ -105,6 +105,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function showError(message) {
+        AppToast.flash(message, 'danger');
         if (!messageArea) {
             return;
         }

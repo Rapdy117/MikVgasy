@@ -105,10 +105,10 @@ function renderPortalProfilesPage(array $data): void
 
     $username = htmlspecialchars((string)($_SESSION['username'] ?? ''), ENT_QUOTES, 'UTF-8');
 
-    ?>
     $pageTitle = 'Profils portail captif';
     require_once __DIR__ . '/../../includes/layout_header.php';
     ?>
+
     <div class="card shadow-sm mb-3">
         <div class="card-body py-3">
             <div class="d-flex align-items-center text-white" style="font-size: calc(0.875rem + 2px);">
@@ -227,5 +227,4 @@ function renderPortalProfilesPage(array $data): void
     </div>
     <?php
     require_once __DIR__ . '/../../includes/layout_footer.php';
-    <?php
 }

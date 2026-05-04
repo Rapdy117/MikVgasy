@@ -40,18 +40,13 @@ foreach ($items as $item) {
 krsort($profileFilterOptions);
 krsort($printedByFilterOptions);
 ?>
-<!DOCTYPE html>
-<html lang="fr">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Hotspot Vouchers</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
-    <link rel="stylesheet" href="../css/theme.css">
-    <style>
-        .voucher-page-title {
+
+<?php
+$pageTitle = 'Hotspot Vouchers';
+require_once '../includes/layout_header.php';
+?>
+<style>
+.voucher-page-title {
             font-size: calc(0.875rem + 2px);
         }
 
@@ -166,17 +161,9 @@ krsort($printedByFilterOptions);
             display: block;
             margin-top: 2px;
         }
-    </style>
-</head>
-<body>
-<div class="d-flex" id="wrapper">
-    <?php include '../includes/sidebar.php'; ?>
+</style>
 
-    <div id="page-content-wrapper">
-        <div class="container-fluid py-3">
-            <?php display_message(); ?>
-
-            <?php if (($voucherSyncResult['updated'] ?? 0) > 0): ?>
+<?php if (($voucherSyncResult['updated'] ?? 0) > 0): ?>
                 <div class="alert alert-info">
                     <?= (int)$voucherSyncResult['updated'] ?> voucher(s) synchronisé(s) sur le premier login détecté.
                 </div>
@@ -304,59 +291,10 @@ krsort($printedByFilterOptions);
     </div>
 </div>
 
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
-<script src="../js/sidebar.js?v=20260402a"></script>
-<script src="../js/table_sort.js"></script>
-<script>
-document.addEventListener('DOMContentLoaded', () => {
-    const input = document.getElementById('voucherSearchInput');
-    const profileFilter = document.getElementById('voucherProfileFilter');
-    const printedByFilter = document.getElementById('voucherPrintedByFilter');
-    const body = document.getElementById('voucherTableBody');
-    const wrap = document.getElementById('vouchersTableWrap');
-    const applyScrollableState = () => {
-        if (!wrap) {
-            return;
-        }
-        const needsScroll = wrap.scrollHeight > wrap.clientHeight + 2;
-        wrap.classList.toggle('is-scrollable', needsScroll);
-    };
-    if (!input || !profileFilter || !printedByFilter || !body) {
-        applyScrollableState();
-        return;
-    }
 
-    const applyFilters = () => {
-        const query = input.value.trim().toLowerCase();
-        const selectedProfile = profileFilter.value.trim().toLowerCase();
-        const selectedPrintedBy = printedByFilter.value.trim().toLowerCase();
-        const hasAnyFilter = query !== '' || selectedProfile !== '' || selectedPrintedBy !== '';
-        body.querySelectorAll('tr').forEach((row) => {
-            if (row.dataset.sortDisabled === '1') {
-                row.style.display = hasAnyFilter ? 'none' : '';
-                return;
-            }
-
-            const rowText = row.textContent.toLowerCase();
-            const rowProfile = String(row.dataset.profile || '').trim().toLowerCase();
-            const rowPrintedBy = String(row.dataset.printed_by || '').trim().toLowerCase();
-
-            const matchesText = query === '' || rowText.includes(query);
-            const matchesProfile = selectedProfile === '' || rowProfile === selectedProfile;
-            const matchesPrintedBy = selectedPrintedBy === '' || rowPrintedBy === selectedPrintedBy;
-
-            row.style.display = matchesText && matchesProfile && matchesPrintedBy ? '' : 'none';
-        });
-        applyScrollableState();
-    };
-
-    input.addEventListener('input', applyFilters);
-    profileFilter.addEventListener('change', applyFilters);
-    printedByFilter.addEventListener('change', applyFilters);
-
-    applyScrollableState();
-    window.addEventListener('resize', applyScrollableState);
-});
-</script>
-</body>
-</html>
+<?php
+$extraJs = array (
+  0 => '../js/table_sort.js',
+);
+require_once '../includes/layout_footer.php';
+?>

@@ -46,23 +46,11 @@ try {
     $invoiceItems = [];
 }
 ?>
-<!DOCTYPE html>
-<html lang="fr" class="recouvrement-invoices-page">
-<head>
-<meta charset="UTF-8">
-<title>Suivi Facture</title>
-<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
-<link rel="stylesheet" href="../css/theme.css">
-<link rel="stylesheet" href="../css/recouvrement_invoices.css?v=20260403a">
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
-</head>
-<body class="recouvrement-invoices-page">
-<div class="d-flex" id="wrapper">
-<?php include '../includes/sidebar.php'; ?>
 
-<div id="page-content-wrapper">
-<div class="container-fluid py-3">
-<?php display_message(); ?>
+<?php
+$pageTitle = 'Suivi Facture';
+require_once '../includes/layout_header.php';
+?>
 
 <div class="card shadow-sm administration-card recouvrement-invoices-main-card">
     <div class="card-header d-flex justify-content-between align-items-center">
@@ -135,8 +123,10 @@ try {
 </div>
 </div>
 </div>
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
-<script src="../js/sidebar.js?v=20260402a"></script>
-<script src="../js/table_sort.js"></script>
-</body>
-</html>
+
+<?php
+$extraJs = array (
+  0 => '../js/table_sort.js',
+);
+require_once '../includes/layout_footer.php';
+?>

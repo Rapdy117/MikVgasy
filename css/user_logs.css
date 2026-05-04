@@ -1,8 +1,10 @@
 /* =====================================================
    USER LOGS
-   Standardisation des filtres et du tableau
+   Filtres, zone scroll, tableau — thème global complété ici
+   (theme.css = .table / .table-standard / .users-table)
 ===================================================== */
 
+/* --- Shell hauteur / scroll (nécessite html + body : user-logs-page) --- */
 html.user-logs-page,
 html.user-logs-page body.user-logs-page {
     height: 100%;
@@ -68,6 +70,7 @@ html.user-logs-page .user-logs-card-body > form {
     flex-shrink: 0;
 }
 
+/* --- Zone scroll + en-tête figé (au-dessus de .table standard du thème) --- */
 html.user-logs-page .user-logs-table-wrap {
     flex: 1 1 auto;
     min-height: 0;
@@ -78,7 +81,6 @@ html.user-logs-page .user-logs-table-wrap {
     overscroll-behavior: contain;
     scrollbar-width: thin;
     scrollbar-color: var(--theme-scrollbar-thumb) var(--theme-scrollbar-track);
-    border-radius: 8px;
 }
 
 html.user-logs-page .user-logs-table-wrap::-webkit-scrollbar {
@@ -112,12 +114,11 @@ html.user-logs-page .user-logs-table-wrap thead {
     z-index: 6;
 }
 
+/* Sticky (pas de font-size ici : évite doublon avec theme + règle #userLogsTable ci-dessous) */
 html.user-logs-page .user-logs-table-wrap thead th {
     position: sticky;
     top: 0;
     z-index: 7;
-    font-size: calc(0.78rem + 1px);
-    font-weight: 600;
     background-color: rgba(18, 24, 41, 0.58) !important;
     backdrop-filter: blur(2px);
     -webkit-backdrop-filter: blur(2px);
@@ -163,73 +164,62 @@ html.user-logs-page .user-logs-table-wrap thead th[data-sort-key].sort-desc::aft
     font-size: 0.58em;
 }
 
-.user-logs-search-group .input-group-text {
+/* --- Filtres (hors thème, couleurs locaux) --- */
+html.user-logs-page .user-logs-search-group .input-group-text {
     background: rgba(59, 130, 246, 0.12);
     border-color: rgba(148, 163, 184, 0.18);
     color: var(--theme-text);
 }
 
-.user-logs-search-group .form-control {
+html.user-logs-page .user-logs-search-group .form-control {
     background: rgba(12, 20, 34, 0.82);
     border-color: rgba(148, 163, 184, 0.18);
     color: var(--theme-text);
 }
 
-.user-logs-search-group .form-control::placeholder {
+html.user-logs-page .user-logs-search-group .form-control::placeholder {
     color: rgba(226, 232, 240, 0.55);
 }
 
-.user-logs-search-group .form-control:focus {
+html.user-logs-page .user-logs-search-group .form-control:focus {
     border-color: rgba(59, 130, 246, 0.45);
     box-shadow: 0 0 0 0.2rem rgba(59, 130, 246, 0.12);
 }
 
-.user-logs-filter-select {
-    background: rgba(12, 20, 34, 0.82);
-    border-color: rgba(148, 163, 184, 0.18);
+html.user-logs-page .user-logs-filter-select {
+    background: rgba(12, 20, 34, 0.82) !important;
+    border-color: rgba(148, 163, 184, 0.18) !important;
+    color: var(--theme-text) !important;
+}
+
+html.user-logs-page .user-logs-filter-select option {
+    background-color: rgba(12, 20, 34, 0.98);
     color: var(--theme-text);
 }
 
-.user-logs-filter-select:focus {
-    border-color: rgba(59, 130, 246, 0.45);
-    box-shadow: 0 0 0 0.2rem rgba(59, 130, 246, 0.12);
-    background: rgba(12, 20, 34, 0.9);
-    color: var(--theme-text);
+html.user-logs-page .user-logs-filter-select:focus {
+    border-color: rgba(59, 130, 246, 0.45) !important;
+    box-shadow: 0 0 0 0.2rem rgba(59, 130, 246, 0.12) !important;
+    background: rgba(12, 20, 34, 0.9) !important;
+    color: var(--theme-text) !important;
 }
 
-.user-logs-actions {
+html.user-logs-page .user-logs-actions {
     display: flex;
     gap: 8px;
     flex-wrap: wrap;
     justify-content: flex-end;
 }
-#userLogsTable tbody td {
-    font-size: 14px;
-    line-height: 2;
-    font-family: "Inter", "JetBrains Mono", "Consolas", monospace;
-}
-#userLogsTable td {
-    white-space: nowrap;
-}
 
-#userLogsTable tbody td {
-    font-size: 14px;
-    padding: 4px 6px;
-    line-height: 2;
+/* Taille unique (bat theme + Bootstrap .small). font-size n’altère pas la famille seule — aligner sur body (theme.css) */
+html.user-logs-page #userLogsTable.table.table-sm.table-dark.table-standard.users-table thead th {
+    font-family: 'Roboto', sans-serif;
+    font-size: calc(0.65rem + 2px) !important;
+    line-height: 1.35;
+    font-weight: 600;
 }
-
-
-#userLogsTable th:nth-child(8),
-#userLogsTable td:nth-child(7) {
-    /*width: 250px;
-    max-width: 250px;*/
-}
-
-#userLogsTable td:nth-child(7) {
-    white-space: normal;          /* autorise retour ligne */
-    word-break: break-word;       /* coupe les longs mots */
-    overflow-wrap: anywhere;      /* sécurité pour texte long */
-}
-#userLogsTable td:not(:nth-child(7)) {
-    /*white-space: nowrap;*/
+html.user-logs-page #userLogsTable.table.table-sm.table-dark.table-standard.users-table tbody td {
+    font-family: 'Roboto', sans-serif;
+    font-size: calc(0.65rem + 2px) !important;
+    line-height: 1.35;
 }

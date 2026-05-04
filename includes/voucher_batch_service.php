@@ -16,7 +16,7 @@ function generateVoucherBatchCode(string $prefix, int $length): string
 
     $prefix = strtoupper(trim($prefix));
 
-    return $prefix !== '' ? $prefix . '-' . $token : $token;
+    return $prefix !== '' ? $prefix . $token : $token;
 }
 
 function generateVoucherBatchSecret(int $length): string
@@ -74,12 +74,12 @@ function findVoucherProfileByName(PDO $pdo, string $profileName): ?array
 function resolveVoucherBatchProfile(PDO $pdo, array $deviceStore, int $profileId, string $profileName, string $deviceId): ?array
 {
     $profileName = trim($profileName);
-    $device = null;
-    if (trim($deviceId) !== '') {
-        $device = findDeviceById($deviceStore, $deviceId);
-    } else {
-        $device = getActiveDeviceRecord($deviceStore);
+    $deviceId = trim($deviceId);
+    if ($deviceId === '') {
+        throw new RuntimeException('Device selectionne requis pour le lot de vouchers.');
     }
+
+    $device = findDeviceById($deviceStore, $deviceId);
 
     if (!is_array($device) || trim((string)($device['type'] ?? '')) === '') {
         throw new RuntimeException('Device requis pour le lot de vouchers.');

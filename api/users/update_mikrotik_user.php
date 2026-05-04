@@ -41,12 +41,29 @@ if (!isAdministrator()) {
 
 try {
     require_valid_csrf();
-    requireActiveDeviceType('mikrotik');
 
     $oldUsername = post_string_or_null('old_username');
     $username = post_string_or_null('username');
     $password = post_string_or_null('password');
+    $deviceId = post_string_or_null('device_id');
     $status = strtolower(trim((string)($_POST['status'] ?? '')));
+
+    if ($deviceId === null) {
+        throw new RuntimeException('Serveur requis.');
+    }
+
+    $deviceStore = loadDeviceStore();
+    $device = findDeviceById($deviceStore, $deviceId);
+    if (!is_array($device) || normalizeDeviceType((string)($device['type'] ?? '')) !== 'mikrotik') {
+        throw new RuntimeException('Serveur MikroTik introuvable.');
+    }
+
+    $nasContext = [
+        'device' => $device,
+        'device_type' => 'mikrotik',
+        'business_source' => 'mikrotik_local',
+        'backend_driver' => 'mikrotik_api',
+    ];
 
     if ($oldUsername === null || $username === null) {
         throw new RuntimeException('Nom utilisateur manquant.');
@@ -56,7 +73,7 @@ try {
         throw new RuntimeException('Statut invalide.');
     }
 
-    $api = connectToActiveMikrotikApi();
+    $api = connectToMikrotikApiForNasContext($nasContext);
     try {
         $existing = findMikrotikUserByName($api, $oldUsername);
         if (!$existing || !isset($existing['.id'])) {
@@ -89,6 +106,7 @@ try {
         'summary' => 'Utilisateur MikroTik mis à jour',
         'details_json' => [
             'backend_driver' => 'mikrotik_api',
+            'device_id' => $deviceId,
             'old_username' => $oldUsername,
             'password_changed' => $password !== null && $password !== '',
             'status' => $status !== '' ? $status : null,

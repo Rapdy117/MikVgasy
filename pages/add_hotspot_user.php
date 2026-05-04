@@ -25,31 +25,16 @@ $activeDeviceBusinessSource = $hasActiveDevice
 $activeDeviceId = (string)($activeDevice['id'] ?? '');
 ?>
 
-<!DOCTYPE html>
-<html lang="fr">
-<head>
-<meta charset="UTF-8">
-<title>Ajouter Utilisateur</title>
-
-<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
-<link rel="stylesheet" href="../css/theme.css">
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
-<link rel="stylesheet" href="../css/add_hostpot_user.css">
-
-</head>
-
-<body
-    data-active-device-type="<?= htmlspecialchars($activeDeviceType, ENT_QUOTES) ?>"
-    data-active-device-business-source="<?= htmlspecialchars($activeDeviceBusinessSource, ENT_QUOTES) ?>"
-    data-active-device-id="<?= htmlspecialchars($activeDeviceId, ENT_QUOTES) ?>"
->
-
-<div class="d-flex" id="wrapper">
-
-<?php include_once '../includes/sidebar.php'; ?>
-
-<div id="page-content-wrapper">
-<div class="container-fluid py-3">
+<?php
+$pageTitle = 'Ajouter Utilisateur';
+$extraCss = [
+    '../css/add_hostpot_user.css',
+];
+$bodyAttributes = [
+    'data-active-device-business-source' => $activeDeviceBusinessSource,
+];
+require_once '../includes/layout_header.php';
+?>
 
 <form id="userForm" class="network-device-form" method="POST" autocomplete="off">
 
@@ -62,7 +47,7 @@ $activeDeviceId = (string)($activeDevice['id'] ?? '');
 <div class="row align-items-stretch">
 <div class="col-md-6 d-flex">
 <div class="card h-100 w-100">
-<div class="card-header">
+<div class="card-header standard-card-header">
     <i class="fa fa-user-plus me-2"></i> Ajouter Utilisateur Hotspot
 </div>
 
@@ -93,7 +78,7 @@ $activeDeviceId = (string)($activeDevice['id'] ?? '');
 </div>
 
 <div class="card mt-2 mb-2 add-hotspot-profile-card">
-<div class="card-header py-2">
+<div class="card-header standard-card-header py-2">
     <i class="fa fa-layer-group me-2"></i> Hérité du profil
 </div>
 <div class="card-body py-2">
@@ -140,8 +125,9 @@ $activeDeviceId = (string)($activeDevice['id'] ?? '');
 <input type="hidden" name="data_limit" id="dataLimitInput">
 <input type="number" class="form-control" name="data_limit_value" id="dataLimitValueInput" min="0" placeholder="0">
 <select class="form-select data-limit-unit" name="data_limit_unit" id="dataLimitUnitSelect">
+    <option value="KB">KB</option>
     <option value="MB">MB</option>
-    <option value="GB">GB</option>
+    <option value="GB" selected>GB</option>
 </select>
 </div>
 
@@ -151,7 +137,7 @@ $activeDeviceId = (string)($activeDevice['id'] ?? '');
 
 <div class="col-md-6 d-flex">
 <div class="card shadow-sm border-info h-100 w-100 guide-content">
-<div class="card-header bg-info text-white py-2">
+<div class="card-header standard-card-header py-2">
     <i class="fa fa-info-circle me-2"></i> Guide de saisie
 </div>
 
@@ -189,11 +175,11 @@ $activeDeviceId = (string)($activeDevice['id'] ?? '');
 </div>
 </div>
 
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 
-<script src="../js/sidebar.js?v=20260402a"></script>
-<script src="../js/profile_options_loader.js?v=20260417a"></script>
-<script src="../js/add_hotspot_user.js?v=20260417c"></script>
-
-</body>
-</html>
+<?php
+$extraJs = array (
+  0 => '../js/profile_options_loader.js?v=20260417a',
+  1 => '../js/add_hotspot_user.js?v=20260417c',
+);
+require_once '../includes/layout_footer.php';
+?>

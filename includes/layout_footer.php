@@ -6,6 +6,9 @@
 <!-- Core JS -->
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 
+<!-- Shared Notification System (avant tous les scripts page) -->
+<script src="../js/toast.js?v=20260430a"></script>
+
 <!-- Global Application JS -->
 <script src="../js/sidebar.js?v=20260402a"></script>
 

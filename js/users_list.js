@@ -14,6 +14,8 @@ const usersStatusFilter = document.getElementById('usersStatusFilter');
 const usersSearchSuggestions = document.getElementById('usersSearchSuggestions');
 const usersTableWrapper = document.querySelector('#usersListColumn .table-responsive');
 const usersRefreshBtn = document.getElementById('usersRefreshBtn');
+const usersBulkDeleteBtn = document.getElementById('usersBulkDeleteBtn');
+const usersSelectAll = document.getElementById('usersSelectAll');
 const emptyState = document.getElementById('emptyState');
 const userContent = document.getElementById('userContent');
 const usersDetailsInlineSlot = document.getElementById('usersDetailsInlineSlot');
@@ -27,7 +29,93 @@ const saveBtn = document.getElementById('saveBtn');
 const cancelBtn = document.getElementById('cancelBtn');
 const deleteBtn = document.getElementById('deleteBtn');
 const reloadBtn = document.getElementById('reloadBtn');
+const disableAccountBtn = document.getElementById('disableAccountBtn');
 const USERS_COLUMNS_STORAGE_KEY = 'users_list.columns';
+const USER_SELECTION_HELP_TEXT = 'Aucun compte ouvert — utilisez Rechercher pour choisir un utilisateur.';
+
+function setSelectedUsernameLabel(text, isHint = false) {
+    const selectedUsernameLabel = document.getElementById('selectedUsernameLabel');
+    if (!selectedUsernameLabel) {
+        return;
+    }
+
+    selectedUsernameLabel.textContent = text || (isHint ? USER_SELECTION_HELP_TEXT : '-');
+    selectedUsernameLabel.classList.toggle('text-muted', isHint);
+    selectedUsernameLabel.classList.toggle('text-white-50', !isHint);
+}
+
+function syncDetailDeleteButtonState() {
+    if (deleteBtn) {
+        deleteBtn.disabled = !selectedUserId;
+    }
+
+    if (disableAccountBtn) {
+        const statusValue = String(selectedRow?.dataset?.status || '').toLowerCase();
+        if (!selectedRow) {
+            disableAccountBtn.disabled = true;
+            disableAccountBtn.innerHTML = '<i class="fa fa-user-slash me-1"></i> Désactiver';
+            return;
+        }
+
+        disableAccountBtn.disabled = false;
+        if (statusValue === 'disabled') {
+            disableAccountBtn.innerHTML = '<i class="fa fa-user-check me-1"></i> Activer';
+        } else {
+            disableAccountBtn.innerHTML = '<i class="fa fa-user-slash me-1"></i> Désactiver';
+        }
+    }
+}
+
+function formatStatusBadgeLabel(statusValue) {
+    const normalized = String(statusValue || '').toLowerCase();
+    if (normalized === 'active') {
+        return 'ACTIVE';
+    }
+    if (normalized === 'expired') {
+        return 'EXPIRE';
+    }
+    if (normalized === 'disabled') {
+        return 'DESACTIVE';
+    }
+    return normalized !== '' ? normalized.toUpperCase() : '-';
+}
+
+function getRowCheckbox(row) {
+    return row?.querySelector('.user-row-select') || null;
+}
+
+function getCurrentUserRows() {
+    return Array.from(document.querySelectorAll('.user-row'));
+}
+
+function getVisibleUserRows() {
+    return getCurrentUserRows().filter((row) => !row.classList.contains('d-none'));
+}
+
+function getSelectedUserRows() {
+    return getCurrentUserRows().filter((row) => {
+        const checkbox = getRowCheckbox(row);
+        return !!checkbox && checkbox.checked;
+    });
+}
+
+function updateBulkSelectionState() {
+    const selectedRows = getSelectedUserRows();
+    if (usersBulkDeleteBtn) {
+        usersBulkDeleteBtn.disabled = selectedRows.length === 0;
+    }
+
+    if (usersSelectAll) {
+        const visibleCheckboxes = getVisibleUserRows()
+            .map((row) => getRowCheckbox(row))
+            .filter(Boolean);
+        usersSelectAll.checked = visibleCheckboxes.length > 0 && visibleCheckboxes.every((checkbox) => checkbox.checked);
+        usersSelectAll.indeterminate =
+            visibleCheckboxes.length > 0 &&
+            !usersSelectAll.checked &&
+            visibleCheckboxes.some((checkbox) => checkbox.checked);
+    }
+}
 
 function getSummaryElement(id) {
     return document.getElementById(id);
@@ -78,17 +166,24 @@ async function readJsonResponse(response) {
 }
 
 function flashMessage(message, type = 'info') {
-    const container = document.getElementById('usersDetailsMessage') || document.createElement('div');
-    container.id = 'usersDetailsMessage';
-    container.className = `alert alert-${type} py-2 px-3 mb-3`;
-    container.textContent = message;
-    const parent = userContent?.parentElement;
-    if (parent && !container.parentElement) {
-        parent.insertBefore(container, userContent);
+    AppToast.flash(String(message || '').trim() || 'Opération effectuée.', type);
+}
+
+function showUsersFlowExplanationToast() {
+    const flowExplanation = document.getElementById('usersFlowExplanation');
+    if (!flowExplanation || flowExplanation.dataset.toastShown === '1') {
+        return;
     }
-    if (container.parentElement) {
-        container.parentElement.insertBefore(container, userContent);
+
+    const title = String(flowExplanation.dataset.toastTitle || '').trim();
+    const message = String(flowExplanation.dataset.toastMessage || '').trim();
+    const text = [title, message].filter(Boolean).join(' — ');
+    if (text === '') {
+        return;
     }
+
+    flowExplanation.dataset.toastShown = '1';
+    AppToast.flash(text, 'info');
 }
 
 function resolveNasIdFromAddress(address) {
@@ -239,6 +334,7 @@ function applyUsersFilters() {
     }
 
     renderSearchSuggestions(query);
+    updateBulkSelectionState();
 }
 
 function renderSearchSuggestions(query) {
@@ -281,12 +377,11 @@ function fillUserDataFromRow(row) {
     const rateLimitLabel = getRowData(row, ['rate_limit_label', 'rateLimitLabel', 'rate_limit'], '-');
     const sharedUsersLabel = getRowData(row, ['shared_users_label', 'sharedUsersLabel', 'simultaneous_use'], '-');
     const timeLimitLabel = getRowData(row, ['time_limit_label', 'timeLimitLabel', 'session_timeout'], '-');
-    const profileTimeLimitLabel = getRowData(row, ['profile_time_limit_label', 'profileTimeLimitLabel'], '-');
-    const validityLabel = getRowData(row, ['validity_label', 'validityLabel', 'validity'], '-');
     const dataLimitLabel = getRowData(row, ['data_limit_label', 'dataLimitLabel', 'data_limit'], '-');
     const sessionTotalLabel = getRowData(row, ['session_total_label', 'sessionTotalLabel'], '-');
     const dataConsumedLabel = getRowData(row, ['data_consumed_label', 'dataConsumedLabel'], '-');
-    const expiredMode = getRowData(row, ['expired_mode'], '-');
+    const priceLabel = getRowData(row, ['price_label', 'priceLabel'], '-');
+    const sellingPriceLabel = getRowData(row, ['selling_price_label', 'sellingPriceLabel'], '-');
     const createdAt = getRowData(row, ['created_at'], '-');
 
     document.getElementById('user_id').value = id;
@@ -297,44 +392,12 @@ function fillUserDataFromRow(row) {
         passwordInput.value = maskPassword(password);
         passwordInput.dataset.rawPassword = password;
     }
-    document.getElementById('server').value = serverDisplay;
-    const profileSelect = document.getElementById('profile_id');
-    if (profileSelect) {
-        if (activeDeviceType === 'mikrotik') {
-            const profileName = getRowData(row, ['plan'], '');
-            const placeholderOption = profileSelect.options[0] || null;
-            if (placeholderOption) {
-                placeholderOption.textContent = profileName || '-- Choisir un profil --';
-            }
-            profileSelect.value = profileId || '';
-            profileSelect.selectedIndex = profileId ? profileSelect.selectedIndex : 0;
-        } else {
-            profileSelect.value = profileId;
-        }
+    const profileInput = document.getElementById('profile_id');
+    if (profileInput) {
+        profileInput.value = profileId;
     }
     document.getElementById('expiration').value = expiration;
-    document.getElementById('rate_limit_display').value = rateLimitLabel;
-    document.getElementById('shared_users_display').value = sharedUsersLabel;
-    const profileTimeLimit = document.getElementById('profile_time_limit_display');
-    if (profileTimeLimit) {
-        profileTimeLimit.value = profileTimeLimitLabel !== '-' ? profileTimeLimitLabel : timeLimitLabel;
-    }
-    const validityDisplay = document.getElementById('validity_display');
-    if (validityDisplay) {
-        validityDisplay.value = validityLabel;
-    }
-    const expiredModeDisplay = document.getElementById('expired_mode_display');
-    if (expiredModeDisplay) {
-        expiredModeDisplay.value = expiredMode;
-    }
-    document.getElementById('time_limit_display').value = timeLimitLabel;
-    document.getElementById('data_limit_display').value = dataLimitLabel;
-    document.getElementById('session_total_display').value = sessionTotalLabel;
-    document.getElementById('data_consumed_display').value = dataConsumedLabel;
-    document.getElementById('price_display').value = getRowData(row, ['price_label', 'price'], '-');
-    document.getElementById('selling_price_display').value = getRowData(row, ['selling_price_label', 'selling_price'], '-');
     const createdAtLabel = formatDateOnly(createdAt);
-    document.getElementById('created_at_display').value = createdAtLabel;
 
     // Preserve full user/profile payload for update APIs.
     document.getElementById('fullname').value = getRowData(row, ['fullname']);
@@ -364,23 +427,28 @@ function fillUserDataFromRow(row) {
     document.getElementById('mac').value = getRowData(row, ['mac']);
     document.getElementById('nas').value = getRowData(row, ['nas']);
 
+    getSummaryElement('summary_server').textContent = serverDisplay;
     getSummaryElement('summary_profile').textContent = getRowData(row, ['plan'], '-');
+    getSummaryElement('summary_rate_limit').textContent = rateLimitLabel;
+    getSummaryElement('summary_shared_users').textContent = sharedUsersLabel;
     getSummaryElement('summary_time').textContent = timeLimitLabel;
     getSummaryElement('summary_data_limit').textContent = dataLimitLabel;
     getSummaryElement('summary_session_total').textContent = sessionTotalLabel;
     getSummaryElement('summary_expiration').textContent = expiration;
     getSummaryElement('summary_created_at').textContent = createdAtLabel;
     getSummaryElement('summary_data').textContent = dataConsumedLabel;
-    getSummaryElement('summary_status').textContent = statusValue || '-';
-    const selectedUsernameLabel = document.getElementById('selectedUsernameLabel');
-    if (selectedUsernameLabel) {
-        selectedUsernameLabel.textContent = username || '-';
-    }
+    getSummaryElement('summary_status').textContent = formatStatusBadgeLabel(statusValue);
+    getSummaryElement('summary_price').textContent = priceLabel;
+    getSummaryElement('summary_selling_price').textContent = sellingPriceLabel;
+    setSelectedUsernameLabel(username || '-', false);
 }
 
 function resetUserDetails() {
     const summaryIds = [
         'summary_profile',
+        'summary_server',
+        'summary_rate_limit',
+        'summary_shared_users',
         'summary_data_limit',
         'summary_time',
         'summary_data',
@@ -388,6 +456,8 @@ function resetUserDetails() {
         'summary_expiration',
         'summary_created_at',
         'summary_status',
+        'summary_price',
+        'summary_selling_price',
     ];
     summaryIds.forEach((id) => {
         const el = getSummaryElement(id);
@@ -395,20 +465,10 @@ function resetUserDetails() {
     });
 
     const inputValues = [
-        'server',
         'username',
         'password',
-        'created_at_display',
         'expiration',
         'status',
-        'time_limit_display',
-        'data_limit_display',
-        'session_total_display',
-        'data_consumed_display',
-        'price_display',
-        'selling_price_display',
-        'rate_limit_display',
-        'shared_users_display',
     ];
     inputValues.forEach((id) => {
         const el = document.getElementById(id);
@@ -417,13 +477,9 @@ function resetUserDetails() {
         }
     });
 
-    const profileSelect = document.getElementById('profile_id');
-    if (profileSelect) {
-        const placeholderOption = profileSelect.options[0] || null;
-        if (placeholderOption) {
-            placeholderOption.textContent = '-- Choisir un profil --';
-        }
-        profileSelect.selectedIndex = 0;
+    const profileInput = document.getElementById('profile_id');
+    if (profileInput) {
+        profileInput.value = '';
     }
 
     const hiddenIds = [
@@ -460,10 +516,8 @@ function resetUserDetails() {
     if (sessionsTable) {
         sessionsTable.innerHTML = '<tr><td colspan="5" class="text-center">Aucune session</td></tr>';
     }
-    const selectedUsernameLabel = document.getElementById('selectedUsernameLabel');
-    if (selectedUsernameLabel) {
-        selectedUsernameLabel.textContent = '-';
-    }
+    setSelectedUsernameLabel(USER_SELECTION_HELP_TEXT, true);
+    syncDetailDeleteButtonState();
 }
 
 function selectUserRow(row, switchToDetails = true) {
@@ -473,19 +527,25 @@ function selectUserRow(row, switchToDetails = true) {
     row.classList.add('table-active');
     fillUserDataFromRow(row);
     emptyState?.classList.add('d-none');
-    loadSessions(row.dataset.username || '');
+    loadSessions(row.dataset.username || '', row.dataset.nas_id || '');
+    syncDetailDeleteButtonState();
     disableEditMode();
     if (switchToDetails) {
         setViewMode('details');
     }
 }
 
-async function loadSessions(username) {
+async function loadSessions(username, nasId = '') {
     if (!sessionsTable) {
         return;
     }
     try {
-        const response = await fetch(`../api/users/get_user_sessions.php?username=${encodeURIComponent(username)}`);
+        const params = new URLSearchParams({ username: String(username || '') });
+        if (String(nasId || '').trim() !== '') {
+            params.set('nas_id', String(nasId).trim());
+        }
+
+        const response = await fetch(`../api/users/get_user_sessions.php?${params.toString()}`);
         const data = await readJsonResponse(response);
         if (!data) {
             throw new Error('Reponse invalide');
@@ -495,23 +555,27 @@ async function loadSessions(username) {
         const summaryDataLabel = data.summary_data_display
             || (Number.isFinite(summaryDataMb) && summaryDataMb > 0 ? `${summaryDataMb.toFixed(2)} MB` : '-');
         const summarySessionLabel = data.summary_duration_display || data.total_session_label || '-';
+        const isMikrotikActiveObservation = String(data.observation_mode || '').toLowerCase() === 'active';
+        const mikrotikInfoRow = `
+            <tr class="users-sessions-info-row">
+                <td colspan="5" class="text-start text-white-50 small">
+                    <i class="fa fa-info-circle me-2"></i>
+                    MikroTik : ce tableau affiche uniquement la session en cours. Les cumuls affiches sont lus depuis /ip/hotspot/user.
+                </td>
+            </tr>
+        `;
 
         if (sessions.length === 0) {
             sessionsTable.innerHTML = '<tr><td colspan="5" class="text-center">Aucune session</td></tr>';
+            if (isMikrotikActiveObservation) {
+                sessionsTable.innerHTML += mikrotikInfoRow;
+            }
             const fallbackSessionTotal = getRowData(selectedRow, ['session_total_label', 'sessionTotalLabel'], '-');
             const fallbackDataConsumed = getRowData(selectedRow, ['data_consumed_label', 'dataConsumedLabel'], '-');
             const resolvedSessionTotal = summarySessionLabel !== '-' ? summarySessionLabel : fallbackSessionTotal;
             const resolvedDataConsumed = summaryDataLabel !== '-' ? summaryDataLabel : fallbackDataConsumed;
             getSummaryElement('summary_data').textContent = resolvedDataConsumed;
             getSummaryElement('summary_session_total').textContent = resolvedSessionTotal;
-            const sessionTotalInput = document.getElementById('session_total_display');
-            if (sessionTotalInput) {
-                sessionTotalInput.value = resolvedSessionTotal;
-            }
-            const dataConsumedInput = document.getElementById('data_consumed_display');
-            if (dataConsumedInput) {
-                dataConsumedInput.value = resolvedDataConsumed;
-            }
             return;
         }
 
@@ -528,26 +592,17 @@ async function loadSessions(username) {
             </tr>`;
         }).join('');
 
+        if (isMikrotikActiveObservation) {
+            sessionsTable.innerHTML += mikrotikInfoRow;
+        }
+
         getSummaryElement('summary_data').textContent = summaryDataLabel;
         getSummaryElement('summary_session_total').textContent = summarySessionLabel;
-        const sessionTotalInput = document.getElementById('session_total_display');
-        if (sessionTotalInput) {
-            sessionTotalInput.value = summarySessionLabel;
-        }
-        const dataConsumedInput = document.getElementById('data_consumed_display');
-        if (dataConsumedInput) {
-            dataConsumedInput.value = summaryDataLabel;
-        }
         document.getElementById('nas').value = data.nas || '-';
         document.getElementById('nas_id').value = resolveNasIdFromAddress(data.nas || '');
     } catch (error) {
         sessionsTable.innerHTML = '<tr><td colspan="5" class="text-center text-danger">Erreur de chargement</td></tr>';
     }
-}
-
-function getSelectedProfileOption() {
-    const select = document.getElementById('profile_id');
-    return select ? select.options[select.selectedIndex] ?? null : null;
 }
 
 function enableEditMode() {
@@ -564,6 +619,12 @@ function enableEditMode() {
         passwordInput.disabled = false;
         passwordInput.readOnly = false;
         passwordInput.classList.add('editable-active');
+        // For RADIUS (masked as '****'): clear the field so user can type a new password.
+        // Leaving it empty means "keep current password". For MikroTik the real value is shown.
+        if (activeDeviceType !== 'mikrotik') {
+            passwordInput.value = '';
+            passwordInput.placeholder = 'Laisser vide pour conserver le mot de passe';
+        }
     }
     editBtn?.classList.add('d-none');
     saveBtn?.classList.remove('d-none');
@@ -581,13 +642,19 @@ function disableEditMode() {
     cancelBtn?.classList.add('d-none');
 }
 
-async function saveUser() {
-    if (!selectedUserId || !selectedRow) {
-        flashMessage('Aucun utilisateur sélectionné.', 'warning');
-        return;
+async function saveUser(options = {}) {
+    if (!selectedRow) {
+        throw new Error('Aucun utilisateur sélectionné.');
     }
+    const isMikrotikRow = String(selectedRow.dataset.readonly || '') === '1' || activeDeviceType === 'mikrotik';
+    if (!selectedUserId && !isMikrotikRow) {
+        throw new Error('Aucun utilisateur sélectionné.');
+    }
+
     const formData = new FormData();
-    formData.set('id', selectedUserId);
+    if (!isMikrotikRow) {
+        formData.set('id', selectedUserId);
+    }
     const usernameInput = document.getElementById('username');
     if (usernameInput) {
         formData.set('username', usernameInput.value);
@@ -596,11 +663,17 @@ async function saveUser() {
     if (statusInput) {
         formData.set('status', statusInput.value);
     }
+
     const passwordInput = document.getElementById('password');
-    if (passwordInput) {
-        const rawPassword = passwordInput.dataset.rawPassword || passwordInput.value;
-        formData.set('password', rawPassword);
+    let sentPassword = null;
+    if (!options.skipPassword && passwordInput) {
+        const typedPassword = passwordInput.value.trim();
+        // For RADIUS: field is cleared on edit (was '****'). Empty = keep old password.
+        // For MikroTik: real value is shown; use what is in the field.
+        sentPassword = typedPassword !== '' ? typedPassword : (passwordInput.dataset.rawPassword || '');
+        formData.set('password', sentPassword);
     }
+
     const csrfToken = document.querySelector('input[name="csrf_token"]');
     if (csrfToken) {
         formData.set('csrf_token', csrfToken.value);
@@ -618,12 +691,32 @@ async function saveUser() {
     if (activeDeviceId) {
         formData.set('device_id', activeDeviceId);
     }
-    const isMikrotikRow = String(selectedRow.dataset.readonly || '') === '1' || activeDeviceType === 'mikrotik';
     const endpoint = isMikrotikRow
         ? '../api/users/update_mikrotik_user.php'
         : '../api/users/update_user.php';
     if (isMikrotikRow) {
         formData.set('old_username', selectedRow.dataset.username || '');
+    }
+
+    // For RADIUS: preserve all hidden-field values so the UPDATE query
+    // does not overwrite them with NULL/0.
+    if (!isMikrotikRow) {
+        const profileIdInput = document.getElementById('profile_id');
+        if (profileIdInput && profileIdInput.value) {
+            formData.set('profile_id', profileIdInput.value);
+        }
+        ['fullname', 'phone', 'address', 'email', 'balance',
+         'auto_renewal', 'session_timeout', 'data_limit'].forEach((field) => {
+            const el = document.getElementById(field);
+            if (el) {
+                formData.set(field, el.value);
+            }
+        });
+        const expirationEl = document.getElementById('expiration');
+        const expirationVal = expirationEl ? expirationEl.value : '';
+        if (expirationVal && expirationVal !== '-') {
+            formData.set('expiration_date', expirationVal);
+        }
     }
 
     const response = await fetch(endpoint, { method: 'POST', body: formData });
@@ -635,22 +728,55 @@ async function saveUser() {
         throw new Error(data.message || 'Mise à jour impossible');
     }
 
-    selectedRow.dataset.username = document.getElementById('username').value;
+    const newUsername = document.getElementById('username').value;
+    selectedRow.dataset.username = newUsername;
     selectedRow.dataset.expiration = document.getElementById('expiration').value;
-    const updatedStatus = document.getElementById('status').value;
+    const updatedStatus = String(document.getElementById('status')?.value || selectedRow.dataset.status || '').toLowerCase();
     selectedRow.dataset.status = updatedStatus;
+
+    // Keep password dataset in sync so subsequent edits start with the correct value.
+    if (sentPassword !== null && passwordInput) {
+        selectedRow.dataset.password = sentPassword;
+        passwordInput.dataset.rawPassword = sentPassword;
+    }
+
+    // Update visible username cell in the list so it reflects the change without a reload.
+    const usernameCell = selectedRow.querySelector('[data-column-key="username"]');
+    if (usernameCell) {
+        usernameCell.textContent = newUsername;
+    }
+
     const statusBadge = selectedRow.querySelector('[data-column-key="status"] .badge');
     if (statusBadge) {
-        statusBadge.textContent = updatedStatus || '-';
-        statusBadge.classList.toggle('bg-success', updatedStatus === 'active');
-        statusBadge.classList.toggle('bg-warning', updatedStatus !== 'active');
-    }
-    const profileOption = getSelectedProfileOption();
-    if (profileOption && profileOption.value) {
-        selectedRow.dataset.profile_id = profileOption.value;
-        selectedRow.dataset.plan = profileOption.dataset.plan || profileOption.textContent.trim();
+        statusBadge.textContent = formatStatusBadgeLabel(updatedStatus);
+        statusBadge.classList.remove('bg-success', 'bg-warning', 'bg-secondary');
+        statusBadge.classList.add(
+            updatedStatus === 'active'
+                ? 'bg-success'
+                : (updatedStatus === 'expired' ? 'bg-warning' : 'bg-secondary')
+        );
     }
     fillUserDataFromRow(selectedRow);
+    syncDetailDeleteButtonState();
+}
+
+async function disableSelectedAccount() {
+    if (!selectedRow) {
+        flashMessage('Aucun compte ouvert à désactiver.', 'warning');
+        return;
+    }
+
+    const currentStatus = String(selectedRow.dataset.status || '').toLowerCase();
+    const nextStatus = currentStatus === 'disabled' ? 'active' : 'disabled';
+
+    const statusInput = document.getElementById('status');
+    if (statusInput) {
+        statusInput.value = nextStatus;
+    }
+
+    await saveUser({ skipPassword: true });
+    disableEditMode();
+    flashMessage(nextStatus === 'disabled' ? 'Compte désactivé.' : 'Compte réactivé.', 'success');
 }
 
 async function deleteUser() {
@@ -668,8 +794,13 @@ async function deleteUser() {
             flashMessage('Utilisateur introuvable pour suppression.', 'warning');
             return;
         }
+        if (!activeDeviceId) {
+            flashMessage('Serveur MikroTik non sélectionné.', 'warning');
+            return;
+        }
         endpoint = '../api/users/delete_mikrotik_user.php';
         formData.append('username', username);
+        formData.append('device_id', activeDeviceId);
     } else {
         formData.append('id', selectedUserId);
     }
@@ -691,7 +822,105 @@ async function deleteUser() {
     selectedUserId = null;
     resetUserDetails();
     emptyState?.classList.remove('d-none');
+    updateBulkSelectionState();
     flashMessage(data.message || 'Utilisateur supprimé.', 'success');
+}
+
+async function deleteUserByRow(row) {
+    if (!row) {
+        throw new Error('Ligne utilisateur introuvable.');
+    }
+
+    const rowId = row.dataset.id || '';
+    const isReadOnly = (row.dataset.readonly || '') === '1';
+    const username = getRowData(row, ['username'], '');
+    const formData = new FormData();
+    let endpoint = '../api/users/delete_user.php';
+
+    if (isReadOnly || activeDeviceType === 'mikrotik') {
+        if (!username) {
+            throw new Error('Utilisateur introuvable pour suppression.');
+        }
+        if (!activeDeviceId) {
+            throw new Error('Serveur MikroTik non sélectionné.');
+        }
+        endpoint = '../api/users/delete_mikrotik_user.php';
+        formData.append('username', username);
+        formData.append('device_id', activeDeviceId);
+    } else {
+        if (!rowId) {
+            throw new Error('ID utilisateur manquant.');
+        }
+        formData.append('id', rowId);
+    }
+
+    const csrfToken = document.querySelector('input[name="csrf_token"]');
+    if (csrfToken) {
+        formData.set('csrf_token', csrfToken.value);
+    }
+
+    const response = await fetch(endpoint, { method: 'POST', body: formData });
+    const data = await readJsonResponse(response);
+    if (!data) {
+        throw new Error('Reponse invalide');
+    }
+    if (!response.ok || !data.success) {
+        throw new Error(data.message || 'Suppression impossible');
+    }
+
+    row.remove();
+
+    if (selectedRow === row) {
+        selectedRow = null;
+        selectedUserId = null;
+        resetUserDetails();
+        emptyState?.classList.remove('d-none');
+    }
+
+    updateBulkSelectionState();
+    return data;
+}
+
+async function deleteSelectedUsers() {
+    const selectedRows = getSelectedUserRows();
+    if (selectedRows.length === 0) {
+        flashMessage('Aucun utilisateur sélectionné.', 'warning');
+        return;
+    }
+
+    if (!window.confirm(`Supprimer ${selectedRows.length} utilisateur(s) sélectionné(s) ?`)) {
+        return;
+    }
+
+    if (usersBulkDeleteBtn) {
+        usersBulkDeleteBtn.disabled = true;
+    }
+
+    let successCount = 0;
+    const errors = [];
+
+    for (const row of selectedRows) {
+        try {
+            await deleteUserByRow(row);
+            successCount += 1;
+        } catch (error) {
+            errors.push(`${getRowData(row, ['username'], '-')}: ${error.message}`);
+        }
+    }
+
+    updateBulkSelectionState();
+
+    if (errors.length === 0) {
+        flashMessage(`${successCount} utilisateur(s) supprimé(s).`, 'success');
+        return;
+    }
+
+    if (successCount > 0) {
+        flashMessage(`${successCount} suppression(s) réussie(s), ${errors.length} échec(s). ${errors[0]}`, 'warning');
+        return;
+    }
+
+    flashMessage(errors[0], 'danger');
 }
 
 fetch('../api/nas.php', { credentials: 'same-origin' })
@@ -717,7 +946,15 @@ fetch('../api/nas.php', { credentials: 'same-origin' })
     .catch(() => {});
 
 rows.forEach((row) => {
+    getRowCheckbox(row)?.addEventListener('click', (event) => {
+        event.stopPropagation();
+        updateBulkSelectionState();
+    });
+
     row.addEventListener('click', (event) => {
+        if (event.target.closest('.user-row-select')) {
+            return;
+        }
         if (event.target.closest('.user-action-btn')) {
             selectUserRow(row, true);
             return;
@@ -731,6 +968,15 @@ usersViewModeToggle?.addEventListener('click', () => {
     applyUsersFilters();
 });
 usersRefreshBtn?.addEventListener('click', () => window.location.reload());
+usersSelectAll?.addEventListener('change', () => {
+    getVisibleUserRows().forEach((row) => {
+        const checkbox = getRowCheckbox(row);
+        if (checkbox) {
+            checkbox.checked = usersSelectAll.checked;
+        }
+    });
+    updateBulkSelectionState();
+});
 usersSearchInput?.addEventListener('input', applyUsersFilters);
 usersProfileFilter?.addEventListener('change', applyUsersFilters);
 usersStatusFilter?.addEventListener('change', applyUsersFilters);
@@ -767,9 +1013,23 @@ deleteBtn?.addEventListener('click', async () => {
         flashMessage(error.message, 'danger');
     }
 });
+usersBulkDeleteBtn?.addEventListener('click', async () => {
+    try {
+        await deleteSelectedUsers();
+    } catch (error) {
+        flashMessage(error.message, 'danger');
+    }
+});
+disableAccountBtn?.addEventListener('click', async () => {
+    try {
+        await disableSelectedAccount();
+    } catch (error) {
+        flashMessage(error.message, 'danger');
+    }
+});
 reloadBtn?.addEventListener('click', () => {
     if (!selectedRow) {
-        flashMessage('Sélectionner un utilisateur pour recharger.', 'warning');
+        flashMessage('Aucun compte ouvert — utilisez Rechercher pour choisir un utilisateur avant la recharge.', 'warning');
         return;
     }
     const username = getRowData(selectedRow, ['username'], '');
@@ -814,3 +1074,5 @@ resetUserDetails();
 setViewMode('list');
 applyColumnVisibility();
 applyUsersFilters();
+updateBulkSelectionState();
+showUsersFlowExplanationToast();

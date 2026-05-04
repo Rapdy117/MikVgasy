@@ -532,9 +532,9 @@ function mikrotikBuildProfileOnLogin(array $profile): string
         . $lockLabel
         . ','
         . $dataQuotaMb
-        . '"); {:local comment [ /ip hotspot user get [/ip hotspot user find where name="$user"] comment]; :local ucode [:pic $comment 0 2]; :if ($ucode = "vc" or $ucode = "up" or $comment = "") do={ :local date [ /system clock get date ];:local year [ :pick $date 0 4 ];:local month [ :pick $date 5 7 ]; /sys sch add name="$user" disable=no start-date=$date interval="'
+        . '"); {:local comment [ /ip hotspot user get [/ip hotspot user find where name="$user"] comment]; :local ucode [:pick $comment 0 2]; :if ($ucode = "vc" or $ucode = "up" or $comment = "") do={ :local date [ /system clock get date ];:local year [ :pick $date 0 4 ];:local month [ :pick $date 5 7 ]; /sys sch add name="$user" disable=no start-date=$date interval="'
         . $validityRouteros
-        . '"; :delay 5s; :local exp [ /sys sch get [ /sys sch find where name="$user" ] next-run]; :local getxp [len $exp]; :if ($getxp = 15) do={ :local d [:pic $exp 0 6]; :local t [:pic $exp 7 16]; :local s ("/"); :local exp ("$d$s$year $t"); /ip hotspot user set comment="$exp" [find where name="$user"];}; :if ($getxp = 8) do={ /ip hotspot user set comment="$date $exp" [find where name="$user"];}; :if ($getxp > 15) do={ /ip hotspot user set comment="$exp" [find where name="$user"];};:delay 5s; /sys sch remove [find where name="$user"]';
+        . '"; :delay 5s; :local exp [ /sys sch get [ /sys sch find where name="$user" ] next-run]; :local getxp [len $exp]; :if ($getxp = 15) do={ :local d [:pick $exp 0 6]; :local t [:pick $exp 7 16]; :local s ("/"); :local exp ("$d$s$year $t"); /ip hotspot user set comment="$exp" [find where name="$user"];}; :if ($getxp = 8) do={ /ip hotspot user set comment="$date $exp" [find where name="$user"];}; :if ($getxp > 15) do={ /ip hotspot user set comment="$exp" [find where name="$user"];};:delay 5s; /sys sch remove [find where name="$user"]';
 
     return $onLogin . $recordScript . $lockScript . '}}';
 }
@@ -558,12 +558,15 @@ function mikrotikBuildProfileMonitorScript(array $profile): ?string
     }
 
     $profileName = (string)($profile['name'] ?? '');
+    $userAction = $mode === 'remove'
+        ? '/ip hotspot user remove $i'
+        : '/ip hotspot user set $i limit-uptime=1s';
 
-    return ':local dateint do={:local montharray ( "01","02","03","04","05","06","07","08","09","10","11","12" );:local days [ :pick $d 8 10 ];:local month [ :pick $d 5 7 ];:local year [ :pick $d 0 4 ];:local monthint ([ :find $montharray $month]);:local month ($monthint + 1);:if ( [len $month] = 1) do={:local zero ("0");:return [:tonum ("$year$zero$month$days")];} else={:return [:tonum ("$year$month$days")];}}; :local timeint do={ :local hours [ :pick $t 0 2 ]; :local minutes [ :pick $t 3 5 ]; :return ($hours * 60 + $minutes) ; }; :local date [ /system clock get date ]; :local time [ /system clock get time ]; :local today [$dateint d=$date] ; :local curtime [$timeint t=$time] ; :foreach i in [ /ip hotspot user find where profile="'
-        . $profileName
-        . '" ] do={ :local comment [ /ip hotspot user get $i comment]; :local name [ /ip hotspot user get $i name]; :local gettime [:pic $comment 11 19]; :if ([:pic $comment 4] = "-" and [:pic $comment 7] = "-") do={:local expd [$dateint d=$comment] ; :local expt [$timeint t=$gettime] ; :if (($expd < $today and $expt < $curtime) or ($expd < $today and $expt > $curtime) or ($expd = $today and $expt < $curtime)) do={ [ /ip hotspot user '
-        . $mode
-        . ' $i ]; [ /ip hotspot active remove [find where user=$name] ];}}}';
+    return ':local dateint do={:local montharray ( "01","02","03","04","05","06","07","08","09","10","11","12" );:local days [ :pick $d 8 10 ];:local month [ :pick $d 5 7 ];:local year [ :pick $d 0 4 ];:local monthint ([ :find $montharray $month]);:local month ($monthint + 1);:if ( [len $month] = 1) do={:local zero ("0");:return [:tonum ("$year$zero$month$days")];} else={:return [:tonum ("$year$month$days")];}}; :local timeint do={ :local hours [ :pick $t 0 2 ]; :local minutes [ :pick $t 3 5 ]; :return (($hours * 60) + $minutes) ; }; :local date [ /system clock get date ]; :local time [ /system clock get time ]; :local today [$dateint d=$date] ; :local curtime [$timeint t=$time] ; :foreach i in=[/ip hotspot user find where profile="'
+        . str_replace(['\\', '"'], ['\\\\', '\\"'], $profileName)
+        . '" ] do={ :local comment [/ip hotspot user get $i comment]; :local name [/ip hotspot user get $i name]; :if ([:len $comment] >= 19) do={ :local gettime [:pick $comment 11 8]; :if ([:pick $comment 4 1] = "-" and [:pick $comment 7 1] = "-") do={:local expd [$dateint d=$comment] ; :local expt [$timeint t=$gettime] ; :if ($expd < $today or ($expd = $today and $expt < $curtime)) do={ '
+        . $userAction
+        . ' ; /ip hotspot active remove [find where user=$name]; :log info ("profile-monitor " . $name); }}}}}';
 }
 
 function ensureMikrotikProfileScheduler(RouterosAPI $api, array $profile, ?string $lookupName = null): void
@@ -655,6 +658,13 @@ function ensureMikrotikProfile(
             if ($sessionTimeoutSeconds > 0) {
                 $payload['session-timeout'] = mikrotikIntervalFromSeconds($sessionTimeoutSeconds);
             }
+        }
+
+        if (is_array($profileOptions)) {
+            $dataQuotaMb = max(0, (int)($profileOptions['data_quota_mb'] ?? 0));
+            $payload['limit-bytes-total'] = $dataQuotaMb > 0
+                ? (string)mikrotikBytesFromMegabytes($dataQuotaMb)
+                : '0';
         }
 
         if ($existing) {
@@ -1127,6 +1137,7 @@ function replaceUserOfferInMikrotik(string $username, string $profileName, ?arra
         );
 
         removeMikrotikUserScheduler($api, $username);
+        invalidateMikrotikHotspotUsersCache($nasContext['device'] ?? null);
     } finally {
         disconnectMikrotikApiIfOwned($api, $ownsConnection);
     }
@@ -1139,6 +1150,19 @@ function replaceUserOfferInMikrotik(string $username, string $profileName, ?arra
 function mikrotikProfileOfferTimeSeconds(array $profile): int
 {
     return parseRouterosIntervalToSeconds(trim((string)($profile['session-timeout'] ?? '')));
+}
+
+function mikrotikProfileValiditySeconds(array $profile): int
+{
+    $metadata = parseMikrotikOnLoginMetadata((string)($profile['on-login'] ?? ''));
+    $validityRaw = trim((string)($metadata['validity'] ?? ''));
+    $validitySeconds = parseRouterosIntervalToSeconds($validityRaw);
+
+    if ($validitySeconds <= 0 && preg_match('/^\s*(\d+)\s*s?\s*$/i', $validityRaw, $matches)) {
+        $validitySeconds = (int)$matches[1];
+    }
+
+    return max(0, $validitySeconds);
 }
 
 /**
@@ -1192,6 +1216,7 @@ function extendUserOfferInMikrotik(string $username, string $profileName, ?array
         }
 
         $offerSeconds = mikrotikProfileOfferTimeSeconds($profile);
+        $offerValiditySeconds = mikrotikProfileValiditySeconds($profile);
 
         $rem = mikrotikUserRemainingFromHotspotUserRow($existingUser);
         $newTimeSeconds = $rem['time_remaining_sec'] + $offerSeconds;
@@ -1212,13 +1237,12 @@ function extendUserOfferInMikrotik(string $username, string $profileName, ?array
 
         $today = new DateTimeImmutable('today', new DateTimeZone('UTC'));
         $currentExpiration = parseRechargeExpirationDate((string)($existingUser['comment'] ?? ''));
-        $nextExpiration = null;
-        if ($offerSeconds > 0 && $currentExpiration instanceof DateTimeImmutable && $currentExpiration >= $today) {
-            $candidateExpiration = addSecondsToDate($today, $offerSeconds);
-            $nextExpiration = $currentExpiration > $candidateExpiration
-                ? $currentExpiration
-                : $candidateExpiration;
+        if (!$currentExpiration instanceof DateTimeImmutable || $currentExpiration < $today) {
+            throw new RuntimeException('Le rechargement est disponible uniquement pour un compte non expire.');
         }
+        $nextExpiration = $offerValiditySeconds > 0
+            ? addSecondsToDate($currentExpiration, $offerValiditySeconds)
+            : $currentExpiration;
         $payload['comment'] = formatRechargeExpirationDate($nextExpiration);
 
         $response = $api->comm('/ip/hotspot/user/set', $payload);
@@ -1226,6 +1250,15 @@ function extendUserOfferInMikrotik(string $username, string $profileName, ?array
             $response,
             'Le routeur MikroTik a refuse la mise a jour utilisateur lors du rechargement.'
         );
+
+        $response = $api->comm('/ip/hotspot/user/reset-counters', [
+            '.id' => (string)$existingUser['.id'],
+        ]);
+        mikrotikAssertNoTrap(
+            $response,
+            'Le routeur MikroTik a refuse la reinitialisation des compteurs utilisateur.'
+        );
+        invalidateMikrotikHotspotUsersCache($nasContext['device'] ?? null);
     } finally {
         disconnectMikrotikApiIfOwned($api, $ownsConnection);
     }
@@ -1267,6 +1300,7 @@ function accumulateUserOfferInMikrotik(string $username, string $profileName, ?a
         }
 
         $offerSeconds = mikrotikProfileOfferTimeSeconds($profile);
+        $offerValiditySeconds = mikrotikProfileValiditySeconds($profile);
 
         $rem = mikrotikUserRemainingFromHotspotUserRow($existingUser);
         $newTimeSeconds = $rem['time_remaining_sec'] + $offerSeconds;
@@ -1286,7 +1320,7 @@ function accumulateUserOfferInMikrotik(string $username, string $profileName, ?a
 
         $nextExpiration = null;
         if ($currentExpiration instanceof DateTimeImmutable && $currentExpiration >= $today) {
-            $nextExpiration = $offerSeconds > 0 ? addSecondsToDate($currentExpiration, $offerSeconds) : $currentExpiration;
+            $nextExpiration = $offerValiditySeconds > 0 ? addSecondsToDate($currentExpiration, $offerValiditySeconds) : $currentExpiration;
         }
         $payload['comment'] = formatRechargeExpirationDate($nextExpiration);
 
@@ -1295,6 +1329,15 @@ function accumulateUserOfferInMikrotik(string $username, string $profileName, ?a
             $response,
             'Le routeur MikroTik a refuse la mise a jour utilisateur lors du cumul.'
         );
+
+        $response = $api->comm('/ip/hotspot/user/reset-counters', [
+            '.id' => (string)$existingUser['.id'],
+        ]);
+        mikrotikAssertNoTrap(
+            $response,
+            'Le routeur MikroTik a refuse la reinitialisation des compteurs utilisateur.'
+        );
+        invalidateMikrotikHotspotUsersCache($nasContext['device'] ?? null);
     } finally {
         disconnectMikrotikApiIfOwned($api, $ownsConnection);
     }

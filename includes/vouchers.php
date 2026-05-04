@@ -18,7 +18,7 @@ function ensureVouchersTable(PDO $pdo): void
             code VARCHAR(100) NOT NULL,
             username VARCHAR(100) DEFAULT NULL,
             password VARCHAR(100) DEFAULT NULL,
-            profile_id INT(11) NOT NULL,
+            profile_id INT(11) DEFAULT NULL,
             printed_by VARCHAR(100) DEFAULT NULL,
             used TINYINT(1) DEFAULT 0,
             used_by VARCHAR(100) DEFAULT NULL,
@@ -43,6 +43,11 @@ function ensureVouchersTable(PDO $pdo): void
         }
         if (!in_array('printed_by', $columns, true)) {
             $pdo->exec("ALTER TABLE vouchers ADD COLUMN printed_by VARCHAR(100) DEFAULT NULL AFTER profile_id");
+        }
+        foreach ($pdo->query("SHOW COLUMNS FROM vouchers WHERE Field = 'profile_id'")->fetchAll(PDO::FETCH_ASSOC) ?: [] as $column) {
+            if (strtoupper((string)($column['Null'] ?? '')) === 'NO') {
+                $pdo->exec("ALTER TABLE vouchers MODIFY profile_id INT(11) DEFAULT NULL");
+            }
         }
         if (!in_array('idx_vouchers_username', array_map(
             static fn(array $row): string => (string)($row['Key_name'] ?? ''),
@@ -138,7 +143,7 @@ function savePreparedVoucherBatch(PDO $pdo, array $batch): array
 
     $entries = $batch['entries'] ?? [];
     $profileId = (int)($batch['profile_id'] ?? 0);
-    if ($profileId <= 0 || !is_array($entries) || $entries === []) {
+    if (!is_array($entries) || $entries === []) {
         return ['saved' => 0, 'ids' => []];
     }
 
@@ -173,7 +178,7 @@ function savePreparedVoucherBatch(PDO $pdo, array $batch): array
                     'profile_defaults' => $profileDefaults,
                 ]);
 
-                $insert->execute([$code, $username, $password, $profileId, $printedBy !== '' ? $printedBy : null]);
+                $insert->execute([$code, $username, $password, $profileId > 0 ? $profileId : null, $printedBy !== '' ? $printedBy : null]);
                 $savedIds[] = (int)$pdo->lastInsertId();
                 $savedUsers[] = [
                     'id' => (int)($provisioned['user_id'] ?? 0),

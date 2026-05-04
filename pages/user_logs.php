@@ -56,27 +56,16 @@ $yearValue = $selectedYear !== '' ? (int)$selectedYear : $currentYear;
 $dayValue = $selectedDay !== '' ? (int)$selectedDay : 0;
 ?>
 
-<!DOCTYPE html>
-<html lang="fr" class="user-logs-page">
-<head>
-<meta charset="UTF-8">
-<title>User Logs</title>
+<?php
+$htmlClass = 'user-logs-page';
+$bodyClass = 'user-logs-page';
+$extraCss = [
+    '../css/user_logs.css?v=20260425d',
+];
+$pageTitle = 'User Logs';
+require_once '../includes/layout_header.php';
+?>
 
-<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
-<link rel="stylesheet" href="../css/theme.css">
-<link rel="stylesheet" href="../css/user_logs.css">
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
-
-</head>
-
-<body class="user-logs-page">
-
-<div class="d-flex" id="wrapper">
-
-<?php include_once '../includes/sidebar.php'; ?>
-
-<div id="page-content-wrapper">
-<div class="container-fluid py-3">
 <div class="user-logs-shell">
 
 <div class="row user-logs-layout-row">
@@ -159,8 +148,8 @@ $dayValue = $selectedDay !== '' ? (int)$selectedDay : 0;
     </form>
     <?php endif; ?>
 
-    <div class="user-logs-table-wrap table-responsive">
-        <table class="table table-striped table-hover table-dark mb-0 align-middle users-table table-standard" id="userLogsTable" data-sort-table="1" data-default-sort-key="datetime" data-default-sort-direction="desc">
+    <div class="user-logs-table-wrap table-responsive system-log-table-scroll">
+        <table class="table table-sm table-striped table-hover table-dark mb-0 align-middle users-table table-standard small" id="userLogsTable" data-sort-table="1" data-default-sort-key="datetime" data-default-sort-direction="desc">
             <thead>
                 <tr>
                     <th data-sort-key="datetime" data-sort-type="date">Date</th>
@@ -249,77 +238,11 @@ $dayValue = $selectedDay !== '' ? (int)$selectedDay : 0;
 </div>
 </div>
 
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 
-<script src="../js/sidebar.js?v=20260402a"></script>
-<script src="../js/table_sort.js"></script>
-<script>
-document.addEventListener('DOMContentLoaded', () => {
-    const filterInput = document.getElementById('userLogsFilter');
-    const table = document.getElementById('userLogsTable');
-    const autoRefreshBtn = document.getElementById('userLogsAutoRefreshBtn');
-    const filterForm = document.getElementById('userLogsFilters');
-    const autoRefreshStorageKey = 'user_logs.auto_refresh';
-    let autoRefreshTimer = null;
-
-    if (!filterInput || !table) {
-        return;
-    }
-
-    filterInput.addEventListener('input', () => {
-        const needle = filterInput.value.trim().toLowerCase();
-        const rows = table.querySelectorAll('tbody tr');
-
-        rows.forEach((row) => {
-            if (row.dataset.sortDisabled === '1') {
-                return;
-            }
-            const text = (row.dataset.search || row.textContent).toLowerCase();
-            row.style.display = needle === '' || text.includes(needle) ? '' : 'none';
-        });
-    });
-
-    if (filterForm) {
-        const selects = filterForm.querySelectorAll('select');
-        selects.forEach((select) => {
-            select.addEventListener('change', () => {
-                filterForm.submit();
-            });
-        });
-    }
-
-    const setAutoRefreshState = (enabled) => {
-        if (autoRefreshTimer) {
-            clearInterval(autoRefreshTimer);
-            autoRefreshTimer = null;
-        }
-        if (enabled) {
-            autoRefreshTimer = window.setInterval(() => {
-                window.location.reload();
-            }, 30000);
-            if (autoRefreshBtn) {
-                autoRefreshBtn.classList.remove('btn-test');
-                autoRefreshBtn.classList.add('btn-save');
-                autoRefreshBtn.innerHTML = '<i class="fa fa-clock-rotate-left me-1"></i> Auto 30s ON';
-            }
-        } else if (autoRefreshBtn) {
-            autoRefreshBtn.classList.remove('btn-save');
-            autoRefreshBtn.classList.add('btn-test');
-            autoRefreshBtn.innerHTML = '<i class="fa fa-clock-rotate-left me-1"></i> Auto 30s';
-        }
-        localStorage.setItem(autoRefreshStorageKey, enabled ? '1' : '0');
-    };
-
-    if (autoRefreshBtn) {
-        const initialEnabled = localStorage.getItem(autoRefreshStorageKey) === '1';
-        setAutoRefreshState(initialEnabled);
-        autoRefreshBtn.addEventListener('click', () => {
-            const enabled = localStorage.getItem(autoRefreshStorageKey) === '1';
-            setAutoRefreshState(!enabled);
-        });
-    }
-});
-</script>
-
-</body>
-</html>
+<?php
+$extraJs = [
+    '../js/table_sort.js',
+    '../js/user_logs.js?v=20260425a',
+];
+require_once '../includes/layout_footer.php';
+?>

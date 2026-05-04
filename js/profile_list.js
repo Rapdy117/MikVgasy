@@ -1,6 +1,6 @@
 document.addEventListener('DOMContentLoaded', () => {
     const table = document.querySelector('.profiles-table');
-    const csrfToken = String(table?.dataset.csrfToken || '').trim();
+    const csrfToken = String((table && table.dataset ? table.dataset.csrfToken : '') || '').trim();
     const deleteButtons = Array.from(document.querySelectorAll('.js-delete-profile'));
     const columnToggles = Array.from(document.querySelectorAll('.js-profile-column-toggle'));
     const searchInput = document.getElementById('profilesSearchInput');
@@ -50,10 +50,14 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    const searchableRowIndex = searchableRows.map((row) => ({
-        row,
-        index: normalizeSearchValue(row.dataset.profileSearch || ''),
-    }));
+    const searchableRowIndex = searchableRows.map((row) => {
+        const datasetIndex = normalizeSearchValue(row.dataset.profileSearch || '');
+        const fallbackIndex = normalizeSearchValue(row.textContent || '');
+        return {
+            row,
+            index: datasetIndex !== '' ? datasetIndex : fallbackIndex,
+        };
+    });
 
     function setColumnVisibility(columnKey, visible) {
         if (!table || !columnKey) {
@@ -135,7 +139,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const profileName = String(button.dataset.profileName || '').trim();
 
         if (!profileId && !routerId && !profileName) {
-            alert('Profil introuvable.');
+            AppToast.flash('Profil introuvable.', 'warning');
             return;
         }
 
@@ -167,10 +171,10 @@ document.addEventListener('DOMContentLoaded', () => {
                 throw new Error(data.message || 'Suppression impossible');
             }
 
-            alert(data.message || 'Profil supprime avec succes.');
-            window.location.reload();
+            AppToast.flash(data.message || 'Profil supprimé avec succès.', 'success');
+            setTimeout(() => window.location.reload(), 1200);
         } catch (error) {
-            alert(error.message || 'La suppression du profil a echoue.');
+            AppToast.flash(error.message || 'La suppression du profil a echoue.', 'danger');
             button.disabled = previousDisabled;
         }
     }
@@ -200,4 +204,5 @@ document.addEventListener('DOMContentLoaded', () => {
 
     syncColumnVisibility();
     bindColumnToggles();
+    applySearchFilter();
 });

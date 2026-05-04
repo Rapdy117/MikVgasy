@@ -531,6 +531,32 @@ Regle de reference :
 - les fichiers globaux partages comme [css/sidebar.css](/var/www/html/css/sidebar.css), [includes/sidebar.php](/var/www/html/includes/sidebar.php) et [css/theme.css](/var/www/html/css/theme.css) ne doivent pas etre modifies sans autorisation explicite prealable
 - si la demande utilisateur cible une page locale, le perimetre de modification doit rester local tant qu'une autorisation explicite n'etend pas ce perimetre
 
+## Identite Visuelle — Regle Canonique Non Negociable
+
+Decision validee par le proprietaire du projet (2026-04-20).
+
+Les deux piliers visuels du projet sont :
+
+1. **Transparence / Glassmorphism** : `backdrop-filter: blur()`, fonds `rgba` semi-transparents, bordures subtiles `rgba(148, 163, 184, 0.12)`, fonds de page sombres autour de `#060d18`.
+2. **Bleu cyan** : couleur d'accent unique `#17a2b8`, disponible via la variable CSS `--accent`.
+
+Regles derivees :
+
+- toute nouvelle page ou composant UI herite de ces deux piliers
+- aucune couleur d'accent concurrente ne doit etre introduite sans autorisation explicite
+- les boutons primaires, les focus, les bordures actives et les badges utilisent `#17a2b8` et ses variantes `rgba`
+- les animations d'ambiance (vagues, particules, lumieres) renforcent ces piliers sans les surcharger
+- `--accent: #17a2b8` doit etre declare comme variable CSS racine dans tout nouveau fichier CSS de page
+
+### Semantique Des Couleurs D'Etat
+
+Les couleurs d'etat ne remplacent pas l'accent canonique `#17a2b8`; elles indiquent uniquement le sens fonctionnel du message ou de l'action.
+
+- **Bleu** : information neutre, contexte, aide, etat de lecture ou notification non bloquante
+- **Vert** : succes, validation, operation terminee, etat confirme
+- **Jaune** : avertissement, attention, risque non critique, action a verifier
+- **Rouge** : alerte critique, danger, suppression, fermeture ou action demandant confirmation explicite
+
 ## Regle De Prudence Pour Les Modifications
 
 - si un champ est affiche dans l'UI mais non persiste cote backend, il ne doit pas etre suppose fonctionnel tant que la chaine complete formulaire -> backend -> stockage n'est pas verifiee

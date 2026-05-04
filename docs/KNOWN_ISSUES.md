@@ -16,6 +16,38 @@ ne sont plus des problemes actifs dans l'etat actuel du code.
 
 ## Historique Des Problemes Resolus
 
+### 2026-04-23 - Recharge/lecture MikroTik : retrait du melange local + invalidation du cache users
+
+Fichiers impactes :
+
+- [pages/users_list.php](/var/www/html/pages/users_list.php)
+- [api/users/get_user_sessions.php](/var/www/html/api/users/get_user_sessions.php)
+- [includes/mikrotik_backend.php](/var/www/html/includes/mikrotik_backend.php)
+- [js/users_list.js](/var/www/html/js/users_list.js)
+
+Probleme rencontre :
+
+- `users_list` et son detail inline pouvaient encore ajouter une baseline locale aux cumuls MikroTik
+- cela contredisait la regle metier selon laquelle MikroTik lit ses cumuls depuis `/ip/hotspot/user`
+- apres `changement d offre` / `recharge`, la liste pouvait aussi rester stale le temps du cache `mikrotik_hotspot_users`, donnant l impression qu il fallait appliquer l action deux fois
+
+Cause racine :
+
+- coexistence d une logique locale historique (`imported_*`, `user_counter_baselines`) dans un flux qui devait rester routeur-only
+- invalidation incomplete des caches apres ecriture MikroTik : le cache recharge etait invalide, mais pas le cache principal des utilisateurs hotspot
+
+Solution appliquee :
+
+- `pages/users_list.php` lit maintenant la consommation totale depuis `user_bytes_total` et la duree cumulee depuis `user_session_time_seconds`, sans ajout local
+- `api/users/get_user_sessions.php` renvoie les cumuls MikroTik depuis le routeur uniquement, et garde `/ip/hotspot/active` pour la session en cours
+- `replaceUserOfferInMikrotik()`, `extendUserOfferInMikrotik()` et `accumulateUserOfferInMikrotik()` invalident maintenant aussi le cache `mikrotik_hotspot_users`
+- le texte d aide du detail utilisateur a ete realigne sur cette regle
+
+Etat :
+
+- resolu pour `users_list` et son detail inline
+- a poursuivre sur les autres chemins historiques MikroTik encore relies au device actif implicite
+
 ### 2026-04-17 - Ecriture profil MikroTik et metadata `on-login`
 
 Fichiers impactes :
@@ -75,6 +107,63 @@ Etat :
 - resolu dans le code courant
 - a surveiller uniquement si une nouvelle option UI ajoute des champs dans `on-login`
 - ne pas reintroduire de fallback SQL pour les profils MikroTik
+
+### 2026-04-17 - Ciblage explicite `device_id` sur endpoints utilisateurs MikroTik
+
+Fichiers impactes :
+
+- [api/users/update_mikrotik_user.php](/var/www/html/api/users/update_mikrotik_user.php)
+- [api/users/delete_mikrotik_user.php](/var/www/html/api/users/delete_mikrotik_user.php)
+- [api/users/get_user_profile_details.php](/var/www/html/api/users/get_user_profile_details.php)
+
+Probleme rencontre :
+
+- certaines actions utilisateurs MikroTik pouvaient encore reposer sur une connexion implicite au device actif, au lieu d un ciblage routeur explicite
+
+Cause racine :
+
+- absence de `device_id` obligatoire sur ces flux
+- utilisation d une connexion active generique au lieu d un contexte NAS/device cible
+
+Solution appliquee :
+
+- `device_id` est maintenant obligatoire sur ces endpoints utilisateurs MikroTik
+- le routeur cible est resolu via `loadDeviceStore()` + `findDeviceById()`, puis valide en type `mikrotik`
+- la connexion MikroTik utilise un contexte explicite (`buildMikrotikContextFromDevice` + `connectToMikrotikApiForNasContext`)
+- l historique d update utilisateur enregistre aussi `device_id` dans `details_json`
+- suppression de la dependance au mapping NAS pour ces endpoints users MikroTik, ce qui elimine le message `Aucun NAS correspondant au device selectionne` sur ce flux
+
+Etat :
+
+- resolu pour ces endpoints
+- a poursuivre sur les autres chemins historiques encore relies au device actif
+
+### 2026-04-17 - `admin_notifications.php` : entetes figes et hauteur visible stabilisee
+
+Fichier impacte :
+
+- [pages/admin_notifications.php](/var/www/html/pages/admin_notifications.php)
+
+Probleme rencontre :
+
+- en scroll, les entetes de table n etaient pas figes
+- la zone visible en bas de page pouvait se recalculer de facon instable selon la hauteur viewport
+
+Cause racine :
+
+- conteneurs de page et de carte non contraints en flex hauteur pleine
+- absence de sticky header sur le tableau
+
+Solution appliquee :
+
+- ajout d un layout flex hauteur pleine scope sur la page notifications
+- table responsive convertie en zone scrollable unique
+- `thead` / `th` passes en sticky avec fond explicite pour garder la lisibilite
+
+Etat :
+
+- resolu sur la page notifications
+- UI globale non modifiee hors scope de cette page
 
 ## 0. Compatibilite runtime recente a clarifier sur certaines pages SQL
 

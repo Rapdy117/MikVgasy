@@ -5,7 +5,7 @@
             "id": "dev_1711039200",
             "name": "OPNsense",
             "type": "opnsense",
-            "host": "https://10.10.10.1",
+            "host": "http://10.10.10.1",
             "ip": "10.10.10.1",
             "backend_driver": "opnsense_api",
             "business_source": "radius",
@@ -16,7 +16,7 @@
             "port": null,
             "vendor": null,
             "created_at": null,
-            "updated_at": "2026-04-08 13:08:35"
+            "updated_at": "2026-04-20 19:24:35"
         },
         {
             "id": "dev_radius_001",
@@ -39,8 +39,8 @@
             "id": "dev_1774530745",
             "name": "Mikrotik",
             "type": "mikrotik",
-            "host": "10.10.11.133",
-            "ip": "10.10.11.133",
+            "host": "192.168.1.56",
+            "ip": "192.168.1.56",
             "backend_driver": "mikrotik_api",
             "business_source": "mikrotik_local",
             "api_key": "admin",
@@ -50,7 +50,7 @@
             "port": null,
             "vendor": null,
             "created_at": "2026-03-26 13:12:25",
-            "updated_at": "2026-04-03 11:18:23"
+            "updated_at": "2026-04-21 19:57:52"
         },
         {
             "id": "dev_1775288316",
@@ -68,6 +68,40 @@
             "vendor": null,
             "created_at": "2026-04-04 07:38:36",
             "updated_at": "2026-04-04 07:48:43"
+        },
+        {
+            "id": "dev_1776712881",
+            "name": "OPNsenseWAN",
+            "type": "opnsense",
+            "host": "http://192.168.1.35",
+            "ip": "192.168.1.35",
+            "backend_driver": "opnsense_api",
+            "business_source": "radius",
+            "api_key": "4gj+4XnioEXWGGgnbLIvoJkeabLur+pzHPpKOZyN7PRss/obVwGZuGUmtmVppWwV8t8KJS89BtnWhQMj",
+            "api_secret": "S1gjG3rFjc23wS3lFl3cT9I6p74wSlvpjyn0YKr4oDDywCvqTaQByBzvFDZiFAI3Q1r/FqHwfn5R4znR",
+            "secret": "S1gjG3rFjc23wS3lFl3cT9I6p74wSlvpjyn0YKr4oDDywCvqTaQByBzvFDZiFAI3Q1r/FqHwfn5R4znR",
+            "verify_ssl": false,
+            "port": null,
+            "vendor": null,
+            "created_at": "2026-04-20 19:21:21",
+            "updated_at": "2026-04-21 13:34:44"
+        },
+        {
+            "id": "dev_1776802381",
+            "name": "L009_LAN",
+            "type": "mikrotik",
+            "host": "10.10.10.1",
+            "ip": "10.10.10.1",
+            "backend_driver": "mikrotik_api",
+            "business_source": "mikrotik_local",
+            "api_key": "admin",
+            "api_secret": "Bl@ckOps2024#",
+            "secret": "Bl@ckOps2024#",
+            "verify_ssl": false,
+            "port": null,
+            "vendor": null,
+            "created_at": "2026-04-21 20:13:01",
+            "updated_at": "2026-04-21 20:14:06"
         }
     ]
 }

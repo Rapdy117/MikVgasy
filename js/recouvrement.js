@@ -392,7 +392,7 @@ document.addEventListener('DOMContentLoaded', () => {
             updateSelectionState();
             window.location.reload();
         } catch (error) {
-            alert(error.message || 'Creation impossible');
+            AppToast.flash(error.message || 'Creation impossible', 'danger');
             updateSelectionState();
         }
     });

@@ -128,65 +128,6 @@
     text-shadow: none;
 }
 
-#deviceContent .input-group {
-    display: flex;
-    align-items: stretch;
-    margin-bottom: 6px;
-}
-
-#deviceContent .input-group-text {
-    width: 110px;
-    min-width: 110px;
-    height: var(--theme-control-height);
-    display: flex;
-    align-items: center;
-    padding: 0 8px;
-    font-size: var(--theme-control-font-size);
-    background-color: var(--theme-primary-soft) !important;
-    border: 1px solid var(--theme-primary) !important;
-    color: var(--theme-primary) !important;
-    border-right: none;
-    border-radius: 4px 0 0 4px !important;
-}
-
-#deviceContent .form-control,
-#deviceContent .form-select {
-    height: var(--theme-control-height);
-    font-size: var(--theme-control-font-size);
-    padding: 0 var(--theme-control-padding-x);
-    background-color: rgba(255, 255, 255, 0.08) !important;
-    border: 1px solid var(--theme-border) !important;
-    color: var(--theme-text) !important;
-    border-left: none;
-    border-radius: 0 4px 4px 0 !important;
-}
-
-#deviceContent .form-control:focus,
-#deviceContent .form-select:focus {
-    border-color: var(--theme-primary) !important;
-    box-shadow: 0 0 6px rgba(23, 162, 184, 0.5) !important;
-    background-color: rgba(255, 255, 255, 0.1) !important;
-}
-
-#deviceContent .form-control.editable-active,
-#deviceContent .form-select.editable-active {
-    background-color: rgba(255, 255, 255, 0.1) !important;
-    color: var(--theme-text) !important;
-}
-
-.btn-select {
-    background: linear-gradient(135deg, #3b82f6, #2563eb);
-    border: none;
-    color: #fff;
-    padding: 4px 8px;
-    border-radius: 6px;
-    transition: all 0.2s ease;
-}
-
-.btn-select:hover {
-    background: linear-gradient(135deg, #2563eb, #1d4ed8);
-    transform: scale(1.05);
-}
 
 @media (max-width: 991.98px) {
     #page-content-wrapper {

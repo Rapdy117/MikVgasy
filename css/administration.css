@@ -419,6 +419,17 @@ body.administration-page .btn.btn-import[aria-disabled="true"] {
     box-shadow: none !important;
 }
 
+body.administration-page .btn.btn-import:disabled,
+body.administration-page .btn.btn-import[disabled],
+body.administration-page .btn.btn-import[aria-disabled="true"] {
+    background-color: transparent !important;
+    background: rgba(245, 158, 11, 0.12) !important;
+    border-color: #f59e0b !important;
+    color: #fff !important;
+    opacity: 0.65 !important;
+    box-shadow: none !important;
+}
+
 body.administration-page .administration-opnsense-tools {
     border-color: rgba(148, 163, 184, 0.12) !important;
 }
@@ -492,63 +503,104 @@ body.administration-page .administration-compact-cell {
     vertical-align: middle;
 }
 
-body.administration-page #mikrotikImportModal .administration-modal-content {
+body.administration-page #mikrotikImportModal .administration-modal-content,
+body.administration-page #radiusImportModal .administration-modal-content {
     background: rgba(15, 23, 42, 0.96) !important;
     border: 1px solid var(--theme-border) !important;
     color: var(--theme-text);
     box-shadow: 0 18px 45px rgba(0, 0, 0, 0.45);
 }
 
-body.administration-page #mikrotikImportModal .modal-dialog {
+body.administration-page #mikrotikImportModal .modal-dialog,
+body.administration-page #radiusImportModal .modal-dialog {
     max-width: min(920px, calc(100vw - 32px));
 }
 
-body.administration-page #mikrotikImportModal .administration-modal-header {
+body.administration-page #mikrotikImportModal .administration-modal-header,
+body.administration-page #radiusImportModal .administration-modal-header {
     border-bottom-color: var(--theme-border) !important;
 }
 
-body.administration-page #mikrotikImportModal .administration-modal-footer {
+body.administration-page #mikrotikImportModal .administration-modal-footer,
+body.administration-page #radiusImportModal .administration-modal-footer {
     border-top-color: var(--theme-border) !important;
 }
 
-body.administration-page #mikrotikImportModal .modal-body {
+body.administration-page #mikrotikImportModal .modal-body,
+body.administration-page #radiusImportModal .modal-body {
     overflow: visible;
 }
 
 body.administration-page #mikrotikImportModal .administration-modal-section-title,
+body.administration-page #radiusImportModal .administration-modal-section-title,
 body.administration-page #mikrotikImportModal .administration-modal-metric,
-body.administration-page #mikrotikImportModal .administration-modal-summary-title {
+body.administration-page #radiusImportModal .administration-modal-metric,
+body.administration-page #mikrotikImportModal .administration-modal-summary-title,
+body.administration-page #radiusImportModal .administration-modal-summary-title {
     color: var(--theme-primary);
 }
 
-body.administration-page #mikrotikImportModal .administration-modal-muted {
+body.administration-page #mikrotikImportModal .administration-modal-muted,
+body.administration-page #radiusImportModal .administration-modal-muted {
     color: rgba(226, 232, 240, 0.62);
 }
 
-body.administration-page #mikrotikImportModal .progress {
+body.administration-page #mikrotikImportModal .progress,
+body.administration-page #radiusImportModal .progress {
     background-color: rgba(255, 255, 255, 0.1);
     height: 8px;
 }
 
-body.administration-page #mikrotikImportModal .progress-bar {
+body.administration-page #mikrotikImportModal .progress-bar,
+body.administration-page #radiusImportModal .progress-bar {
     background-color: var(--theme-primary) !important;
 }
 
 body.administration-page #mikrotikImportModal .administration-modal-metrics,
-body.administration-page #mikrotikImportModal .administration-modal-summary-grid {
+body.administration-page #radiusImportModal .administration-modal-metrics,
+body.administration-page #mikrotikImportModal .administration-modal-summary-grid,
+body.administration-page #radiusImportModal .administration-modal-summary-grid {
     border-top: 1px solid var(--theme-border);
     padding-top: 10px;
 }
 
-body.administration-page #mikrotikImportModal .administration-modal-summary-title {
+body.administration-page #mikrotikImportModal .administration-modal-summary-title,
+body.administration-page #radiusImportModal .administration-modal-summary-title {
     font-size: 0.82rem;
     font-weight: 700;
     margin-bottom: 6px;
 }
 
-body.administration-page #mikrotikImportModal .administration-modal-summary-text {
+body.administration-page #mikrotikImportModal .administration-modal-summary-text,
+body.administration-page #radiusImportModal .administration-modal-summary-text {
     color: rgba(226, 232, 240, 0.82);
     line-height: 1.6;
+}
+
+body.administration-page #mikrotikPoolMapBox .input-group-text {
+    background: rgba(23, 162, 184, 0.12) !important;
+    border: 1px solid rgba(148, 163, 184, 0.18) !important;
+    color: var(--theme-text) !important;
+    border-radius: 6px 0 0 6px !important;
+}
+
+body.administration-page #mikrotikPoolMapBox .form-select {
+    background-color: rgba(12, 20, 34, 0.82) !important;
+    border: 1px solid rgba(148, 163, 184, 0.18) !important;
+    color: var(--theme-text) !important;
+    box-shadow: none !important;
+    border-radius: 0 6px 6px 0 !important;
+}
+
+body.administration-page #mikrotikPoolMapBox .form-select:focus {
+    border-color: rgba(59, 130, 246, 0.45) !important;
+    box-shadow: 0 0 0 0.2rem rgba(59, 130, 246, 0.12) !important;
+    background-color: rgba(12, 20, 34, 0.9) !important;
+}
+
+body.administration-page #mikrotikPoolMapBox .form-select option {
+    background-color: #0f172a;
+    color: var(--theme-text);
 }
 
 body.administration-page .administration-risk-list-danger {
@@ -575,4 +627,3 @@ body.administration-page .administration-risk-groups::-webkit-scrollbar-thumb {
         justify-content: flex-start;
     }
 }
-

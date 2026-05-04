@@ -23,7 +23,6 @@ $isOpnsense = is_array($activeDevice) && (($activeDevice['type'] ?? '') === 'opn
 $logs = [];
 $logsError = null;
 $topicFilter = strtolower(trim((string)($_GET['topic'] ?? '')));
-$searchFilter = trim((string)($_GET['q'] ?? ''));
 $sourceFilter = strtolower(trim((string)($_GET['source'] ?? '')));
 
 function extractFirstIpv4(string $message): string
@@ -259,7 +258,7 @@ if ($isMikrotik) {
             [
                 'rowCount' => 300,
                 'current' => 1,
-                'searchPhrase' => $searchFilter,
+                'searchPhrase' => '',
                 'validFrom' => 0,
             ]
         );
@@ -295,17 +294,17 @@ $opnsenseActiveColumns = $isOpnsense ? opnsenseLogColumns($sourceFilter) : [];
 
 $systemLogTableView = ($isMikrotik || $isOpnsense) && $logsError === null && !empty($logs);
 ?>
-<!DOCTYPE html>
-<html lang="fr" class="system-log-page<?= $systemLogTableView ? ' system-log-page--table' : '' ?>">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>System Log</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
-    <link rel="stylesheet" href="../css/theme.css">
-    <style>
+
+<?php
+$pageTitle = 'System Log';
+require_once '../includes/layout_header.php';
+?>
+<style>
+    .system-log-search-group {
+        min-width: 0;
+        max-width: 100%;
+    }
+
     .system-log-search-group .input-group-text {
         background: rgba(59, 130, 246, 0.12);
         border-color: rgba(148, 163, 184, 0.18);
@@ -313,6 +312,7 @@ $systemLogTableView = ($isMikrotik || $isOpnsense) && $logsError === null && !em
     }
 
     .system-log-search-group .form-control {
+        min-width: 0;
         background: rgba(12, 20, 34, 0.82);
         border-color: rgba(148, 163, 184, 0.18);
         color: var(--theme-text);
@@ -337,16 +337,51 @@ $systemLogTableView = ($isMikrotik || $isOpnsense) && $logsError === null && !em
     }
 
     .system-log-header-row {
-        gap: 10px;
+        gap: 0.75rem;
+        width: 100%;
+        min-width: 0;
+    }
+
+    .system-log-header-row > h5 {
+        flex: 0 0 auto;
+        min-width: 0;
     }
 
     .system-log-filters-inline {
-        width: min(100%, 58%);
-        margin-left: auto;
+        flex: 1 1 auto;
+        min-width: 0;
+        max-width: 100%;
+        width: 100%;
+    }
+
+    @media (min-width: 992px) {
+        .system-log-filters-inline--beside-title {
+            width: auto;
+            max-width: min(100%, 100rem);
+        }
     }
 
     .system-log-actions-inline {
-        white-space: nowrap;
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        justify-content: flex-start;
+        gap: 0.35rem;
+    }
+
+    @media (min-width: 768px) {
+        .text-md-end.system-log-actions-inline {
+            justify-content: flex-end;
+        }
+    }
+
+    .system-log-filters-inline .row {
+        --bs-gutter-x: 0.5rem;
+        min-width: 0;
+    }
+
+    .system-log-filters-inline .row > [class*="col-"] {
+        min-width: 0;
     }
 
     /* Hauteur tableau = reste fenêtre (si lignes) ; sinon pas de --table sur html/body */
@@ -469,34 +504,42 @@ $systemLogTableView = ($isMikrotik || $isOpnsense) && $logsError === null && !em
         border-bottom: 1px solid var(--theme-border) !important;
         color: var(--theme-primary) !important;
     }
-    </style>
-</head>
+</style>
 
-<body class="system-log-page<?= $systemLogTableView ? ' system-log-page--table' : '' ?>">
-    <div class="d-flex" id="wrapper">
-        <?php include '../includes/sidebar.php'; ?>
-
-        <div id="page-content-wrapper">
-            <div class="container-fluid py-4">
-                <?php display_message(); ?>
-                <div id="messageArea" style="display: none;"></div>
+<div id="messageArea" style="display: none;"></div>
 
                 <div class="card shadow-sm mb-4">
                     <div class="card-body">
-                        <div class="d-flex flex-wrap align-items-end system-log-header-row mb-3">
-                            <h5 class="card-title text-white mb-0"><i class="fas fa-file-lines me-2"></i> System Log</h5>
+                        <div class="d-flex flex-column flex-lg-row flex-lg-nowrap align-items-stretch align-items-lg-end gap-2 gap-lg-3 system-log-header-row mb-3">
+                            <h5 class="card-title text-white mb-0 flex-shrink-0"><i class="fas fa-file-lines me-2"></i> System Log</h5>
                             <?php if ($isMikrotik): ?>
-                            <form method="GET" class="system-log-filters-inline">
-                                <div class="row g-2 align-items-end">
-                                    <div class="col-md-7">
-                                        <select class="form-select system-log-filter-select" id="mikrotikTopicFilter" name="topic">
+                            <div class="system-log-filters-inline system-log-filters-inline--beside-title">
+                                <div class="row g-2 align-items-end w-100 m-0">
+                                    <form method="get" id="mikrotikLogTopicForm" class="col-12 col-md-4 col-lg-3 min-w-0">
+                                        <label class="visually-hidden" for="mikrotikTopicFilter">Sujet</label>
+                                        <select class="form-select system-log-filter-select" id="mikrotikTopicFilter" name="topic" aria-label="Filtrer par sujet">
                                             <?php foreach ($topicOptions as $value => $label): ?>
                                             <option value="<?= htmlspecialchars($value) ?>" <?= $topicFilter === $value ? 'selected' : '' ?>><?= htmlspecialchars($label) ?></option>
                                             <?php endforeach; ?>
                                         </select>
+                                    </form>
+                                    <div class="col-12 col-md-5 col-lg-6 min-w-0">
+                                        <div class="input-group system-log-search-group" role="search">
+                                            <span class="input-group-text" title="Filtre instantane">
+                                                <i class="fa fa-search"></i>
+                                            </span>
+                                            <input
+                                                type="search"
+                                                class="form-control"
+                                                id="mikrotikLogSearch"
+                                                placeholder="Rechercher (heure, sujets, message&hellip;)"
+                                                autocomplete="off"
+                                                aria-label="Filtre instantane sur le tableau"
+                                            >
+                                        </div>
                                     </div>
-                                    <div class="col-md-5 text-end system-log-actions-inline">
-                                        <button type="submit" class="btn btn-test">
+                                    <div class="col-12 col-md-3 col-lg-3 text-md-end min-w-0 system-log-actions-inline">
+                                        <button type="submit" class="btn btn-test" form="mikrotikLogTopicForm">
                                             <i class="fa fa-search me-1"></i> Filtrer
                                         </button>
                                         <a href="system_log.php" class="btn btn-save">
@@ -504,27 +547,35 @@ $systemLogTableView = ($isMikrotik || $isOpnsense) && $logsError === null && !em
                                         </a>
                                     </div>
                                 </div>
-                            </form>
+                            </div>
                             <?php elseif ($isOpnsense): ?>
-                            <form method="GET" class="system-log-filters-inline">
-                                <div class="row g-2 align-items-end">
-                                    <div class="col-md-6">
-                                        <div class="input-group system-log-search-group">
-                                            <span class="input-group-text">
+                            <div class="system-log-filters-inline system-log-filters-inline--beside-title">
+                                <div class="row g-2 align-items-end w-100 m-0">
+                                    <div class="col-12 col-md-6 min-w-0">
+                                        <div class="input-group system-log-search-group" role="search">
+                                            <span class="input-group-text" title="Filtre instantane">
                                                 <i class="fa fa-search"></i>
                                             </span>
-                                            <input type="search" class="form-control" id="opnsenseSearchFilter" name="q" value="<?= htmlspecialchars($searchFilter) ?>" placeholder="Rechercher">
+                                            <input
+                                                type="search"
+                                                class="form-control"
+                                                id="opnsenseSearchFilter"
+                                                placeholder="Rechercher"
+                                                autocomplete="off"
+                                                aria-label="Filtre instantane sur le tableau"
+                                            >
                                         </div>
                                     </div>
-                                    <div class="col-md-6">
-                                        <select class="form-select system-log-filter-select" id="opnsenseSourceFilter" name="source">
+                                    <form method="get" id="opnsenseLogSourceForm" class="col-12 col-md-6 min-w-0">
+                                        <label class="visually-hidden" for="opnsenseSourceFilter">Source des logs</label>
+                                        <select class="form-select system-log-filter-select" id="opnsenseSourceFilter" name="source" aria-label="Source des logs" onchange="this.form.submit()">
                                             <?php foreach ($opnsenseSourceOptions as $value => $label): ?>
                                             <option value="<?= htmlspecialchars($value) ?>" <?= $sourceFilter === $value ? 'selected' : '' ?>><?= htmlspecialchars($label) ?></option>
                                             <?php endforeach; ?>
                                         </select>
-                                    </div>
+                                    </form>
                                 </div>
-                            </form>
+                            </div>
                             <?php endif; ?>
                         </div>
                     </div>
@@ -557,7 +608,7 @@ $systemLogTableView = ($isMikrotik || $isOpnsense) && $logsError === null && !em
                                             <?php endif; ?>
                                         </tr>
                                     </thead>
-                                    <tbody>
+                                    <tbody id="systemLogTableBody">
                                         <?php foreach ($logs as $log): ?>
                                         <tr>
                                             <?php if ($isOpnsense): ?>
@@ -581,26 +632,10 @@ $systemLogTableView = ($isMikrotik || $isOpnsense) && $logsError === null && !em
             </div>
         </div>
         </div>
-    <div id="spinner-overlay">
-        <div class="spinner"></div>
-    </div>
-
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
-<script src="../js/sidebar.js?v=20260402a"></script>
-<script>
-document.addEventListener('DOMContentLoaded', () => {
-    const sourceFilter = document.getElementById('opnsenseSourceFilter');
-    if (!sourceFilter) {
-        return;
-    }
-
-    sourceFilter.addEventListener('change', () => {
-        const form = sourceFilter.closest('form');
-        if (form) {
-            form.submit();
-        }
-    });
-});
-</script>
-</body>
-</html>
+    
+<?php
+$extraJs = [
+    '../js/system_log.js?v=20260425a',
+];
+require_once '../includes/layout_footer.php';
+?>

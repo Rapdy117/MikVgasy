@@ -36,11 +36,17 @@ function formatHostTraffic(float $bytes): string
         return '-';
     }
 
-    $units = ['B', 'KB', 'MB', 'GB', 'TB'];
-    $power = min((int)floor(log($bytes, 1024)), count($units) - 1);
-    $value = $bytes / (1024 ** $power);
+    $kilobytes = $bytes / 1024;
+    if ($kilobytes < 1000) {
+        return rtrim(rtrim(number_format($kilobytes, 2, '.', ''), '0'), '.') . ' KB';
+    }
 
-    return rtrim(rtrim(number_format($value, 2, '.', ''), '0'), '.') . ' ' . $units[$power];
+    $megabytes = $bytes / 1024 / 1024;
+    if ($megabytes < 1000) {
+        return rtrim(rtrim(number_format($megabytes, 2, '.', ''), '0'), '.') . ' MB';
+    }
+
+    return rtrim(rtrim(number_format($megabytes / 1024, 2, '.', ''), '0'), '.') . ' GB';
 }
 
 function buildHostStatusLabel(array $host): string
@@ -90,27 +96,19 @@ foreach ($hosts as $host) {
     }
 }
 ?>
-<!DOCTYPE html>
-<html lang="fr" class="hosts-page<?= ($isMikrotik && $hostsError === null) ? ' hosts-page--table' : '' ?>">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Hosts</title>
-<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
-<link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
-<link rel="stylesheet" href="../css/theme.css">
-<link rel="stylesheet" href="../css/hosts.css">
-</head>
-<body class="hosts-page<?= ($isMikrotik && $hostsError === null) ? ' hosts-page--table' : '' ?>">
 
-<div class="d-flex" id="wrapper">
-    <?php include_once __DIR__ . '/../includes/sidebar.php'; ?>
+<?php
+$hostsTableMode = $isMikrotik && $hostsError === null;
+$htmlClass = 'hosts-page' . ($hostsTableMode ? ' hosts-page--table' : '');
+$bodyClass = 'hosts-page' . ($hostsTableMode ? ' hosts-page--table' : '');
+$extraCss = [
+    '../css/hosts.css',
+];
+$pageTitle = 'Hosts';
+require_once '../includes/layout_header.php';
+?>
 
-    <div id="page-content-wrapper">
-        <div class="container-fluid py-3">
-            <?php display_message(); ?>
-            <div id="messageArea" style="display:none;"></div>
+<div id="messageArea" style="display:none;"></div>
             <input type="hidden" id="hostsCsrfToken" value="<?= htmlspecialchars((string)$_SESSION['csrf_token'], ENT_QUOTES) ?>">
 
             <div class="card shadow-sm mb-4">
@@ -121,7 +119,7 @@ foreach ($hosts as $host) {
                         </h5>
 
                         <div class="hosts-toolbar ms-auto">
-                            <div class="input-group users-search-group hosts-search-group">
+                            <div class="input-group hosts-search-group">
                                 <span class="input-group-text">
                                     <i class="fa fa-search"></i>
                                 </span>
@@ -294,10 +292,11 @@ foreach ($hosts as $host) {
     </div>
 </div>
 
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
-<script src="../js/sidebar.js?v=20260402a"></script>
-<script src="../js/table_sort.js"></script>
-<script src="../js/hosts.js?v=20260330a"></script>
 
-</body>
-</html>
+<?php
+$extraJs = array (
+  0 => '../js/table_sort.js',
+  1 => '../js/hosts.js?v=20260330a',
+);
+require_once '../includes/layout_footer.php';
+?>

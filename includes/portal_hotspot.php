@@ -5,13 +5,6 @@ function portalHotspotConfigFilePath(): string
     return __DIR__ . '/../config/portal.json';
 }
 
-function portalHotspotManagedStatusFiles(): array
-{
-    return [
-        __DIR__ . '/../docs/hotspot_copie_extracted/hotspot - Copie/status.html',
-    ];
-}
-
 function defaultPortalHotspotConfig(): array
 {
     return [
@@ -173,23 +166,23 @@ function portalCompatMessageForDevice(string $deviceType, array $zipAnalysis): a
     if ($deviceType === 'mikrotik') {
         return [
             'level' => 'ok',
-            'summary' => 'Compatible',
-            'detail' => 'Pages web detectees : structure utilisable pour un portail de type hotspot / MikroTik.',
+            'summary' => 'Archive valide',
+            'detail' => 'Structure détectée compatible MikroTik. Le template n\'est pas déployé automatiquement.',
         ];
     }
 
     if ($deviceType === 'opnsense') {
         return [
             'level' => 'ok',
-            'summary' => 'Compatible',
-            'detail' => 'Pages web detectees : structure utilisable pour un portail de type OPNsense.',
+            'summary' => 'Archive valide',
+            'detail' => 'Structure détectée compatible OPNsense. Injection locale uniquement, aucun push vers le device.',
         ];
     }
 
     return [
         'level' => 'ok',
-        'summary' => 'Controle basique OK',
-        'detail' => 'Pages web detectees dans l archive.',
+        'summary' => 'Archive valide',
+        'detail' => 'Pages web détectées. Aucun déploiement automatique.',
     ];
 }
 
@@ -353,29 +346,4 @@ function savePortalHotspotConfig(array $config): void
         json_encode($payload, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES),
         LOCK_EX
     );
-}
-
-function applyPortalApiBaseUrlToHotspotSources(string $apiBaseUrl): void
-{
-    $normalized = normalizePortalApiBaseUrl($apiBaseUrl);
-
-    foreach (portalHotspotManagedStatusFiles() as $file) {
-        if (!is_file($file)) {
-            throw new RuntimeException('Fichier hotspot introuvable : ' . $file);
-        }
-
-        $content = (string)file_get_contents($file);
-        $updated = preg_replace(
-            "/const projectApiBase = params\\.get\\('project_api_base'\\) \\|\\| '.*?';/",
-            "const projectApiBase = params.get('project_api_base') || '" . addslashes($normalized) . "';",
-            $content,
-            1
-        );
-
-        if (!is_string($updated) || $updated === $content) {
-            throw new RuntimeException('Impossible de mettre à jour l URL API dans : ' . $file);
-        }
-
-        file_put_contents($file, $updated, LOCK_EX);
-    }
 }

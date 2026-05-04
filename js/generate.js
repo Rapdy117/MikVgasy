@@ -41,36 +41,8 @@ document.addEventListener('DOMContentLoaded', function () {
         sellingPrice: document.getElementById('profileFieldSellingPrice')
     };
 
-    function initializeFlashMessage() {
-        const flash = document.getElementById('messageArea');
-        if (!flash) {
-            return;
-        }
-
-        window.setTimeout(() => {
-            flash.classList.add('generate-flash-hide');
-        }, 3400);
-
-        window.setTimeout(() => {
-            if (flash && flash.parentNode) {
-                flash.parentNode.removeChild(flash);
-            }
-        }, 3900);
-    }
-
     function showFlashMessage(message, type) {
-        const existing = document.getElementById('messageArea');
-        if (existing && existing.parentNode) {
-            existing.parentNode.removeChild(existing);
-        }
-
-        const flash = document.createElement('div');
-        flash.id = 'messageArea';
-        flash.className = `alert alert-${type || 'info'}`;
-        flash.setAttribute('role', 'alert');
-        flash.textContent = String(message || '').trim();
-        document.body.appendChild(flash);
-        initializeFlashMessage();
+        AppToast.flash(message, type || 'info');
     }
 
     function updatePreviewBlock(html) {
@@ -489,7 +461,21 @@ document.addEventListener('DOMContentLoaded', function () {
                 option.dataset.rateLimit = profile.rate_limit || '';
                 option.dataset.price = profile.price != null && profile.price !== '' ? String(profile.price) : '';
                 option.dataset.sellingPrice = profile.selling_price != null && profile.selling_price !== '' ? String(profile.selling_price) : '';
-                option.dataset.dataQuota = profile.data_quota_mb ? profile.data_quota_mb + ' MB' : '';
+                if (profile.data_quota_mb) {
+                    const dataQuotaMb = Number(profile.data_quota_mb);
+                    if (Number.isFinite(dataQuotaMb) && dataQuotaMb > 0) {
+                        const dataQuotaKb = dataQuotaMb * 1024;
+                        option.dataset.dataQuota = dataQuotaKb < 1000
+                            ? `${dataQuotaKb.toFixed(2).replace(/\.?0+$/, '')} KB`
+                            : (dataQuotaMb < 1000
+                                ? `${dataQuotaMb.toFixed(2).replace(/\.?0+$/, '')} MB`
+                                : `${(dataQuotaMb / 1024).toFixed(2).replace(/\.?0+$/, '')} GB`);
+                    } else {
+                        option.dataset.dataQuota = '';
+                    }
+                } else {
+                    option.dataset.dataQuota = '';
+                }
                 option.dataset.validity = profile.validity_time || '';
                 option.dataset.sessionTimeout = profile.session_timeout || '';
                 option.dataset.expiredMode = profile.expired_mode || '';
@@ -594,7 +580,7 @@ document.addEventListener('DOMContentLoaded', function () {
                     showFlashMessage('Lot appliqué. Impression ouverte dans un autre onglet.', 'success');
                 })
                 .catch((err) => {
-                    alert(err.message);
+                    AppToast.flash(err.message, 'danger');
                     applyBtn.disabled = false;
                     applyBtn.innerHTML = '<i class="fa fa-print me-1"></i> Appliquer &amp; Imprimer';
                 });

@@ -89,17 +89,20 @@ if ($isRadius) {
 function formatBytesLabel(float $bytes): string
 {
     if ($bytes <= 0) {
-        return '0 B';
+        return '0 KB';
     }
 
-    $units = ['B', 'KB', 'MB', 'GB', 'TB'];
-    $index = 0;
-    while ($bytes >= 1024 && $index < count($units) - 1) {
-        $bytes /= 1024;
-        $index++;
+    $kilobytes = $bytes / 1024;
+    if ($kilobytes < 1000) {
+        return number_format($kilobytes, 2, '.', ' ') . ' KB';
     }
 
-    return number_format($bytes, $index === 0 ? 0 : 2, '.', ' ') . ' ' . $units[$index];
+    $megabytes = $bytes / 1024 / 1024;
+    if ($megabytes < 1000) {
+        return number_format($megabytes, 2, '.', ' ') . ' MB';
+    }
+
+    return number_format($megabytes / 1024, 2, '.', ' ') . ' GB';
 }
 
 function formatNumberWithThousands(float $value, int $decimals = 2): string
@@ -187,9 +190,9 @@ $opnsenseMemTotal = (float)($opnsenseMemory['total_frmt'] ?? $opnsenseMemory['to
 $opnsenseMemUsed = (float)($opnsenseMemory['used_frmt'] ?? $opnsenseMemory['used'] ?? 0);
 $opnsenseMemArc = (float)($opnsenseMemory['arc_frmt'] ?? $opnsenseMemory['arc'] ?? 0);
 $opnsenseMemLabel = $opnsenseMemTotal > 0
-    ? formatNumberWithThousands($opnsenseMemUsed, 0) . ' / ' . formatNumberWithThousands($opnsenseMemTotal, 0) . ' MB'
+    ? formatBytesLabel($opnsenseMemUsed * 1024 * 1024) . ' / ' . formatBytesLabel($opnsenseMemTotal * 1024 * 1024)
     : '-';
-$opnsenseMemArcLabel = $opnsenseMemArc > 0 ? formatNumberWithThousands($opnsenseMemArc, 0) . ' MB' : '-';
+$opnsenseMemArcLabel = $opnsenseMemArc > 0 ? formatBytesLabel($opnsenseMemArc * 1024 * 1024) : '-';
 
 $swapDevices = is_array($opnsenseSwap['swap'] ?? null) ? $opnsenseSwap['swap'] : [];
 $swapTotal = 0.0;
@@ -202,7 +205,7 @@ foreach ($swapDevices as $swapDevice) {
     $swapUsed += (float)($swapDevice['used'] ?? 0);
 }
 $swapLabel = $swapTotal > 0
-    ? formatNumberWithThousands($swapUsed, 0) . ' / ' . formatNumberWithThousands($swapTotal, 0) . ' MB'
+    ? formatBytesLabel($swapUsed * 1024 * 1024) . ' / ' . formatBytesLabel($swapTotal * 1024 * 1024)
     : '-';
 
 $diskDevices = is_array($opnsenseDisk['devices'] ?? null) ? $opnsenseDisk['devices'] : [];
@@ -223,26 +226,13 @@ foreach ($diskDevices as $diskDevice) {
 }
 
 ?>
-<!DOCTYPE html>
-<html lang="fr" class="system-info-page">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Informations Système</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
-    <link rel="stylesheet" href="../css/theme.css">
-</head>
-<body class="system-info-page">
-<div class="d-flex" id="wrapper">
-    <?php include '../includes/sidebar.php'; ?>
 
-    <div id="page-content-wrapper">
-        <div class="container-fluid py-3">
-            <?php display_message(); ?>
+<?php
+$pageTitle = 'Informations Système';
+require_once '../includes/layout_header.php';
+?>
 
-            <div class="card shadow-sm mb-3">
+<div class="card shadow-sm mb-3">
                 <div class="card-body py-3">
                     <div class="d-flex align-items-center text-white" style="font-size: calc(0.875rem + 2px);">
                         <i class="fas fa-server me-2"></i>
@@ -395,7 +385,7 @@ foreach ($diskDevices as $diskDevice) {
     </div>
 </div>
 
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
-<script src="../js/sidebar.js?v=20260402a"></script>
-</body>
-</html>
+
+<?php
+require_once '../includes/layout_footer.php';
+?>

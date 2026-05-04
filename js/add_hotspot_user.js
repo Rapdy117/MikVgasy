@@ -347,7 +347,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
             const rawValue = Number.parseFloat(rawInput.replace(',', '.'));
             const value = Number.isFinite(rawValue) ? Math.max(0, rawValue) : 0;
-            const unit = String(dataLimitUnitSelect?.value || 'MB').toUpperCase();
+            const unit = String(dataLimitUnitSelect?.value || 'GB').toUpperCase();
 
             let valueInMb = value;
             if (unit === 'GB') {
@@ -431,17 +431,17 @@ document.addEventListener('DOMContentLoaded', () => {
                 const data = await response.json();
 
                 if (!data.success) {
-                    alert(data.message || 'Creation impossible');
+                    AppToast.flash(data.message || 'Creation impossible', 'danger');
                     return;
                 }
 
-                alert('Utilisateur cree avec succes');
+                AppToast.flash('Utilisateur créé avec succès', 'success');
                 form.reset();
                 await loadNasOptions();
                 syncComputedLimits();
             } catch (error) {
                 console.error(error);
-                alert('Erreur serveur');
+                AppToast.flash('Erreur serveur', 'danger');
             }
         });
     }

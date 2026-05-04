@@ -311,7 +311,7 @@ document.addEventListener("DOMContentLoaded", function () {
                 await setActiveNavbarDevice(deviceId);
             } catch (error) {
                 target.disabled = false;
-                alert(error.message || "Activation impossible");
+                AppToast.flash(error.message || 'Activation impossible', 'danger');
             }
         });
 

@@ -8,6 +8,7 @@ require_once '../../includes/device_manager.php';
 require_once '../../includes/mikrotik_backend.php';
 require_once '../../includes/operation_history.php';
 require_once '../../includes/nas_resolver.php';
+require_once '../../includes/radius_credit_runtime.php';
 require_once '../../includes/radius_sync.php';
 require_once '../../includes/user_schema.php';
 
@@ -154,19 +155,22 @@ function normalizeExpirationValue(?DateTimeImmutable $expiration): ?string
     return $expiration instanceof DateTimeImmutable ? $expiration->format('Y-m-d') : null;
 }
 
-function normalizeStoredCreditDataToMegabytes(int $rawValue): int
+function loadRadiusAccountingTotals(PDO $pdo, string $username): array
 {
-    $value = max(0, $rawValue);
-    if ($value <= 0) {
-        return 0;
-    }
+    $stmt = $pdo->prepare('
+        SELECT
+            COALESCE(SUM(acctsessiontime), 0) AS total_time,
+            COALESCE(SUM(acctinputoctets), 0) + COALESCE(SUM(acctoutputoctets), 0) AS total_bytes
+        FROM radacct
+        WHERE username = ?
+    ');
+    $stmt->execute([$username]);
+    $row = $stmt->fetch(PDO::FETCH_ASSOC) ?: [];
 
-    // Compat: some deployments store current_credit_data in bytes.
-    if ($value > 1024 * 1024) {
-        return (int)round($value / 1024 / 1024);
-    }
-
-    return $value;
+    return [
+        'session_seconds' => max(0, (int)($row['total_time'] ?? 0)),
+        'data_bytes' => max(0, (int)($row['total_bytes'] ?? 0)),
+    ];
 }
 
 function applyRadiusLikeRecharge(PDO $pdo, array $device, string $username, string $profileValue, string $mode): array
@@ -174,7 +178,7 @@ function applyRadiusLikeRecharge(PDO $pdo, array $device, string $username, stri
     ensureUsersExtendedSchema($pdo);
 
     $userStmt = $pdo->prepare('
-        SELECT id, username, password, nas_id, profile_id, status, expiration_date, session_timeout, current_credit_time, current_credit_data
+        SELECT id, username, password, nas_id, profile_id, status, expiration_date, session_timeout, data_limit, current_credit_time, current_credit_data, imported_session_total_seconds, imported_data_consumed_bytes
         FROM users
         WHERE username = ?
         LIMIT 1
@@ -204,7 +208,7 @@ function applyRadiusLikeRecharge(PDO $pdo, array $device, string $username, stri
 
     $currentProfileId = (int)($userRow['profile_id'] ?? 0);
     $currentProfileStmt = $pdo->prepare('
-        SELECT id, name, validity_time, data_quota_mb
+        SELECT id, name, session_timeout, validity_time, data_quota_mb
         FROM profiles
         WHERE id = ?
         LIMIT 1
@@ -215,16 +219,12 @@ function applyRadiusLikeRecharge(PDO $pdo, array $device, string $username, stri
     $offerSessionSeconds = max(0, (int)($offerProfile['session_timeout'] ?? 0));
     $offerValiditySeconds = max(0, (int)($offerProfile['validity_time'] ?? 0));
     $offerMegabytes = max(0, (int)($offerProfile['data_quota_mb'] ?? 0));
-    $currentSeconds = max(
-        0,
-        (int)($userRow['current_credit_time'] ?? 0),
-        max(0, (int)($userRow['session_timeout'] ?? 0))
-    );
-    $currentMegabytes = max(
-        0,
-        normalizeStoredCreditDataToMegabytes((int)($userRow['current_credit_data'] ?? 0)),
-        max(0, (int)($currentProfile['data_quota_mb'] ?? 0))
-    );
+    $baselineScopeId = resolveUserCounterBaselineScopeId((string)($device['business_source'] ?? 'radius'), (string)($device['id'] ?? ''));
+    $accountingTotals = loadRadiusAccountingTotals($pdo, $username);
+    $counterBaseline = loadUserCounterBaseline($pdo, $baselineScopeId, $username);
+    $runtimeState = buildRadiusRuntimeState($userRow, $accountingTotals, $counterBaseline, $currentProfile ?: null);
+    $currentSeconds = $runtimeState['remaining_session_seconds'];
+    $currentMegabytes = $runtimeState['remaining_data_megabytes'];
 
     $today = new DateTimeImmutable('today', new DateTimeZone('UTC'));
     $currentExpiration = parsePreviewExpirationDate((string)($userRow['expiration_date'] ?? ''));
@@ -238,6 +238,9 @@ function applyRadiusLikeRecharge(PDO $pdo, array $device, string $username, stri
     }
 
     if ($mode === 'extend_offer') {
+        if (!$currentExpiration instanceof DateTimeImmutable || $currentExpiration < $today) {
+            throw new RuntimeException('Le rechargement est disponible uniquement pour un compte non expire.');
+        }
         $projectedProfileId = $currentProfileId > 0 ? $currentProfileId : $offerProfileId;
         $projectedSeconds = $currentSeconds + $offerSessionSeconds;
         $projectedMegabytes = $currentMegabytes + $offerMegabytes;
@@ -303,6 +306,14 @@ function applyRadiusLikeRecharge(PDO $pdo, array $device, string $username, stri
         (int)$userRow['id'],
     ]);
 
+    upsertUserCounterBaseline(
+        $pdo,
+        $baselineScopeId,
+        $username,
+        (int)$runtimeState['accounting_session_seconds'],
+        (int)$runtimeState['accounting_data_bytes']
+    );
+
     updateUserToNasBackend($pdo, [
         'username' => (string)$userRow['username'],
         'old_username' => (string)$userRow['username'],
@@ -314,6 +325,8 @@ function applyRadiusLikeRecharge(PDO $pdo, array $device, string $username, stri
         'idle_timeout' => max(0, (int)($effectiveProfile['idle_timeout'] ?? 0)),
         'data_limit' => $projectedMegabytes > 0 ? $projectedMegabytes : null,
         'expiration_date' => $expirationValue,
+        'allow_user_max_octets' => true,
+        'force_user_reply_attributes' => ['Session-Timeout', 'Max-Octets'],
     ], (string)$effectiveProfile['name'], $nasContext);
 
     return [
@@ -455,7 +468,7 @@ try {
                 }
                 echo json_encode([
                     'success' => true,
-                    'message' => 'Recharge appliquee sur MikroTik.',
+                    'message' => 'Recharge appliquée sur MikroTik.',
                 ]);
                 while (ob_get_level() > 0) {
                     ob_end_flush();
@@ -480,7 +493,7 @@ try {
                 }
                 echo json_encode([
                     'success' => true,
-                    'message' => 'Rajout applique sur MikroTik.',
+                    'message' => 'Rajout appliqué sur MikroTik.',
                 ]);
                 while (ob_get_level() > 0) {
                     ob_end_flush();
@@ -505,7 +518,7 @@ try {
                 }
                 echo json_encode([
                     'success' => true,
-                    'message' => 'Cumul applique sur MikroTik.',
+                    'message' => 'Cumul appliqué sur MikroTik.',
                 ]);
                 while (ob_get_level() > 0) {
                     ob_end_flush();
@@ -542,7 +555,7 @@ try {
     $pdo->commit();
     echo json_encode([
         'success' => true,
-        'message' => 'Recharge appliquee sur backend RADIUS/OPNsense.',
+        'message' => 'Recharge appliquée sur backend RADIUS/OPNsense.',
     ]);
     while (ob_get_level() > 0) {
         ob_end_flush();

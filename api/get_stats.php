@@ -1005,6 +1005,9 @@ try {
         ), 10);
     }
 
+    $configuredDeviceName = trim((string)($device['name'] ?? '')) ?: 'Device';
+    $opnsenseSystemName = trim((string)($systemInfo['name'] ?? ''));
+
     echo json_encode([
         'active_hotspot_users' => $activeHotspotUsers,
         'total_users' => $totalUsers,
@@ -1016,20 +1019,20 @@ try {
         'sales_monthly_amount' => (float)$commercialSummary['month_amount'],
         'sales_daily_trend' => $salesDailyTrend,
         'memory_used_percent' => $memoryUsedPercent,
-        'device_name' => (string)($systemInfo['name'] ?? $device['name']),
+        'device_name' => $configuredDeviceName,
         'device_type' => deviceTypeLabelForApiResponse($device),
         'business_source' => deviceBusinessSourceForApiResponse(deviceTypeLabelForApiResponse($device)),
         'device_host' => (string)($device['host'] ?? ''),
         'device_ip' => (string)($device['ip'] ?? ''),
         'device_backend_driver' => deviceBackendDriverForApiResponse($device),
-        'device_model' => '',
+        'device_model' => $opnsenseSystemName,
         'device_status' => (string)($dashboardStatus['status'] ?? 'UNKNOWN'),
         'device_message' => (string)($dashboardStatus['message'] ?? ''),
         'device_version' => (string)(($systemInfo['versions'][0] ?? 'Version inconnue')),
         'device_zones' => $zones,
         'device_zone_count' => count($zones),
         'telemetry_supported' => true,
-        'opnsense_name' => (string)($systemInfo['name'] ?? $device['name']),
+        'opnsense_name' => $opnsenseSystemName !== '' ? $opnsenseSystemName : $configuredDeviceName,
         'opnsense_version' => (string)(($systemInfo['versions'][0] ?? 'Version inconnue')),
         'opnsense_status' => (string)($dashboardStatus['status'] ?? 'UNKNOWN'),
         'opnsense_message' => (string)($dashboardStatus['message'] ?? ''),

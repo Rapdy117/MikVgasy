@@ -88,16 +88,18 @@ function formatDataVolume(?float $bytes): string
 {
     $bytes = (float)($bytes ?? 0);
     if ($bytes <= 0) {
-        return '0 B';
+        return '0 KB';
     }
 
-    $units = ['B', 'KB', 'MB', 'GB', 'TB'];
-    $index = 0;
-
-    while ($bytes >= 1024 && $index < count($units) - 1) {
-        $bytes /= 1024;
-        $index++;
+    $kilobytes = $bytes / 1024;
+    if ($kilobytes < 1000) {
+        return number_format($kilobytes, 2, '.', ' ') . ' KB';
     }
 
-    return number_format($bytes, $index === 0 ? 0 : 2, '.', ' ') . ' ' . $units[$index];
+    $megabytes = $bytes / 1024 / 1024;
+    if ($megabytes < 1000) {
+        return number_format($megabytes, 2, '.', ' ') . ' MB';
+    }
+
+    return number_format($megabytes / 1024, 2, '.', ' ') . ' GB';
 }

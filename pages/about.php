@@ -78,17 +78,12 @@ try {
 }
 ?>
 
-<!DOCTYPE html>
-<html lang="fr">
-<head>
-<meta charset="UTF-8">
-<title>À propos</title>
-
-<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
-<link rel="stylesheet" href="../css/theme.css">
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+<?php
+$pageTitle = 'À propos';
+require_once '../includes/layout_header.php';
+?>
 <style>
-    .about-card .card-header {
+.about-card .card-header {
         background-color: var(--theme-card-soft) !important;
         color: var(--theme-primary) !important;
         border-bottom: 1px solid rgba(255, 255, 255, 0.08) !important;
@@ -118,17 +113,6 @@ try {
         line-height: 1.55;
     }
 </style>
-
-</head>
-
-<body>
-
-<div class="d-flex" id="wrapper">
-
-<?php include_once '../includes/sidebar.php'; ?>
-
-<div id="page-content-wrapper">
-<div class="container-fluid">
 
 <div class="card shadow-sm mb-3">
     <div class="card-body py-3">
@@ -268,9 +252,7 @@ try {
 </div>
 </div>
 
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 
-<script src="../js/sidebar.js?v=20260402a"></script>
-
-</body>
-</html>
+<?php
+require_once '../includes/layout_footer.php';
+?>

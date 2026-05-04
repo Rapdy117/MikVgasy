@@ -20,8 +20,6 @@ const modeSelect = document.getElementById('rechargeModeSelect');
 const applyRechargeBtn = document.getElementById('applyRechargeBtn');
 const dataUnitSelect = document.getElementById('rechargeDataUnitSelect');
 const messageArea = document.getElementById('messageArea');
-let rechargeToast = document.getElementById('rechargeToast');
-let rechargeToastBody = document.getElementById('rechargeToastBody');
 const pageParams = new URLSearchParams(window.location.search);
 const presetUsername = pageParams.get('username') || '';
 let isPreviewLoading = false;
@@ -29,22 +27,26 @@ let isApplyInProgress = false;
 const presetProfileId = pageParams.get('profile_id') || '';
 const presetProfileName = pageParams.get('profile_name') || '';
 let lastPreviewPayload = null;
+let previewLoadPromise = null;
+let previewLoadSignature = '';
 let rechargeUserItems = [];
 let previewDebounceTimer = null;
 let historyDebounceTimer = null;
 let lastPreviewSignature = '';
 let lastHistorySignature = '';
+const rechargePreviewHint = 'Choisissez un utilisateur, un profil et un mode pour préparer l aperçu.';
 
-function resetPreviewState() {
+function resetPreviewState(showHint = false) {
     lastPreviewPayload = null;
     lastPreviewSignature = '';
+    previewLoadSignature = '';
 
     const previewEmpty = document.getElementById('rechargePreviewEmpty');
     const previewContent = document.getElementById('rechargePreviewContent');
     const notesBox = document.getElementById('rechargeNotesBox');
 
     if (previewEmpty) {
-        previewEmpty.classList.remove('d-none');
+        previewEmpty.classList.add('d-none');
     }
     if (previewContent) {
         previewContent.classList.add('d-none');
@@ -56,6 +58,9 @@ function resetPreviewState() {
     if (applyRechargeBtn) {
         applyRechargeBtn.disabled = true;
         applyRechargeBtn.dataset.canApplyNow = '0';
+    }
+    if (showHint) {
+        showRechargeToast(rechargePreviewHint, 'info');
     }
 }
 
@@ -97,66 +102,15 @@ function scheduleHistoryLoad(delay = 180) {
 }
 
 function showInlineMessage(message, type = 'info') {
-    if (!messageArea) {
-        return;
+    showRechargeToast(message, type);
+    if (messageArea) {
+        messageArea.innerHTML = '';
+        messageArea.style.display = 'none';
     }
-    messageArea.innerHTML = `<div class="alert alert-${type} py-2 px-3 mb-3" role="alert">${message}</div>`;
-    messageArea.style.display = 'block';
-}
-
-function ensureRechargeToastElements() {
-    if (rechargeToast && rechargeToastBody) {
-        return true;
-    }
-
-    let container = document.getElementById('rechargeToastContainer');
-    if (!container) {
-        container = document.createElement('div');
-        container.id = 'rechargeToastContainer';
-        container.className = 'toast-container position-fixed bottom-0 end-0 p-3';
-        container.style.zIndex = '1080';
-        document.body.appendChild(container);
-    }
-
-    const toast = document.createElement('div');
-    toast.id = 'rechargeToast';
-    toast.className = 'toast text-bg-success border-0';
-    toast.role = 'alert';
-    toast.setAttribute('aria-live', 'assertive');
-    toast.setAttribute('aria-atomic', 'true');
-    toast.innerHTML = `
-        <div class="d-flex">
-            <div class="toast-body" id="rechargeToastBody">Recharge appliquee.</div>
-            <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
-        </div>
-    `;
-    container.appendChild(toast);
-
-    rechargeToast = toast;
-    rechargeToastBody = toast.querySelector('#rechargeToastBody');
-
-    return !!(rechargeToast && rechargeToastBody);
 }
 
 function showRechargeToast(message, type = 'success') {
-    if (!ensureRechargeToastElements()) {
-        return;
-    }
-
-    rechargeToast.classList.remove('text-bg-success', 'text-bg-danger', 'text-bg-warning', 'text-bg-info');
-    const variant = `text-bg-${type}`;
-    rechargeToast.classList.add(variant);
-    rechargeToastBody.textContent = message || 'Recharge appliquee.';
-
-    if (typeof bootstrap !== 'undefined' && bootstrap.Toast) {
-        const toast = bootstrap.Toast.getOrCreateInstance(rechargeToast, {
-            autohide: true,
-            delay: 3500,
-        });
-        toast.show();
-    } else {
-        alert(rechargeToastBody.textContent);
-    }
+    AppToast.flash(message, type);
 }
 
 function hideInlineMessage() {
@@ -195,14 +149,17 @@ function formatDataLimitFromMegabytes(megabytes) {
     if (!Number.isFinite(valueMb) || valueMb <= 0) {
         return '-';
     }
-    const unit = dataUnitSelect?.value || 'MB';
-    if (unit === 'GB') {
-        return `${(valueMb / 1024).toFixed(2).replace(/\.?0+$/, '')} GB`;
+
+    const valueKb = valueMb * 1024;
+    if (valueKb < 1000) {
+        return `${valueKb.toFixed(2).replace(/\.?0+$/, '')} KB`;
     }
-    if (unit === 'KB') {
-        return `${Math.round(valueMb * 1024)} KB`;
+
+    if (valueMb < 1000) {
+        return `${valueMb.toFixed(2).replace(/\.?0+$/, '')} MB`;
     }
-    return `${valueMb.toFixed(2).replace(/\.?0+$/, '')} MB`;
+
+    return `${(valueMb / 1024).toFixed(2).replace(/\.?0+$/, '')} GB`;
 }
 
 function renderHistory(items = []) {
@@ -665,11 +622,13 @@ profileSelect?.addEventListener('change', () => {
 
 async function loadPreview() {
     if (isPreviewLoading) {
-        return lastPreviewPayload;
+        return previewLoadSignature === buildPreviewSignature()
+            ? (previewLoadPromise || lastPreviewPayload)
+            : null;
     }
 
     if (!hasRequiredPreviewInputs()) {
-        resetPreviewState();
+        resetPreviewState(true);
         return null;
     }
 
@@ -678,25 +637,38 @@ async function loadPreview() {
         return lastPreviewPayload;
     }
 
-    try {
-        hideInlineMessage();
-        isPreviewLoading = true;
-        const formData = new FormData(rechargeForm);
-        const data = await fetchJson('../api/users/recharge_preview.php', {
-            method: 'POST',
-            body: formData,
-        });
+    isPreviewLoading = true;
+    previewLoadSignature = signature;
+    previewLoadPromise = (async () => {
+        try {
+            hideInlineMessage();
+            const formData = new FormData(rechargeForm);
+            const data = await fetchJson('../api/users/recharge_preview.php', {
+                method: 'POST',
+                body: formData,
+            });
 
-        renderPreview(data);
-        lastPreviewSignature = signature;
-        return data;
-    } catch (error) {
-        showInlineMessage(error.message || 'Preparation impossible', 'danger');
-        resetPreviewState();
-        return null;
-    } finally {
-        isPreviewLoading = false;
-    }
+            if (signature !== buildPreviewSignature()) {
+                return null;
+            }
+
+            renderPreview(data);
+            lastPreviewSignature = signature;
+            return data;
+        } catch (error) {
+            showInlineMessage(error.message || 'Préparation impossible', 'danger');
+            resetPreviewState();
+            return null;
+        } finally {
+            if (previewLoadSignature === signature) {
+                isPreviewLoading = false;
+                previewLoadPromise = null;
+                previewLoadSignature = '';
+            }
+        }
+    })();
+
+    return previewLoadPromise;
 }
 
 applyRechargeBtn?.addEventListener('click', async () => {
@@ -730,23 +702,29 @@ applyRechargeBtn?.addEventListener('click', async () => {
             body: formData,
         });
 
-        showInlineMessage(data.message || 'Recharge appliquee.', 'success');
-        showRechargeToast(data.message || 'Recharge appliquee.', 'success');
+        const appliedUsername = (userSelect?.value || '').trim();
+        showRechargeToast(data.message || 'Recharge appliquée.', 'success');
         resetPreviewState();
         lastHistorySignature = '';
+        if (deviceSelect?.value) {
+            await loadUsersAndProfiles(deviceSelect.value);
+            if (appliedUsername && Array.from(userSelect.options || []).some((option) => option.value === appliedUsername)) {
+                userSelect.value = appliedUsername;
+                if (userSearchInput) {
+                    const appliedItem = rechargeUserItems.find((item) => item.value === appliedUsername);
+                    userSearchInput.value = appliedItem?.label || appliedUsername;
+                }
+                syncCurrentProfileFromUserSelection();
+                updateProfileLockState();
+            }
+        }
+        schedulePreviewLoad(0);
         scheduleHistoryLoad(0);
     } catch (error) {
         const message = error.message || 'Application impossible';
-        showInlineMessage(message, 'danger');
         showRechargeToast(message, 'danger');
     } finally {
         isApplyInProgress = false;
-    }
-});
-
-dataUnitSelect?.addEventListener('change', () => {
-    if (lastPreviewPayload) {
-        renderPreview(lastPreviewPayload);
     }
 });
 
