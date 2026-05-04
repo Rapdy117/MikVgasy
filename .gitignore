@@ -1,5 +1,9 @@
 config.php
 .DS_Store
+
+# ── Éditeur uniquement — NE PAS déployer chez le client ──
+# Clé privée Ed25519 — ne jamais versionner
+tools/editor-license/private_key.txt
 .vscode/
 ui/ui/compiled
 ui/compiled/*.php
