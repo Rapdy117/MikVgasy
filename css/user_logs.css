@@ -1,0 +1,225 @@
+/* =====================================================
+   USER LOGS
+   Filtres, zone scroll, tableau — thème global complété ici
+   (theme.css = .table / .table-standard / .users-table)
+===================================================== */
+
+/* --- Shell hauteur / scroll (nécessite html + body : user-logs-page) --- */
+html.user-logs-page,
+html.user-logs-page body.user-logs-page {
+    height: 100%;
+}
+
+html.user-logs-page {
+    height: 100dvh;
+    max-height: 100dvh;
+    overflow: hidden;
+}
+
+html.user-logs-page body.user-logs-page {
+    margin: 0;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+
+html.user-logs-page #wrapper {
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow: hidden;
+    display: flex;
+    flex-direction: row;
+    align-items: stretch;
+}
+
+html.user-logs-page #page-content-wrapper {
+    flex: 1 1 auto;
+    min-width: 0;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+
+html.user-logs-page .user-logs-shell {
+    flex: 1 1 auto;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+
+html.user-logs-page .user-logs-layout-row {
+    flex: 1 1 auto;
+    min-height: 0;
+}
+
+html.user-logs-page .user-logs-card {
+    height: 100%;
+}
+
+html.user-logs-page .user-logs-card-body {
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+    overflow: hidden;
+}
+
+html.user-logs-page .user-logs-card-body > form {
+    flex-shrink: 0;
+}
+
+/* --- Zone scroll + en-tête figé (au-dessus de .table standard du thème) --- */
+html.user-logs-page .user-logs-table-wrap {
+    flex: 1 1 auto;
+    min-height: 0;
+    max-height: calc(100dvh - var(--navbar-height) - 150px);
+    overflow-x: auto;
+    overflow-y: auto;
+    position: relative;
+    overscroll-behavior: contain;
+    scrollbar-width: thin;
+    scrollbar-color: var(--theme-scrollbar-thumb) var(--theme-scrollbar-track);
+}
+
+html.user-logs-page .user-logs-table-wrap::-webkit-scrollbar {
+    width: var(--theme-scrollbar-size);
+    height: var(--theme-scrollbar-size);
+}
+
+html.user-logs-page .user-logs-table-wrap::-webkit-scrollbar-track {
+    background: var(--theme-scrollbar-track);
+    border-radius: 999px;
+}
+
+html.user-logs-page .user-logs-table-wrap::-webkit-scrollbar-thumb {
+    background-image:
+        linear-gradient(180deg, rgba(148, 163, 184, 0.55), rgba(94, 234, 212, 0.45)),
+        radial-gradient(circle at 50% 90%, var(--theme-scrollbar-glow), transparent 60%);
+    border-radius: 999px;
+    border: 2px solid transparent;
+    background-clip: padding-box;
+    box-shadow: 0 0 6px rgba(78, 220, 255, 0.35);
+}
+
+html.user-logs-page .user-logs-table-wrap table {
+    border-collapse: separate;
+    border-spacing: 0;
+}
+
+html.user-logs-page .user-logs-table-wrap thead {
+    position: sticky;
+    top: 0;
+    z-index: 6;
+}
+
+/* Sticky (pas de font-size ici : évite doublon avec theme + règle #userLogsTable ci-dessous) */
+html.user-logs-page .user-logs-table-wrap thead th {
+    position: sticky;
+    top: 0;
+    z-index: 7;
+    background-color: rgba(18, 24, 41, 0.58) !important;
+    backdrop-filter: blur(2px);
+    -webkit-backdrop-filter: blur(2px);
+    border-bottom: 1px solid var(--theme-border) !important;
+    color: var(--theme-primary) !important;
+}
+
+html.user-logs-page .user-logs-table-wrap thead th[data-sort-key] {
+    cursor: pointer;
+    user-select: none;
+    padding-right: 1.35rem;
+    position: relative;
+}
+
+html.user-logs-page .user-logs-table-wrap thead th[data-sort-key]::after {
+    position: absolute;
+    right: 5px;
+    top: 50%;
+    transform: translateY(-50%);
+    font-size: 0.65em;
+    line-height: 1;
+    opacity: 0.4;
+    color: rgba(226, 232, 240, 0.85);
+    content: '\2195';
+}
+
+html.user-logs-page .user-logs-table-wrap thead th[data-sort-key].sort-asc::after {
+    content: '\25B2';
+    opacity: 1;
+    color: var(--theme-primary);
+    font-size: 0.58em;
+}
+
+html.user-logs-page .user-logs-table-wrap thead th[data-sort-key].sort-desc::after {
+    content: '\25BC';
+    opacity: 1;
+    color: var(--theme-primary);
+    font-size: 0.58em;
+}
+
+html.user-logs-page .user-logs-table-wrap thead th[data-sort-key].sort-asc::after,
+html.user-logs-page .user-logs-table-wrap thead th[data-sort-key].sort-desc::after {
+    font-size: 0.58em;
+}
+
+/* --- Filtres (hors thème, couleurs locaux) --- */
+html.user-logs-page .user-logs-search-group .input-group-text {
+    background: rgba(59, 130, 246, 0.12);
+    border-color: rgba(148, 163, 184, 0.18);
+    color: var(--theme-text);
+}
+
+html.user-logs-page .user-logs-search-group .form-control {
+    background: rgba(12, 20, 34, 0.82);
+    border-color: rgba(148, 163, 184, 0.18);
+    color: var(--theme-text);
+}
+
+html.user-logs-page .user-logs-search-group .form-control::placeholder {
+    color: rgba(226, 232, 240, 0.55);
+}
+
+html.user-logs-page .user-logs-search-group .form-control:focus {
+    border-color: rgba(59, 130, 246, 0.45);
+    box-shadow: 0 0 0 0.2rem rgba(59, 130, 246, 0.12);
+}
+
+html.user-logs-page .user-logs-filter-select {
+    background: rgba(12, 20, 34, 0.82) !important;
+    border-color: rgba(148, 163, 184, 0.18) !important;
+    color: var(--theme-text) !important;
+}
+
+html.user-logs-page .user-logs-filter-select option {
+    background-color: rgba(12, 20, 34, 0.98);
+    color: var(--theme-text);
+}
+
+html.user-logs-page .user-logs-filter-select:focus {
+    border-color: rgba(59, 130, 246, 0.45) !important;
+    box-shadow: 0 0 0 0.2rem rgba(59, 130, 246, 0.12) !important;
+    background: rgba(12, 20, 34, 0.9) !important;
+    color: var(--theme-text) !important;
+}
+
+html.user-logs-page .user-logs-actions {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+}
+
+/* Taille unique (bat theme + Bootstrap .small). font-size n’altère pas la famille seule — aligner sur body (theme.css) */
+html.user-logs-page #userLogsTable.table.table-sm.table-dark.table-standard.users-table thead th {
+    font-family: 'Roboto', sans-serif;
+    font-size: calc(0.65rem + 2px) !important;
+    line-height: 1.35;
+    font-weight: 600;
+}
+html.user-logs-page #userLogsTable.table.table-sm.table-dark.table-standard.users-table tbody td {
+    font-family: 'Roboto', sans-serif;
+    font-size: calc(0.65rem + 2px) !important;
+    line-height: 1.35;
+}

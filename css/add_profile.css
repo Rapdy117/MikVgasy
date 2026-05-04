@@ -1,0 +1,152 @@
+/* =====================================================
+   ADD PROFILE
+   dashboard.css = layout global
+   theme.css = composants communs
+   Ce fichier garde uniquement les overrides specifiques.
+===================================================== */
+
+.guide-content {
+    color: #eaeaea;
+    font-size: 0.95rem;
+}
+
+.guide-content h6 {
+    font-size: 1.05rem;
+    font-weight: 700;
+    color: var(--theme-primary);
+}
+
+.guide-content ul {
+    margin-bottom: 10px;
+    padding-left: 18px;
+}
+
+.guide-content li {
+    font-size: 0.9rem;
+    color: #dcdcdc;
+    margin-bottom: 3px;
+}
+
+.guide-content b {
+    font-size: 0.75rem;
+    color: #ffffff;
+}
+
+.network-device-form .row {
+    --bs-gutter-x: 0.8rem;
+}
+
+.network-device-form .card {
+    margin-bottom: 0;
+}
+
+.network-device-form .profile-unit-select {
+    max-width: 110px;
+    padding: 0 6px !important;
+    border-left: none;
+    background-color: var(--theme-primary-soft) !important;
+    border: 1px solid var(--theme-primary) !important;
+    color: var(--theme-primary) !important;
+    background-image: none !important;
+}
+
+.network-device-form .profile-unit-select:focus {
+    border-color: var(--theme-primary) !important;
+    box-shadow: none !important;
+}
+
+.network-device-form .input-group .profile-unit-select {
+    border-radius: 0 4px 4px 0 !important;
+}
+
+.network-device-form .profile-unit-select option {
+    background-color: var(--theme-card) !important;
+    color: var(--theme-text) !important;
+}
+
+.network-device-form .profile-number-input {
+    text-align: right;
+    appearance: textfield;
+    -webkit-appearance: none;
+    -moz-appearance: textfield;
+}
+
+.network-device-form .profile-number-input::-webkit-outer-spin-button,
+.network-device-form .profile-number-input::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+}
+
+.profile-advanced-card {
+    background: rgba(12, 28, 48, 0.45);
+}
+
+.profile-flow-alert {
+    border: 1px solid rgba(56, 189, 248, 0.28);
+    background: rgba(14, 116, 144, 0.14);
+    color: var(--theme-text);
+}
+
+.profile-message-flyover {
+    position: fixed !important;
+    left: 50%;
+    bottom: 14px;
+    transform: translateX(-50%);
+    z-index: 1065;
+    display: none;
+    width: min(92vw, 760px);
+    margin: 0;
+    opacity: 1;
+    transition: opacity 260ms ease, transform 260ms ease;
+}
+
+.profile-message-flyover .alert {
+    margin: 0;
+    border-radius: 10px;
+    border: 1px solid rgba(255, 255, 255, 0.18);
+    box-shadow: 0 12px 32px rgba(0, 0, 0, 0.32);
+    backdrop-filter: blur(5px);
+    font-size: 0.86rem;
+}
+
+.profile-message-flyover.is-visible {
+    display: block;
+}
+
+.profile-message-flyover.is-hiding {
+    opacity: 0;
+    transform: translate(-50%, 18px);
+}
+
+.network-device-form .rate-part-label {
+    min-width: 88px;
+    justify-content: center;
+    font-size: 0.78rem;
+    letter-spacing: 0.04em;
+}
+
+.network-device-form .rate-value-input {
+    max-width: 92px;
+}
+
+.network-device-form .rate-unit-select {
+    max-width: 74px;
+    background-color: var(--theme-primary-soft) !important;
+    border: 1px solid var(--theme-primary) !important;
+    color: var(--theme-primary) !important;
+    background-image: none !important;
+}
+
+.network-device-form .rate-unit-select:focus {
+    border-color: var(--theme-primary) !important;
+    box-shadow: none !important;
+}
+
+.network-device-form .input-group .rate-unit-select {
+    border-radius: 0 4px 4px 0 !important;
+}
+
+.network-device-form .rate-unit-select option {
+    background-color: var(--theme-card) !important;
+    color: var(--theme-text) !important;
+}

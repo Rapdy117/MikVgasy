@@ -1,0 +1,336 @@
+/* =====================================================
+   RECOUVREMENT — viewport + tableau scroll + en-tête sticky
+===================================================== */
+
+html.recouvrement-page,
+html.recouvrement-page body.recouvrement-page {
+    height: 100%;
+}
+
+html.recouvrement-page {
+    height: 100dvh;
+    max-height: 100dvh;
+    overflow: hidden;
+}
+
+html.recouvrement-page body.recouvrement-page {
+    margin: 0;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+
+html.recouvrement-page #wrapper {
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow: hidden;
+    display: flex;
+    flex-direction: row;
+    align-items: stretch;
+}
+
+html.recouvrement-page #page-content-wrapper {
+    flex: 1 1 auto;
+    min-width: 0;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+
+html.recouvrement-page #page-content-wrapper > .container-fluid {
+    flex: 1 1 auto;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+
+html.recouvrement-page .recouvrement-page-layout-row {
+    flex: 1 1 auto;
+    min-height: 0;
+    align-items: stretch;
+}
+
+html.recouvrement-page .recouvrement-main-col {
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+}
+
+@media (min-width: 992px) {
+    html.recouvrement-page .recouvrement-main-col > .administration-card.recouvrement-main-card {
+        flex: 1 1 auto;
+        min-height: 0;
+    }
+}
+
+html.recouvrement-page .recouvrement-main-card {
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    margin-bottom: 0 !important;
+}
+
+html.recouvrement-page .administration-card {
+    border: 1px solid rgba(125, 172, 255, 0.2) !important;
+    border-radius: 8px;
+    overflow: hidden;
+    background: rgba(11, 18, 31, 0.29);
+    box-shadow: 0 10px 24px rgba(2, 10, 22, 0.14);
+    backdrop-filter: blur(4px);
+    -webkit-backdrop-filter: blur(4px);
+}
+
+html.recouvrement-page .recouvrement-main-card > .card-header {
+    flex-shrink: 0;
+}
+
+html.recouvrement-page .recouvrement-main-card > .card-body {
+    flex: 1 1 auto;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+
+html.recouvrement-page .administration-card > .card-body {
+    background: linear-gradient(180deg, rgba(10, 17, 29, 0.41), rgba(7, 12, 22, 0.45));
+}
+
+html.recouvrement-page .recouvrement-side-col {
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+}
+
+@media (min-width: 992px) {
+    html.recouvrement-page .recouvrement-side-col > .administration-card {
+        flex: 1 1 auto;
+        min-height: 0;
+        display: flex;
+        flex-direction: column;
+        overflow: hidden;
+    }
+
+    html.recouvrement-page .recouvrement-side-col > .administration-card > .card-header {
+        flex-shrink: 0;
+    }
+
+    html.recouvrement-page .recouvrement-side-col .card-body {
+        flex: 1 1 auto;
+        min-height: 0;
+        overflow-y: auto;
+    }
+}
+
+.recouvrement-table-scroll {
+    flex: 1 1 0;
+    height: auto;
+    min-height: 0;
+    max-width: 100%;
+    overflow: auto;
+    position: relative;
+    border-radius: 8px;
+    border: 1px solid rgba(125, 172, 255, 0.18);
+    background: linear-gradient(160deg, rgba(17, 30, 52, 0.21), rgba(10, 18, 30, 0.29));
+    overscroll-behavior: contain;
+    scrollbar-width: thin;
+    scrollbar-color: var(--theme-scrollbar-thumb) var(--theme-scrollbar-track);
+}
+
+.recouvrement-table-scroll::-webkit-scrollbar {
+    width: var(--theme-scrollbar-size);
+    height: var(--theme-scrollbar-size);
+}
+
+.recouvrement-table-scroll::-webkit-scrollbar-track {
+    background: var(--theme-scrollbar-track);
+    border-radius: 999px;
+}
+
+.recouvrement-table-scroll::-webkit-scrollbar-thumb {
+    background-image:
+        linear-gradient(180deg, rgba(148, 163, 184, 0.55), rgba(94, 234, 212, 0.45)),
+        radial-gradient(circle at 50% 90%, var(--theme-scrollbar-glow), transparent 60%);
+    border-radius: 999px;
+    border: 2px solid transparent;
+    background-clip: padding-box;
+    box-shadow: 0 0 6px rgba(78, 220, 255, 0.35);
+}
+
+html.recouvrement-page .recouvrement-table-scroll table {
+    border-collapse: separate;
+    border-spacing: 0;
+    table-layout: auto;
+    width: max-content;
+    min-width: 100%;
+}
+
+html.recouvrement-page .recouvrement-table-scroll thead {
+    position: sticky;
+    top: 0;
+    z-index: 6;
+}
+
+html.recouvrement-page .recouvrement-table-scroll thead th {
+    position: sticky;
+    top: 0;
+    z-index: 7;
+    font-size: 9px;
+    font-weight: 600;
+    vertical-align: middle;
+    background-color: rgba(18, 24, 41, 0.58) !important;
+    backdrop-filter: blur(2px);
+    -webkit-backdrop-filter: blur(2px);
+    border-bottom: 1px solid var(--theme-border) !important;
+    color: var(--theme-primary) !important;
+    white-space: nowrap;
+}
+
+/* ----- Styles page (ex inline) ----- */
+
+.recouvrement-page-title {
+    font-size: calc(0.875rem + 2px);
+}
+
+html.recouvrement-page .administration-card .card-header {
+    background: transparent !important;
+    color: var(--theme-primary) !important;
+    border-bottom: 0 !important;
+    padding: 0.45rem 0.55rem 0.4rem;
+    font-size: 11px;
+    font-weight: 600;
+}
+
+html.recouvrement-page .card-header form {
+    padding: 0;
+    border: 0;
+    background: transparent;
+}
+
+.user-logs-filter-select {
+    background-color: rgba(10, 17, 29, 0.88);
+    border-color: rgba(125, 172, 255, 0.3);
+    color: var(--theme-text);
+    min-height: calc(1.45em + 0.6rem + 2px);
+    font-size: 0.8rem;
+}
+
+.user-logs-filter-select:focus {
+    border-color: rgba(125, 172, 255, 0.6);
+    box-shadow: 0 0 0 0.2rem rgba(81, 137, 255, 0.18);
+    background-color: rgba(10, 17, 29, 0.94);
+    color: var(--theme-text);
+}
+
+.user-logs-filter-select option {
+    background-color: #0b1220;
+    color: #eaf2ff;
+}
+
+html.recouvrement-page .administration-table thead th {
+    text-align: left;
+    vertical-align: middle;
+    line-height: 1.1;
+}
+
+html.recouvrement-page .administration-table tbody td {
+    font-size: 12px;
+    vertical-align: middle;
+    line-height: 1.12;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+html.recouvrement-page .administration-table th,
+html.recouvrement-page .administration-table td {
+    padding-top: 0.2rem;
+    padding-bottom: 0.2rem;
+    padding-left: 0.35rem;
+    padding-right: 0.35rem;
+}
+
+html.recouvrement-page .administration-table th:nth-child(1) {
+    width: 1%;
+}
+
+html.recouvrement-page .administration-table tbody td:nth-child(2),
+html.recouvrement-page .administration-table tbody td:nth-child(3),
+html.recouvrement-page .administration-table tbody td:nth-child(4),
+html.recouvrement-page .administration-table tbody td:nth-child(6),
+html.recouvrement-page .administration-table tbody td:nth-child(7) {
+    text-align: left;
+}
+
+html.recouvrement-page .administration-table tbody td:nth-child(8) {
+    text-align: right;
+}
+
+html.recouvrement-page .administration-table tbody td:not(:nth-child(2)):not(:nth-child(3)):not(:nth-child(4)):not(:nth-child(6)):not(:nth-child(7)):not(:nth-child(8)) {
+    text-align: center;
+}
+
+html.recouvrement-page .administration-status-badge {
+    min-width: 88px;
+    font-size: 11px;
+}
+
+.recouvrement-detail-actions {
+    margin-top: 10px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.recouvrement-detail-actions .btn {
+    width: 100%;
+    margin-left: 0 !important;
+    white-space: normal;
+    line-height: 1.2;
+}
+
+.recouvrement-select-col {
+    text-align: center !important;
+    width: 42px;
+    padding-left: 0.35rem !important;
+    padding-right: 0.35rem !important;
+}
+
+.recouvrement-summary-grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 6px;
+}
+
+.recouvrement-summary-grid .form-control {
+    text-align: right;
+}
+
+html.recouvrement-page .network-device-form .input-group {
+    border: 1px solid rgba(125, 172, 255, 0.18);
+    border-radius: 8px;
+    overflow: hidden;
+    background: rgba(255, 255, 255, 0.02);
+}
+
+html.recouvrement-page .network-device-form .input-group-text {
+    min-width: 112px;
+    padding: 0.28rem 0.38rem;
+    border: 0;
+    background: rgba(27, 42, 70, 0.29);
+    color: rgba(173, 204, 255, 0.92);
+    font-size: 0.72rem;
+    font-weight: 700;
+}
+
+html.recouvrement-page .network-device-form .form-control[readonly] {
+    min-height: 30px;
+    padding: 0.28rem 0.38rem;
+    border: 0;
+    background: rgba(255, 255, 255, 0.04) !important;
+    color: #eaf2ff !important;
+    font-weight: 600;
+}

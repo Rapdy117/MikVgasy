@@ -1,0 +1,284 @@
+.hosts-header-row {
+    gap: 12px;
+}
+
+.hosts-toolbar {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 10px;
+    flex-wrap: wrap;
+    width: min(100%, 78%);
+    margin-left: auto;
+}
+
+.hosts-search-group {
+    width: min(100%, 320px);
+}
+
+.hosts-search-group .input-group-text {
+    background: rgba(59, 130, 246, 0.12);
+    border-color: rgba(148, 163, 184, 0.18);
+    color: var(--theme-text);
+}
+
+.hosts-search-group .form-control {
+    background: rgba(12, 20, 34, 0.82);
+    border-color: rgba(148, 163, 184, 0.18);
+    color: var(--theme-text);
+}
+
+.hosts-search-group .form-control::placeholder {
+    color: rgba(226, 232, 240, 0.55);
+}
+
+.hosts-search-group .form-control:focus,
+.hosts-filter-select:focus {
+    border-color: rgba(59, 130, 246, 0.45);
+    box-shadow: 0 0 0 0.2rem rgba(59, 130, 246, 0.12);
+}
+
+.hosts-filter-field {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    min-width: 220px;
+}
+
+.hosts-filter-label {
+    margin-bottom: 0;
+    min-width: 44px;
+    text-align: right;
+    white-space: nowrap;
+}
+
+.hosts-filter-select {
+    background: rgba(12, 20, 34, 0.82);
+    border-color: rgba(148, 163, 184, 0.18);
+    color: var(--theme-text);
+}
+
+.hosts-meta-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+}
+
+.hosts-meta-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 12px;
+    border-radius: 999px;
+    background: rgba(12, 20, 34, 0.72);
+    border: 1px solid rgba(148, 163, 184, 0.16);
+    color: var(--theme-text);
+}
+
+.hosts-meta-label {
+    color: rgba(226, 232, 240, 0.7);
+    font-size: 12px;
+}
+
+.hosts-meta-value {
+    font-weight: 600;
+}
+
+.hosts-empty-state {
+    padding: 48px 20px;
+    border: 1px dashed rgba(148, 163, 184, 0.2);
+    border-radius: 16px;
+    background: rgba(12, 20, 34, 0.45);
+}
+
+.hosts-empty-icon {
+    font-size: 30px;
+    color: rgba(96, 165, 250, 0.85);
+}
+
+.hosts-select-col {
+    width: 36px;
+}
+
+.hosts-table td,
+.hosts-table th {
+    white-space: nowrap;
+}
+
+/* =====================================================
+   TABLEAU HOSTS — hauteur = reste de la fenêtre (réf. users_list.css)
+   Avec body.hosts-page--table : pas de scroll document, scroll dans .hosts-table-scroll
+===================================================== */
+html.hosts-page.hosts-page--table {
+    height: 100dvh;
+    max-height: 100dvh;
+    overflow: hidden;
+}
+
+html.hosts-page body.hosts-page--table {
+    height: 100%;
+    min-height: 0;
+    margin: 0;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+
+html.hosts-page body.hosts-page--table #wrapper {
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow: hidden;
+    display: flex;
+    flex-direction: row;
+    align-items: stretch;
+}
+
+html.hosts-page body.hosts-page--table #page-content-wrapper {
+    flex: 1 1 auto;
+    min-width: 0;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+
+html.hosts-page body.hosts-page--table #page-content-wrapper > .container-fluid {
+    flex: 1 1 auto;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    padding-bottom: 0 !important;
+}
+
+html.hosts-page body.hosts-page--table #page-content-wrapper > .container-fluid > .card {
+    flex: 1 1 auto;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    margin-bottom: 0 !important;
+}
+
+html.hosts-page body.hosts-page--table #page-content-wrapper > .container-fluid > .card > .card-body {
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+}
+
+html.hosts-page body.hosts-page--table .hosts-meta-row {
+    flex-shrink: 0;
+}
+
+html.hosts-page body.hosts-page--table .hosts-header-row {
+    flex-shrink: 0;
+}
+
+/* Zone scroll : occupe tout l’espace sous titre + filtres + méta */
+html.hosts-page.hosts-page--table .hosts-table-scroll {
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow-x: auto;
+    overflow-y: scroll;
+    position: relative;
+    overscroll-behavior: contain;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-gutter: stable;
+    scrollbar-width: thin;
+    scrollbar-color: var(--theme-scrollbar-thumb) var(--theme-scrollbar-track);
+    border-radius: 0 0 6px 6px;
+}
+
+html.hosts-page.hosts-page--table .hosts-table-scroll::-webkit-scrollbar {
+    width: var(--theme-scrollbar-size);
+}
+
+html.hosts-page.hosts-page--table .hosts-table-scroll::-webkit-scrollbar-track {
+    background: var(--theme-scrollbar-track);
+    border-radius: 0 6px 6px 0;
+}
+
+html.hosts-page.hosts-page--table .hosts-table-scroll::-webkit-scrollbar-thumb {
+    background-image:
+        linear-gradient(180deg, rgba(148, 163, 184, 0.55), rgba(94, 234, 212, 0.45)),
+        radial-gradient(circle at 50% 90%, var(--theme-scrollbar-glow), transparent 60%);
+    background-clip: padding-box;
+    border-radius: 999px;
+    border: 2px solid transparent;
+    box-shadow: 0 0 6px rgba(78, 220, 255, 0.35);
+}
+
+html.hosts-page.hosts-page--table .hosts-table-scroll::-webkit-scrollbar-thumb:hover {
+    background-image:
+        linear-gradient(180deg, rgba(186, 198, 214, 0.75), rgba(94, 234, 212, 0.55)),
+        radial-gradient(circle at 50% 90%, rgba(110, 245, 255, 0.85), transparent 60%);
+    background-clip: padding-box;
+    box-shadow: 0 0 8px rgba(110, 245, 255, 0.45);
+}
+
+html.hosts-page.hosts-page--table .hosts-table-scroll table {
+    border-collapse: separate;
+    border-spacing: 0;
+}
+
+html.hosts-page.hosts-page--table .hosts-table-scroll thead {
+    position: sticky;
+    top: 0;
+    z-index: 6;
+}
+
+html.hosts-page.hosts-page--table .hosts-table-scroll thead th {
+    position: sticky;
+    top: 0;
+    z-index: 7;
+    font-size: calc(0.78rem + 1px);
+    font-weight: 600;
+    background-color: rgba(18, 24, 41, 0.58) !important;
+    backdrop-filter: blur(2px);
+    -webkit-backdrop-filter: blur(2px);
+    border-bottom: 1px solid var(--theme-border) !important;
+}
+
+html.hosts-page.hosts-page--table .hosts-table-scroll thead th[data-sort-key] {
+    cursor: pointer;
+    user-select: none;
+    padding-right: 1.35rem;
+    position: relative;
+}
+
+html.hosts-page.hosts-page--table .hosts-table-scroll thead th[data-sort-key]::after {
+    position: absolute;
+    right: 5px;
+    top: 50%;
+    transform: translateY(-50%);
+    font-size: 0.65em;
+    line-height: 1;
+    opacity: 0.4;
+    color: rgba(226, 232, 240, 0.85);
+    content: '\2195';
+}
+
+html.hosts-page.hosts-page--table .hosts-table-scroll thead th[data-sort-key].sort-asc::after {
+    content: '\25B2';
+    opacity: 1;
+    color: var(--theme-primary);
+    font-size: 0.58em;
+}
+
+html.hosts-page.hosts-page--table .hosts-table-scroll thead th[data-sort-key].sort-desc::after {
+    content: '\25BC';
+    opacity: 1;
+    color: var(--theme-primary);
+    font-size: 0.58em;
+}
+
+html.hosts-page.hosts-page--table .hosts-table-scroll thead th[data-sort-key].sort-asc::after,
+html.hosts-page.hosts-page--table .hosts-table-scroll thead th[data-sort-key].sort-desc::after {
+    font-size: 0.58em;
+}
+
+html.hosts-page .hosts-table .action-cell {
+    text-align: center;
+}

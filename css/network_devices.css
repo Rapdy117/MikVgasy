@@ -1,0 +1,256 @@
+/* =====================================================
+   NETWORK DEVICES
+   dashboard.css = layout global
+   theme.css = composants communs
+   Ce fichier garde uniquement les styles specifiques a la page.
+===================================================== */
+
+.network-device-table {
+    width: 100%;
+    border-collapse: collapse;
+    background: transparent;
+}
+
+.network-device-table thead th {
+    font-size: 0.75rem;
+    padding: 8px;
+    color: var(--secondary-color);
+    background-color: rgba(23, 162, 184, 0.08);
+    border-bottom: 1px solid rgba(0, 255, 255, 0.2);
+    text-align: left;
+}
+
+.network-device-table tbody tr {
+    transition: 0.2s ease;
+}
+
+.network-device-table tbody tr:nth-child(odd) {
+    background-color: rgba(255, 255, 255, 0.03);
+}
+
+.network-device-table tbody tr:nth-child(even) {
+    background-color: rgba(0, 0, 0, 0.15);
+}
+
+.network-device-table tbody tr:hover {
+    background: rgba(255, 255, 255, 0.05);
+    cursor: pointer;
+}
+
+.network-device-table tbody tr.table-active {
+    background: rgba(23, 162, 184, 0.22) !important;
+}
+
+.network-device-table td {
+    font-size: 0.8rem;
+    padding: 6px 8px;
+    color: var(--text-white);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.network-device-table .device-type-cell {
+    font-size: 0.8rem;
+    font-weight: 400;
+    color: var(--text-white);
+}
+
+.network-device-table td:last-child .badge {
+    font-size: 0.86rem;
+    font-weight: 700;
+    padding: 0.42rem 0.78rem;
+    min-width: 110px;
+}
+
+.network-device-table td:last-child .badge.bg-success {
+    background-color: rgba(23, 162, 184, 0.18) !important;
+    border: 1px solid var(--theme-primary) !important;
+    color: var(--theme-primary) !important;
+}
+
+.network-device-table td:last-child .badge.bg-info {
+    background-color: rgba(245, 158, 11, 0.18) !important;
+    border: 1px solid #f59e0b !important;
+    color: #f59e0b !important;
+}
+
+.network-device-table td:last-child .badge.bg-secondary {
+    background-color: #ffffff !important;
+    color: #1f2937 !important;
+    border: 1px solid rgba(255, 255, 255, 0.5) !important;
+}
+
+.network-device-table,
+.network-device-table td,
+.network-device-table th {
+    --bs-table-bg: transparent;
+    --bs-table-color: var(--theme-text);
+    --bs-table-border-color: rgba(255, 255, 255, 0.05);
+}
+
+.network-device-table .btn {
+    height: 25px;
+    font-size: 0.7rem;
+    padding: 0 6px;
+}
+
+.network-device-table td button {
+    margin-right: 5px;
+}
+
+#testStatus {
+    background: rgba(0, 0, 0, 0.4);
+    color: #00ffff;
+    font-size: 12px;
+    line-height: 1.4;
+    padding: 10px;
+    border-radius: 5px;
+    height: 120px;
+    overflow: auto;
+    animation: fadeSlide 0.2s ease;
+}
+
+.backend-status-icon {
+    transition: color 0.2s ease, text-shadow 0.2s ease;
+}
+
+.backend-status-icon.backend-status-active {
+    color: var(--theme-primary);
+    text-shadow: 0 0 8px rgba(23, 162, 184, 0.45);
+}
+
+.backend-status-icon.backend-status-connected {
+    color: #f59e0b;
+    text-shadow: 0 0 8px rgba(245, 158, 11, 0.4);
+}
+
+.backend-status-icon.backend-status-offline {
+    color: #ffffff;
+    text-shadow: none;
+}
+
+
+@media (max-width: 991.98px) {
+    #page-content-wrapper {
+        margin-left: 0;
+        width: 100%;
+    }
+}
+
+/* ══════════════════════════════════════
+   MODAL ACTIVATION LICENCE — LED RGB
+══════════════════════════════════════ */
+.licence-modal-dialog { max-width: 580px; }
+
+/* Wrapper avec bordure LED RGB */
+.licence-modal-wrap {
+    position: relative;
+    border-radius: 13px;
+    padding: 2px;
+    overflow: hidden;
+}
+
+.licence-modal-wrap::before {
+    content: '';
+    position: absolute;
+    width: 200%;
+    height: 200%;
+    top: 50%;
+    left: 50%;
+    background: conic-gradient(
+        from 0deg,
+        transparent     0deg,
+        transparent   325deg,
+        rgba(255,160,  0, 0.08) 334deg,
+        rgba(255,220,  0, 0.55) 342deg,
+        rgba(255,255,255, 1)    348deg,
+        rgba(255,220,  0, 0.55) 354deg,
+        rgba(255,160,  0, 0.06) 360deg
+    );
+    transform: translate(-50%, -50%) rotate(0deg);
+    animation: rgb-led-chase 2.4s linear infinite, rgb-led-hue 7s linear infinite;
+    z-index: 0;
+}
+
+@keyframes rgb-led-chase { to { transform: translate(-50%, -50%) rotate(360deg); } }
+@keyframes rgb-led-hue { from { filter: hue-rotate(0deg); } to { filter: hue-rotate(360deg); } }
+
+@media (prefers-reduced-motion: reduce) {
+    .licence-modal-wrap::before { animation: none; }
+}
+
+.licence-modal-content {
+    position: relative;
+    z-index: 1;
+    background: rgba(10, 14, 26, 0.97);
+    border: 0;
+    border-radius: 11px;
+    backdrop-filter: blur(16px);
+}
+
+.licence-modal-header {
+    background: linear-gradient(135deg, rgba(30,58,95,0.9), rgba(15,42,74,0.8));
+    border-radius: 11px 11px 0 0;
+    padding: 1rem 1.25rem;
+}
+
+/* Étapes */
+.lic-step {
+    border-left: 3px solid transparent;
+    padding-left: .9rem;
+}
+
+.lic-step-title {
+    font-size: .74rem;
+    font-weight: 700;
+    letter-spacing: .07em;
+    text-transform: uppercase;
+    margin-bottom: .5rem;
+    display: flex;
+    align-items: center;
+    gap: .5rem;
+}
+
+.lic-step-num {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 1.4rem;
+    height: 1.4rem;
+    border-radius: 50%;
+    background: rgba(255,255,255,.08);
+    font-size: .78rem;
+    font-weight: 700;
+    flex-shrink: 0;
+}
+
+.lic-step-body {
+    background: rgba(255,255,255,.03);
+    border-radius: 8px;
+    padding: .75rem .9rem;
+    border: 1px solid rgba(255,255,255,.05);
+}
+
+/* Badge connecté */
+.device-badge-connected {
+    display: inline-flex;
+    align-items: center;
+    gap: .35rem;
+    font-size: .72rem;
+    padding: 2px 8px;
+    border-radius: 12px;
+    background: rgba(74,222,128,.12);
+    color: #4ade80;
+    border: 1px solid rgba(74,222,128,.25);
+}
+
+.device-badge-unlicensed {
+    display: inline-flex;
+    align-items: center;
+    gap: .35rem;
+    font-size: .72rem;
+    padding: 2px 8px;
+    border-radius: 12px;
+    background: rgba(251,191,36,.12);
+    color: #fbbf24;
+    border: 1px solid rgba(251,191,36,.25);
+}

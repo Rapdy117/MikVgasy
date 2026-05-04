@@ -1,0 +1,629 @@
+body.administration-page .administration-page-heading {
+    font-size: 1.05rem;
+    font-weight: 600;
+}
+
+body.administration-page .administration-card {
+    background-color: var(--theme-card) !important;
+    border: 1px solid var(--theme-border) !important;
+    border-radius: 6px;
+    box-shadow: none;
+    transition: none;
+}
+
+body.administration-page .administration-card:hover {
+    transform: none;
+    box-shadow: none;
+    border-color: var(--theme-border) !important;
+}
+
+body.administration-page .administration-card .card-header {
+    background: var(--theme-primary-soft) !important;
+    color: var(--theme-primary) !important;
+    border-bottom: 1px solid rgba(0, 255, 255, 0.1) !important;
+    font-size: calc(0.8rem - 1px);
+    font-weight: 600;
+    text-transform: none;
+    letter-spacing: 0;
+    padding: 6px 10px;
+    border-radius: 6px 6px 0 0;
+}
+
+body.administration-page .administration-card .card-body {
+    padding: var(--theme-card-body-pad-y) var(--theme-card-body-pad-x);
+}
+
+body.administration-page #administration-system .administration-card .card-body,
+body.administration-page #administration-accounts .administration-card .card-body {
+    background: transparent;
+}
+
+body.administration-page .administration-tabs-header {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+body.administration-page .administration-tabs-header .nav-link {
+    border: 1px solid rgba(148, 163, 184, 0.2);
+    background: rgba(12, 20, 34, 0.6);
+    color: rgba(226, 232, 240, 0.78);
+    border-radius: 6px;
+}
+
+body.administration-page .administration-tabs-header .nav-link:hover {
+    color: #fff;
+    border-color: rgba(56, 189, 248, 0.45);
+    background: rgba(56, 189, 248, 0.12);
+}
+
+body.administration-page .administration-tabs-header .nav-link.active {
+    color: #0f172a;
+    background: #38bdf8;
+    border-color: transparent;
+    box-shadow: 0 0 12px rgba(56, 189, 248, 0.35);
+}
+
+body.administration-page .administration-search-group {
+    max-width: 320px;
+}
+
+body.administration-page .administration-search-group .input-group-text {
+    background: rgba(23, 162, 184, 0.12);
+    border-color: rgba(148, 163, 184, 0.18);
+    color: var(--theme-text);
+    border-radius: 6px 0 0 6px !important;
+}
+
+body.administration-page .administration-search-group .form-control {
+    background: rgba(12, 20, 34, 0.82);
+    border-color: rgba(148, 163, 184, 0.18);
+    color: var(--theme-text);
+    border-radius: 0 6px 6px 0 !important;
+}
+
+body.administration-page .administration-search-group .form-control::placeholder {
+    color: rgba(226, 232, 240, 0.55);
+}
+
+body.administration-page .administration-search-group .form-control:focus {
+    border-color: rgba(59, 130, 246, 0.45);
+    box-shadow: 0 0 0 0.2rem rgba(59, 130, 246, 0.12);
+}
+
+body.administration-page .administration-panel-form,
+body.administration-page .administration-form,
+body.administration-page .administration-inline-form {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+body.administration-page .administration-panel-form > .mb-3,
+body.administration-page .administration-panel-form > .input-group,
+body.administration-page .administration-inline-form > .mb-3,
+body.administration-page .administration-inline-form > .input-group,
+body.administration-page .administration-form > .mb-3,
+body.administration-page .administration-form > .input-group {
+    margin-bottom: 0 !important;
+}
+
+body.administration-page .administration-panel-form .form-label,
+body.administration-page .administration-inline-form .form-label,
+body.administration-page .administration-form .form-label {
+    display: block;
+    margin-bottom: 4px !important;
+    color: rgba(226, 232, 240, 0.72) !important;
+    font-size: 0.76rem;
+    line-height: 1.35;
+}
+
+body.administration-page .administration-panel-form .form-control,
+body.administration-page .administration-panel-form .form-select,
+body.administration-page .administration-inline-form .form-control,
+body.administration-page .administration-inline-form .form-select,
+body.administration-page .administration-form .form-control,
+body.administration-page .administration-form .form-select {
+    background-color: rgba(12, 20, 34, 0.82) !important;
+    border: 1px solid rgba(148, 163, 184, 0.18) !important;
+    color: var(--theme-text) !important;
+    box-shadow: none !important;
+    border-radius: 6px !important;
+}
+
+body.administration-page .administration-panel-form .form-control:focus,
+body.administration-page .administration-panel-form .form-select:focus,
+body.administration-page .administration-inline-form .form-control:focus,
+body.administration-page .administration-inline-form .form-select:focus,
+body.administration-page .administration-form .form-control:focus,
+body.administration-page .administration-form .form-select:focus {
+    border-color: rgba(59, 130, 246, 0.45) !important;
+    box-shadow: 0 0 0 0.2rem rgba(59, 130, 246, 0.12) !important;
+    background-color: rgba(12, 20, 34, 0.9) !important;
+}
+
+body.administration-page .administration-panel-form .input-group-text,
+body.administration-page .administration-inline-form .input-group-text,
+body.administration-page .administration-form .input-group-text {
+    background: rgba(23, 162, 184, 0.12) !important;
+    border: 1px solid rgba(148, 163, 184, 0.18) !important;
+    color: var(--theme-text) !important;
+    border-radius: 6px 0 0 6px !important;
+}
+
+body.administration-page .administration-panel-form .input-group .form-control,
+body.administration-page .administration-inline-form .input-group .form-control,
+body.administration-page .administration-form .input-group .form-control {
+    border-radius: 0 6px 6px 0 !important;
+}
+
+body.administration-page .administration-panel-form .form-control[type="file"],
+body.administration-page .administration-inline-form .form-control[type="file"],
+body.administration-page .administration-form .form-control[type="file"] {
+    padding-top: 4px;
+    padding-bottom: 4px;
+    background-color: rgba(12, 20, 34, 0.82) !important;
+}
+
+body.administration-page .administration-panel-form .form-control[type="file"]::file-selector-button,
+body.administration-page .administration-panel-form .form-control[type="file"]::-webkit-file-upload-button,
+body.administration-page .administration-inline-form .form-control[type="file"]::file-selector-button,
+body.administration-page .administration-inline-form .form-control[type="file"]::-webkit-file-upload-button,
+body.administration-page .administration-form .form-control[type="file"]::file-selector-button,
+body.administration-page .administration-form .form-control[type="file"]::-webkit-file-upload-button {
+    background: var(--theme-primary-soft);
+    color: var(--theme-primary);
+    border: 0;
+    border-radius: 4px;
+    margin-right: 8px;
+}
+
+body.administration-page #portalCompatBox,
+body.administration-page #administration-system code.user-select-all,
+body.administration-page #administration-system .administration-info-box {
+    border: 1px solid rgba(148, 163, 184, 0.18);
+    border-radius: 6px;
+}
+
+body.administration-page #portalCompatBox {
+    background: rgba(12, 20, 34, 0.45);
+    padding: 10px;
+}
+
+body.administration-page #administration-system code.user-select-all {
+    display: inline-block;
+    padding: 2px 6px;
+    background: rgba(12, 20, 34, 0.72);
+    color: #c7f9ff;
+}
+
+body.administration-page .administration-table {
+    width: 100%;
+    border-collapse: collapse;
+    background: transparent;
+    --bs-table-bg: transparent;
+    --bs-table-color: var(--theme-text);
+    --bs-table-border-color: rgba(255, 255, 255, 0.05);
+}
+
+body.administration-page .administration-table thead th {
+    font-size: 0.75rem;
+    padding: 8px;
+    color: var(--secondary-color, var(--theme-primary));
+    background-color: rgba(23, 162, 184, 0.08) !important;
+    border-bottom: 1px solid rgba(0, 255, 255, 0.2);
+    text-align: left;
+    text-transform: none;
+    letter-spacing: normal;
+}
+
+body.administration-page .administration-table tbody tr:nth-child(odd) {
+    background-color: rgba(255, 255, 255, 0.03) !important;
+}
+
+body.administration-page .administration-table tbody tr:nth-child(even) {
+    background-color: rgba(0, 0, 0, 0.15) !important;
+}
+
+body.administration-page .administration-table tbody tr:hover {
+    background: rgba(255, 255, 255, 0.05) !important;
+}
+
+body.administration-page #administration-accounts .administration-table tbody tr:nth-child(odd) {
+    background-color: rgba(12, 20, 34, 0.52) !important;
+}
+
+body.administration-page #administration-accounts .administration-table tbody tr:nth-child(even) {
+    background-color: rgba(8, 14, 24, 0.82) !important;
+}
+
+body.administration-page #administration-accounts .administration-table tbody tr:hover {
+    background: rgba(23, 162, 184, 0.12) !important;
+}
+
+body.administration-page .administration-table tbody td {
+    font-size: 0.8rem;
+    padding: 6px 8px;
+    color: var(--theme-text);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+    vertical-align: middle;
+}
+
+body.administration-page #administration-accounts .administration-table tbody td {
+    border-top: 1px solid rgba(148, 163, 184, 0.08);
+    border-bottom: 1px solid rgba(148, 163, 184, 0.08);
+}
+
+body.administration-page .administration-table tbody td:nth-child(2),
+body.administration-page .administration-table tbody td:nth-child(3),
+body.administration-page .administration-table tbody td:nth-child(4) {
+    text-align: left;
+}
+
+body.administration-page .administration-table tbody td:not(:nth-child(2)):not(:nth-child(3)):not(:nth-child(4)) {
+    text-align: center;
+}
+
+body.administration-page .administration-status-badge {
+    min-width: 0;
+    font-size: calc(0.75rem - 2px);
+    font-weight: 600;
+    padding: 1px 5px;
+    display: inline-flex;
+    align-items: center;
+}
+
+body.administration-page .action-cell .btn {
+    height: 25px;
+    min-width: 30px;
+    font-size: 0.75rem;
+    padding: 0 6px;
+}
+
+body.administration-page .administration-note {
+    line-height: 1.55;
+}
+
+body.administration-page .administration-password-group .form-control {
+    border-right: 0;
+}
+
+body.administration-page .administration-password-group .btn {
+    min-width: 44px;
+}
+
+body.administration-page .administration-import-row {
+    gap: 10px;
+}
+
+body.administration-page .administration-file-name {
+    color: rgba(255, 255, 255, 0.65);
+    font-size: 12px;
+}
+
+body.administration-page .administration-opnsense-actions,
+body.administration-page .administration-io-actions {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 10px;
+}
+
+@media (max-width: 576px) {
+    body.administration-page .administration-opnsense-actions,
+    body.administration-page .administration-io-actions {
+        flex-direction: column;
+        align-items: stretch;
+    }
+}
+
+body.administration-page .btn.btn-save,
+body.administration-page .btn.btn-test,
+body.administration-page .btn.btn-delete,
+body.administration-page .btn.btn-import {
+    min-width: 100px;
+    height: var(--theme-control-height);
+    font-size: var(--theme-control-font-size);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 4px;
+    transition: 0.2s ease;
+}
+
+body.administration-page .btn.btn-save {
+    background: var(--theme-primary-soft);
+    border: 1px solid var(--theme-primary);
+    color: var(--theme-primary);
+}
+
+body.administration-page .btn.btn-save:hover,
+body.administration-page .btn.btn-save:focus {
+    background: var(--theme-primary);
+    border-color: var(--theme-primary);
+    color: #fff;
+    box-shadow: 0 0 8px rgba(23, 162, 184, 0.35);
+}
+
+body.administration-page .btn.btn-test {
+    background: rgba(59, 130, 246, 0.12);
+    border: 1px solid #3b82f6;
+    color: #60a5fa;
+}
+
+body.administration-page .btn.btn-test:hover,
+body.administration-page .btn.btn-test:focus {
+    background: #3b82f6;
+    border-color: #3b82f6;
+    color: #fff;
+    box-shadow: 0 0 8px rgba(59, 130, 246, 0.35);
+}
+
+body.administration-page .btn.btn-import {
+    background: rgba(245, 158, 11, 0.12);
+    border: 1px solid #f59e0b;
+    color: #f59e0b;
+}
+
+body.administration-page .btn.btn-import:hover,
+body.administration-page .btn.btn-import:focus {
+    background: #f59e0b;
+    border-color: #f59e0b;
+    color: #fff;
+    box-shadow: 0 0 8px rgba(245, 158, 11, 0.35);
+}
+
+body.administration-page .btn.btn-delete {
+    background: rgba(220, 53, 69, 0.15);
+    border: 1px solid #dc3545;
+    color: #dc3545;
+}
+
+body.administration-page .btn.btn-delete:hover,
+body.administration-page .btn.btn-delete:focus {
+    background: #dc3545;
+    border-color: #dc3545;
+    color: #fff;
+    box-shadow: 0 0 10px rgba(220, 53, 69, 0.35);
+}
+
+body.administration-page .action-cell .btn.btn-test {
+    min-width: 30px;
+    height: 25px;
+    padding: 0 6px;
+    font-size: 0.75rem;
+}
+
+body.administration-page .administration-password-group .btn.btn-test {
+    min-width: 44px;
+    height: var(--theme-control-height);
+    padding: 0 8px;
+    font-size: var(--theme-control-font-size);
+}
+
+body.administration-page .btn.btn-test:disabled,
+body.administration-page .btn.btn-test[disabled],
+body.administration-page .btn.btn-test[aria-disabled="true"],
+body.administration-page .btn.btn-save:disabled,
+body.administration-page .btn.btn-save[disabled],
+body.administration-page .btn.btn-save[aria-disabled="true"],
+body.administration-page .btn.btn-import:disabled,
+body.administration-page .btn.btn-import[disabled],
+body.administration-page .btn.btn-import[aria-disabled="true"] {
+    background-color: rgba(12, 20, 34, 0.6) !important;
+    border-color: rgba(148, 163, 184, 0.18) !important;
+    color: rgba(226, 232, 240, 0.45) !important;
+    opacity: 1 !important;
+    box-shadow: none !important;
+}
+
+body.administration-page .btn.btn-import:disabled,
+body.administration-page .btn.btn-import[disabled],
+body.administration-page .btn.btn-import[aria-disabled="true"] {
+    background-color: transparent !important;
+    background: rgba(245, 158, 11, 0.12) !important;
+    border-color: #f59e0b !important;
+    color: #fff !important;
+    opacity: 0.65 !important;
+    box-shadow: none !important;
+}
+
+body.administration-page .administration-opnsense-tools {
+    border-color: rgba(148, 163, 184, 0.12) !important;
+}
+
+body.administration-page .administration-opnsense-status,
+body.administration-page .administration-io-status {
+    min-height: 22px;
+    font-size: 12px;
+    white-space: pre-line;
+}
+
+body.administration-page .administration-card-intro,
+body.administration-page .administration-form-note,
+body.administration-page .administration-opnsense-status,
+body.administration-page .administration-io-status {
+    color: rgba(226, 232, 240, 0.78);
+    line-height: 1.55;
+}
+
+body.administration-page .administration-card-intro {
+    font-size: 12px;
+}
+
+body.administration-page .administration-file-picker {
+    gap: 10px;
+    flex-wrap: wrap;
+}
+
+body.administration-page .administration-risk-box {
+    border: 1px solid var(--theme-border);
+    border-radius: 6px;
+    background: var(--theme-card);
+    padding: 10px;
+}
+
+body.administration-page .administration-risk-title {
+    font-size: 0.86rem;
+    font-weight: 600;
+    margin-bottom: 8px;
+    color: var(--theme-text);
+}
+
+body.administration-page .administration-risk-groups {
+    display: grid;
+    gap: 10px;
+    max-height: min(38vh, 300px);
+    overflow-y: auto;
+    padding-right: 6px;
+}
+
+body.administration-page .administration-risk-group-label {
+    font-size: 0.78rem;
+    font-weight: 600;
+    margin-bottom: 4px;
+}
+
+body.administration-page .administration-risk-list {
+    margin: 0;
+    padding-left: 18px;
+    font-size: 0.78rem;
+    line-height: 1.45;
+}
+
+body.administration-page .administration-risk-list li + li {
+    margin-top: 2px;
+}
+
+body.administration-page .administration-compact-cell {
+    padding-top: 3px !important;
+    padding-bottom: 3px !important;
+    vertical-align: middle;
+}
+
+body.administration-page #mikrotikImportModal .administration-modal-content,
+body.administration-page #radiusImportModal .administration-modal-content {
+    background: rgba(15, 23, 42, 0.96) !important;
+    border: 1px solid var(--theme-border) !important;
+    color: var(--theme-text);
+    box-shadow: 0 18px 45px rgba(0, 0, 0, 0.45);
+}
+
+body.administration-page #mikrotikImportModal .modal-dialog,
+body.administration-page #radiusImportModal .modal-dialog {
+    max-width: min(920px, calc(100vw - 32px));
+}
+
+body.administration-page #mikrotikImportModal .administration-modal-header,
+body.administration-page #radiusImportModal .administration-modal-header {
+    border-bottom-color: var(--theme-border) !important;
+}
+
+body.administration-page #mikrotikImportModal .administration-modal-footer,
+body.administration-page #radiusImportModal .administration-modal-footer {
+    border-top-color: var(--theme-border) !important;
+}
+
+body.administration-page #mikrotikImportModal .modal-body,
+body.administration-page #radiusImportModal .modal-body {
+    overflow: visible;
+}
+
+body.administration-page #mikrotikImportModal .administration-modal-section-title,
+body.administration-page #radiusImportModal .administration-modal-section-title,
+body.administration-page #mikrotikImportModal .administration-modal-metric,
+body.administration-page #radiusImportModal .administration-modal-metric,
+body.administration-page #mikrotikImportModal .administration-modal-summary-title,
+body.administration-page #radiusImportModal .administration-modal-summary-title {
+    color: var(--theme-primary);
+}
+
+body.administration-page #mikrotikImportModal .administration-modal-muted,
+body.administration-page #radiusImportModal .administration-modal-muted {
+    color: rgba(226, 232, 240, 0.62);
+}
+
+body.administration-page #mikrotikImportModal .progress,
+body.administration-page #radiusImportModal .progress {
+    background-color: rgba(255, 255, 255, 0.1);
+    height: 8px;
+}
+
+body.administration-page #mikrotikImportModal .progress-bar,
+body.administration-page #radiusImportModal .progress-bar {
+    background-color: var(--theme-primary) !important;
+}
+
+body.administration-page #mikrotikImportModal .administration-modal-metrics,
+body.administration-page #radiusImportModal .administration-modal-metrics,
+body.administration-page #mikrotikImportModal .administration-modal-summary-grid,
+body.administration-page #radiusImportModal .administration-modal-summary-grid {
+    border-top: 1px solid var(--theme-border);
+    padding-top: 10px;
+}
+
+body.administration-page #mikrotikImportModal .administration-modal-summary-title,
+body.administration-page #radiusImportModal .administration-modal-summary-title {
+    font-size: 0.82rem;
+    font-weight: 700;
+    margin-bottom: 6px;
+}
+
+body.administration-page #mikrotikImportModal .administration-modal-summary-text,
+body.administration-page #radiusImportModal .administration-modal-summary-text {
+    color: rgba(226, 232, 240, 0.82);
+    line-height: 1.6;
+}
+
+body.administration-page #mikrotikPoolMapBox .input-group-text {
+    background: rgba(23, 162, 184, 0.12) !important;
+    border: 1px solid rgba(148, 163, 184, 0.18) !important;
+    color: var(--theme-text) !important;
+    border-radius: 6px 0 0 6px !important;
+}
+
+body.administration-page #mikrotikPoolMapBox .form-select {
+    background-color: rgba(12, 20, 34, 0.82) !important;
+    border: 1px solid rgba(148, 163, 184, 0.18) !important;
+    color: var(--theme-text) !important;
+    box-shadow: none !important;
+    border-radius: 0 6px 6px 0 !important;
+}
+
+body.administration-page #mikrotikPoolMapBox .form-select:focus {
+    border-color: rgba(59, 130, 246, 0.45) !important;
+    box-shadow: 0 0 0 0.2rem rgba(59, 130, 246, 0.12) !important;
+    background-color: rgba(12, 20, 34, 0.9) !important;
+}
+
+body.administration-page #mikrotikPoolMapBox .form-select option {
+    background-color: #0f172a;
+    color: var(--theme-text);
+}
+
+body.administration-page .administration-risk-list-danger {
+    color: #fca5a5;
+}
+
+body.administration-page .administration-risk-list-warning {
+    color: #fde68a;
+}
+
+body.administration-page .administration-risk-groups::-webkit-scrollbar {
+    width: 8px;
+}
+
+body.administration-page .administration-risk-groups::-webkit-scrollbar-thumb {
+    background: rgba(148, 163, 184, 0.35);
+    border-radius: 8px;
+}
+
+@media (max-width: 991.98px) {
+    body.administration-page .administration-tabs-header .reports-tabs {
+        width: 100%;
+        margin-left: 0;
+        justify-content: flex-start;
+    }
+}

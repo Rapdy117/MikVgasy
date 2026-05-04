@@ -1,0 +1,94 @@
+/* =====================================================
+   ADD HOTSPOT USER (page add_hotspot_user uniquement)
+   Global : theme.css — charger theme puis cette feuille en dernier.
+   Base .network-device-form partagee : reste dans theme.css
+===================================================== */
+
+.network-device-form .card-header[data-bs-toggle="collapse"] {
+    cursor: pointer;
+}
+
+.network-device-form .row {
+    --bs-gutter-x: 0.8rem;
+}
+
+.network-device-form .card {
+    margin-bottom: 0;
+}
+
+.guide-content {
+    color: #eaeaea;
+    font-size: 0.95rem;
+}
+
+.guide-content h6 {
+    font-size: 1.05rem;
+    font-weight: 700;
+    color: var(--theme-primary);
+}
+
+.guide-content ul {
+    margin-bottom: 10px;
+    padding-left: 18px;
+}
+
+.guide-content li {
+    font-size: 0.9rem;
+    color: #dcdcdc;
+    margin-bottom: 3px;
+}
+
+.guide-content b {
+    font-size: 0.75rem;
+    color: #ffffff;
+}
+
+.time-segment-input {
+    min-width: 72px;
+    text-align: right;
+    appearance: textfield;
+    -webkit-appearance: none;
+}
+
+.time-segment-input::-webkit-outer-spin-button,
+.time-segment-input::-webkit-inner-spin-button,
+#dataLimitValueInput::-webkit-outer-spin-button,
+#dataLimitValueInput::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+}
+
+.time-segment-input,
+#dataLimitValueInput {
+    -moz-appearance: textfield;
+    appearance: textfield;
+    -webkit-appearance: none;
+}
+
+.network-device-form .form-select.data-limit-unit {
+    max-width: 90px;
+    padding: 0 6px !important;
+    border-left: none;
+    background-color: var(--theme-primary-soft) !important;
+    border: 1px solid var(--theme-primary) !important;
+    color: var(--theme-primary) !important;
+    background-image: none !important;
+}
+
+.network-device-form .form-select.data-limit-unit:focus {
+    border-color: var(--theme-primary) !important;
+    box-shadow: none !important;
+}
+
+.network-device-form .input-group .data-limit-unit {
+    border-radius: 0 4px 4px 0 !important;
+}
+
+.network-device-form .form-select.data-limit-unit option {
+    background-color: var(--theme-card) !important;
+    color: var(--theme-text) !important;
+}
+
+#dataLimitValueInput {
+    text-align: right;
+}

@@ -1,0 +1,308 @@
+:root {
+    --voucher-small-width: 50mm;
+    --voucher-small-height: 28.5mm;
+    --voucher-wide-width: 58.208mm; /* 220px @ 96dpi */
+}
+
+.voucher-card {
+    width: var(--voucher-small-width);
+    height: var(--voucher-small-height);
+    border: 0;
+    border-radius: 0;
+    background: transparent;
+    overflow: hidden;
+    box-shadow: none;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-sizing: border-box;
+}
+
+.voucher-card-wide {
+    width: var(--voucher-wide-width);
+    min-height: var(--voucher-small-height);
+    height: auto;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.mikhmon-ticket-shell {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.mkh-voucher {
+    display: inline-block;
+    border: 2px solid #000;
+    margin: 0;
+    border-collapse: collapse;
+    background: #fff;
+    color: #000;
+    font-family: Helvetica, arial, sans-serif;
+    box-sizing: border-box;
+    table-layout: fixed;
+}
+
+.mkh-voucher-wide {
+    width: var(--voucher-wide-width);
+}
+
+.mkh-voucher-small {
+    width: var(--voucher-small-width);
+    height: var(--voucher-small-height);
+    margin: 0 auto;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+}
+
+.mkh-header {
+    border-bottom: 1px solid #000;
+    padding: 2px 4px;
+    font-size: 14px;
+    font-weight: bold;
+}
+
+.mkh-logo-image {
+    height: 30px;
+    border: 0;
+    display: block;
+}
+
+.mkh-header-bar {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    min-width: 0;
+    width: 100%;
+}
+
+.mkh-header-logo {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex: 0 0 auto;
+}
+
+.mkh-logo-text,
+.mkh-wide-logo-text {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 700;
+    color: #000;
+}
+
+.mkh-logo-text {
+    width: 16px;
+    height: 16px;
+    border: 1px solid #000;
+    font-size: 9px;
+    line-height: 1;
+}
+
+.mkh-wide-logo-text {
+    width: 30px;
+    height: 30px;
+    border: 1px solid #000;
+    font-size: 14px;
+    line-height: 1;
+}
+
+.mkh-title {
+    flex: 1 1 auto;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    text-align: center;
+}
+
+.mkh-num {
+    flex: 0 0 auto;
+    margin-left: auto;
+}
+
+.mkh-body {
+    padding: 2px;
+    vertical-align: top;
+}
+
+.mkh-inner {
+    width: 100%;
+    text-align: center;
+    border-collapse: collapse;
+    table-layout: fixed;
+}
+
+.mkh-inner-wide {
+    width: 210px;
+    font-size: 12px;
+}
+
+.mkh-inner-small {
+    width: 100%;
+    font-size: 9px;
+}
+
+.mkh-cred-cell {
+    vertical-align: middle;
+}
+
+.mkh-credentials {
+    border-collapse: collapse;
+    width: 100%;
+    font-size: 11px;
+}
+
+.mkh-credentials-label td {
+    padding: 1px 2px;
+    font-size: 15px;
+}
+
+.mkh-credentials-value td {
+    border: 1px solid #000;
+    font-weight: bold;
+    font-size: 16px;
+    padding: 4px;
+    line-height: 1.1;
+    word-break: break-word;
+}
+
+.mkh-wide-main td {
+    vertical-align: middle;
+}
+
+.mkh-wide-main .mkh-cred-cell {
+    padding-right: 6px;
+}
+
+.mkh-qr-cell {
+    width: 70px;
+    padding-left: 4px;
+    vertical-align: middle;
+}
+
+.mkh-qr-cell .voucher-qr {
+    width: 64px;
+    height: 64px;
+    margin: 0 auto;
+}
+
+.mkh-meta-line {
+    border-top: 1px solid #000;
+    font-weight: bold;
+    font-size: 13px;
+    padding: 2px;
+    text-align: center;
+    line-height: 1.15;
+    word-break: break-word;
+}
+
+.mkh-login-line {
+    font-weight: bold;
+    font-size: 11px;
+    padding: 1px 2px;
+    text-align: center;
+    line-height: 1.1;
+    word-break: break-word;
+}
+
+.mkh-voucher-wide .mkh-meta-line {
+    font-size: 12px;
+}
+
+.mkh-voucher-wide .mkh-login-line {
+    font-size: 12px;
+}
+
+.mkh-voucher-small .mkh-header {
+    padding: 2px 3px;
+    font-size: 9px;
+    flex: 0 0 auto;
+}
+
+.mkh-voucher-small .mkh-header-bar {
+    gap: 2px;
+}
+
+.mkh-voucher-small .mkh-logo-image {
+    height: 12px;
+}
+
+.mkh-voucher-small .mkh-logo-text {
+    width: 12px;
+    height: 12px;
+    font-size: 7px;
+}
+
+.mkh-voucher-small .mkh-title {
+    font-size: 9px;
+}
+
+.mkh-voucher-small .mkh-num {
+    font-size: 8px;
+}
+
+.mkh-voucher-small .mkh-body {
+    padding: 3px 2px 2px;
+    flex: 1 1 0;
+    min-height: 0;
+    display: flex;
+    align-items: stretch;
+    justify-content: center;
+}
+
+.mkh-voucher-small .mkh-inner-small td {
+    width: 50%;
+    text-align: center;
+    vertical-align: middle;
+    word-break: break-word;
+}
+
+.mkh-small-labels td {
+    font-size: 11px;
+    padding: 1px 2px 0;
+    opacity: 0.75;
+    line-height: 1.1;
+}
+
+.mkh-small-login-line {
+    font-size: 9px;
+    padding: 1px 2px 2px;
+    line-height: 1.1;
+}
+
+.mkh-small-credentials td {
+    border: 1px solid #000;
+    font-weight: bold;
+    font-size: 13px;
+    line-height: 1.15;
+    padding: 2px 3px;
+}
+
+.mkh-small-meta-line {
+    font-size: 8px;
+    line-height: 1.25;
+    padding: 2px 3px;
+}
+
+.mkh-voucher-small .mkh-inner-small {
+    align-self: stretch;
+    height: 100%;
+}
+
+.mkh-voucher-small .mkh-inner-small tbody tr:last-child td {
+    border-top-width: 1px;
+}
+
+.voucher-qr canvas,
+.voucher-qr img {
+    width: 100% !important;
+    height: 100% !important;
+    display: block;
+}

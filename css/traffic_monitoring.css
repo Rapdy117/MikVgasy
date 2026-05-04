@@ -1,0 +1,119 @@
+/* Layout : barre d’outils compacte, une ligne (défilement horizontal si besoin). */
+
+/* Couleurs : même carte que .network-device-form sur add_profile (theme.css, section formulaires) */
+
+.traffic-monitoring-card-header {
+    min-width: 0;
+    overflow-x: auto;
+    overflow-y: hidden;
+    overscroll-behavior-x: contain;
+    scrollbar-width: thin;
+    scrollbar-color: var(--theme-scrollbar-thumb) var(--theme-scrollbar-track);
+    flex-wrap: nowrap;
+}
+
+.traffic-toolbar {
+    display: flex;
+    flex-wrap: nowrap;
+    align-items: stretch;
+    gap: 0.35rem;
+    margin-left: auto;
+    flex: 0 0 auto;
+}
+
+@media (min-width: 576px) {
+    .traffic-toolbar {
+        gap: 0.5rem;
+    }
+}
+
+.traffic-source-group {
+    flex: 0 0 auto;
+    min-width: 0;
+    display: flex;
+    align-items: stretch;
+    width: auto;
+    max-width: 100%;
+}
+
+.traffic-source-group.traffic-monitoring-iface {
+    width: 8.5rem;
+    min-width: 8.5rem;
+    max-width: 8.5rem;
+}
+
+.traffic-source-group.traffic-refresh-group {
+    width: 5.75rem;
+    min-width: 5.75rem;
+    max-width: 5.75rem;
+}
+
+/* .network-device-form .input-group-text — theme.css */
+.traffic-source-group .input-group-text {
+    width: 1.7rem;
+    min-width: 1.7rem;
+    max-width: 1.7rem;
+    height: var(--theme-control-height);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
+    font-size: var(--theme-control-font-size);
+    line-height: 1;
+    background-color: var(--theme-primary-soft) !important;
+    border: 1px solid var(--theme-primary) !important;
+    color: var(--theme-primary) !important;
+    border-right: none !important;
+    border-radius: 4px 0 0 4px !important;
+}
+
+.traffic-source-group .input-group-text i {
+    font-size: 0.7rem;
+    line-height: 1;
+    color: var(--theme-primary);
+}
+
+/* .network-device-form .form-select (+ groupe) — theme.css */
+.traffic-source-group .form-select,
+.traffic-source-group .form-control {
+    height: var(--theme-control-height);
+    min-height: var(--theme-control-height) !important;
+    font-size: var(--theme-control-font-size);
+    padding: 0 var(--theme-control-padding-x) !important;
+    min-width: 0;
+    flex: 1 1 auto;
+    width: 0;
+    background-color: rgba(255, 255, 255, 0.14) !important;
+    border: 1px solid var(--theme-border) !important;
+    border-left: none !important;
+    color: var(--theme-text) !important;
+    border-radius: 0 4px 4px 0 !important;
+    appearance: none;
+}
+
+/* Chevron : même rendu qu’un form-select global (ne pas forcer le fond du SVG) */
+.traffic-source-group .form-select {
+    background-image: var(--bs-form-select-bg-img);
+    background-repeat: no-repeat;
+    background-position: right 0.45rem center;
+    background-size: 1rem 0.75rem;
+    padding-right: 1.75rem !important;
+}
+
+.traffic-source-group .form-control::placeholder {
+    color: rgba(255, 255, 255, 0.7);
+}
+
+.traffic-source-group .form-select option {
+    background-color: rgba(18, 18, 30, 0.98);
+    color: #f2f6fb;
+}
+
+/* .network-device-form .form-select:focus — theme.css */
+.traffic-source-group .form-select:focus,
+.traffic-source-group .form-control:focus {
+    border-color: var(--theme-primary) !important;
+    box-shadow: 0 0 0 0.18rem rgba(23, 162, 184, 0.22), 0 0 8px rgba(23, 162, 184, 0.45) !important;
+    background-color: rgba(255, 255, 255, 0.18) !important;
+    color: var(--theme-text) !important;
+}
