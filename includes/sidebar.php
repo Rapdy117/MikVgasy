@@ -6,7 +6,7 @@ require_once __DIR__ . '/admin_notifications.php';
 require_once __DIR__ . '/../config/db.php';
 
 $current = basename($_SERVER['PHP_SELF']);
-$appContext = buildAppContext();
+$appContext = is_array($appContext ?? null) ? $appContext : buildAppContext();
 $navbarDevice = $appContext['device'] ?? [
     'id' => null,
     'name' => 'Aucun device',
@@ -45,7 +45,7 @@ $navbarSearchIndex = array_values(array_filter(
     }
 ));
 $isAdminUser = isAdministrator();
-$navbarUnreadNotifications = $isAdminUser ? countUnreadAdminNotifications($pdo) : 0;
+$navbarUnreadNotifications = $isAdminUser ? countUnreadAdminNotificationsCached($pdo, 60) : 0;
 ?>
 
 <nav class="navbar navbar-expand-lg navbar-dark fixed-top" id="main-navbar">
@@ -322,7 +322,7 @@ $navbarUnreadNotifications = $isAdminUser ? countUnreadAdminNotifications($pdo) 
         <?php if ($isAdminUser): ?>
         <a href="recouvrement.php"
            class="list-group-item level-1 <?= ($current=='recouvrement.php')?'active':'' ?>">
-            <i class="fa fa-hand-holding-dollar"></i> Rouvrement
+            <i class="fa fa-hand-holding-dollar"></i> Recouvrement
         </a>
         <a href="recouvrement_invoices.php"
            class="list-group-item level-1 <?= ($current=='recouvrement_invoices.php')?'active':'' ?>">
@@ -354,6 +354,12 @@ $navbarUnreadNotifications = $isAdminUser ? countUnreadAdminNotifications($pdo) 
     <a href="network_devices.php"
        class="list-group-item level-1 <?= ($current=='network_devices.php')?'active':'' ?>">
         <i class="fa fa-network-wired"></i> Network Devices
+    </a>
+
+    <!-- LICENCE -->
+    <a href="license_manager.php"
+       class="list-group-item level-1 <?= ($current=='license_manager.php')?'active':'' ?>">
+        <i class="fa fa-key"></i> Licences
     </a>
 
     <!-- MIKHMON -->
