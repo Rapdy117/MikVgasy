@@ -177,12 +177,6 @@ require_once __DIR__ . '/../includes/layout_header.php';
                 <code>RM_LICENSE_PRIVATE_KEY</code>.</div>
             </div>
 
-            <div class="col-12">
-              <label class="form-label">Fichier de sortie <span class="text-muted">(optionnel)</span></label>
-              <input type="text" class="form-control font-monospace" name="output_path"
-                     placeholder="C:\licences\client-license.json">
-            </div>
-
           </div>
 
           <div class="d-flex gap-2 flex-wrap mt-4">

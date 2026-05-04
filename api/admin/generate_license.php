@@ -30,6 +30,12 @@ if (!is_file($exePath)) {
 
 $action = trim((string)($_POST['action'] ?? 'generate'));
 
+if (!in_array($action, ['generate', 'keypair'], true)) {
+    http_response_code(400);
+    echo json_encode(['success' => false, 'message' => 'Action inconnue.']);
+    exit;
+}
+
 try {
     if ($action === 'keypair') {
         $raw    = runLicenseExe($exePath, ['new-keypair'], [], 10);
@@ -50,7 +56,6 @@ try {
     $expiresAt  = trim((string)($_POST['expires_at']   ?? 'never'));
     $features   = trim((string)($_POST['features']     ?? ''));
     $privateKey = trim((string)($_POST['private_key']  ?? ''));
-    $outputPath = trim((string)($_POST['output_path']  ?? ''));
 
     if ($customerID === '') throw new RuntimeException('Customer ID requis.');
     if ($deviceID === '')   throw new RuntimeException('Device ID requis.');
@@ -67,9 +72,6 @@ try {
     ];
     if ($features !== '') {
         array_push($args, '--features', $features);
-    }
-    if ($outputPath !== '') {
-        array_push($args, '--out', $outputPath);
     }
 
     $raw    = runLicenseExe($exePath, $args, ['RM_LICENSE_PRIVATE_KEY' => $privateKey], 10);
@@ -98,6 +100,7 @@ function runLicenseExe(string $exe, array $args, array $extraEnv, int $timeout):
     $env = array_merge(getenv() ?: [], $_ENV, $extraEnv);
 
     $descriptors = [0 => ['pipe', 'r'], 1 => ['pipe', 'w'], 2 => ['pipe', 'w']];
+    set_time_limit($timeout + 5);
     $process = proc_open($cmd, $descriptors, $pipes, null, $env);
     if (!is_resource($process)) {
         throw new RuntimeException('Impossible de lancer license-generator.exe');
@@ -113,11 +116,13 @@ function runLicenseExe(string $exe, array $args, array $extraEnv, int $timeout):
     $exitCode = proc_close($process);
 
     if ($stdout === '' || $exitCode !== 0) {
-        $detail = $stderr !== '' ? ' : ' . $stderr : '';
+        if ($stderr !== '') {
+            error_log('license-generator stderr: ' . $stderr);
+        }
         throw new RuntimeException(
             $stdout === ''
-                ? 'Aucune sortie du générateur' . $detail
-                : 'license-generator.exe a échoué (code ' . $exitCode . ')' . $detail
+                ? 'Aucune sortie du générateur (code ' . $exitCode . ').'
+                : 'license-generator.exe a échoué (code ' . $exitCode . ').'
         );
     }
 
