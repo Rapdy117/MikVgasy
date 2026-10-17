@@ -31,7 +31,6 @@ if ($csrfToken === '' || !hash_equals((string)($_SESSION['csrf_token'] ?? ''), $
 }
 
 try {
-    $leaseId = post_string('lease_id');
     $payload = [
         'address' => post_string('address'),
         'mac' => post_string('mac'),
@@ -41,13 +40,8 @@ try {
         'disabled' => post_string('disabled') === '1',
     ];
 
-    if ($leaseId !== '') {
-        updateMikrotikDhcpLease($leaseId, $payload);
-        $message = 'Bail DHCP mis a jour.';
-    } else {
-        addMikrotikDhcpLease($payload);
-        $message = 'Bail DHCP ajouté.';
-    }
+    $action = syncMikrotikDhcpLease($payload);
+    $message = $action === 'updated' ? 'Lease DHCP fixe mis à jour.' : 'Lease DHCP fixe ajouté.';
 
     echo json_encode([
         'success' => true,

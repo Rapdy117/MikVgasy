@@ -70,7 +70,7 @@ try {
     }
 
     $store = loadDeviceStore();
-    $device = findDeviceById($store, $deviceId);
+    $device = requireAccessibleDevice($store, $deviceId);
     if (!$device) {
         throw new RuntimeException('Device introuvable');
     }
@@ -85,13 +85,14 @@ try {
         }
         $profileValue = $profileName;
     } else {
-        if ($profileId === null) {
-            throw new RuntimeException('Profil manquant');
-        }
+        // RADIUS/SQL uses the numeric profile id as its canonical identifier.
+        // Accept the submitted name only to resolve a stale/legacy form value.
+        $profileId = resolveRadiusProfileId($pdo, $profileId, $profileName);
         $profileValue = $profileId;
     }
 
     $result = buildRechargePreview($pdo, $device, $username, $profileValue, $mode, $profileId, $profileName, $nasContext);
+    $result['preview_token'] = issueRechargePreviewToken(rechargePreviewContext($device, $username, $profileId, $profileName, $mode), $result);
     echo json_encode(['success' => true] + $result);
     while (ob_get_level() > 0) {
         ob_end_flush();

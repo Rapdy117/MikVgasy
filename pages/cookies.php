@@ -29,25 +29,11 @@ if ($isMikrotik) {
     }
 }
 ?>
-<!DOCTYPE html>
-<html lang="fr">
-<head>
-<meta charset="UTF-8">
-<title>Cookies Hotspot</title>
 
-<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
-<link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="../css/theme.css">
-<link rel="stylesheet" href="../css/hosts.css">
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
-</head>
-<body>
-
-<div class="d-flex" id="wrapper">
-<?php include_once __DIR__ . '/../includes/sidebar.php'; ?>
-
-<div id="page-content-wrapper">
-<div class="container-fluid py-3">
+<?php
+$pageTitle = 'Cookies Hotspot';
+require_once '../includes/layout_header.php';
+?>
 
 <div id="messageArea" style="display:none;"></div>
 
@@ -167,10 +153,11 @@ if ($isMikrotik) {
 </div>
 </div>
 
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
-<script src="../js/sidebar.js?v=20260402a"></script>
-<script src="../js/table_sort.js"></script>
-<script src="../js/cookies.js"></script>
 
-</body>
-</html>
+<?php
+$extraJs = array (
+  0 => '../js/table_sort.js',
+  1 => '../js/cookies.js',
+);
+require_once '../includes/layout_footer.php';
+?>

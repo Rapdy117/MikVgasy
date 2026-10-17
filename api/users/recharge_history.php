@@ -1,5 +1,7 @@
 <?php
 require '../../config/db.php';
+require_once __DIR__ . '/../../includes/device_manager.php';
+require_once __DIR__ . '/../../includes/auth.php';
 require_once '../../includes/recharge_history_store.php';
 
 session_start();
@@ -19,6 +21,7 @@ try {
     ensureRechargeHistoryTable($pdo);
 
     $deviceId = trim((string)($_GET['device_id'] ?? ''));
+    if ($deviceId !== '') { requireAccessibleDevice(loadDeviceStore(), $deviceId); }
     $username = trim((string)($_GET['username'] ?? ''));
     $limit = (int)($_GET['limit'] ?? 4);
     if ($limit < 1) {

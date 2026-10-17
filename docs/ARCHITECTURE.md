@@ -20,11 +20,11 @@ L'application est une interface web PHP de gestion hotspot qui s'appuie sur :
 - des scripts JavaScript pour les interactions asynchrones dans `js/`
 - des endpoints PHP dans `api/`
 - une base MySQL pour les donnees applicatives et les tables FreeRADIUS
-- des fichiers JSON de configuration locale pour OPNsense et FreeRADIUS
+- des fichiers JSON de configuration FreeRADIUS uniquement ; les Devices sont stockes en SQL
 
 Le flux architectural principal est :
 
-`Pages PHP -> JavaScript -> API PHP -> Base SQL / JSON / API externes`
+`Pages PHP -> JavaScript -> API PHP -> Base SQL / tables RADIUS / API externes`
 
 Orientation cible a retenir pour les evolutions :
 
@@ -209,7 +209,7 @@ Observation :
   - profil
   - `Time Limit`
   - `Data Limit`
-- le select `Serveur` affiche directement les devices venant de [config/opnsense.json](/var/www/html/config/opnsense.json) via [api/network_devices_api.php](/var/www/html/api/network_devices_api.php)
+- le select `Serveur` charge les Devices SQL via [includes/device_manager.php](/var/www/html/includes/device_manager.php) et [api/network_devices_api.php](/var/www/html/api/network_devices_api.php)
 - le backend de creation resout ensuite le contexte NAS a partir du device ou du `nas_id`
 - quand le serveur selectionne est `mikrotik`, le select `Profil` est charge depuis RouterOS via [api/users/profile_options.php](/var/www/html/api/users/profile_options.php)
 - le serveur actif est maintenant selectionne par defaut dans le formulaire
@@ -381,12 +381,12 @@ Composants :
 - [api/network_devices_api.php](/var/www/html/api/network_devices_api.php)
 - [api/test_device.php](/var/www/html/api/test_device.php)
 - [api/disconnect_session.php](/var/www/html/api/disconnect_session.php)
-- [config/opnsense.json](/var/www/html/config/opnsense.json)
+- `network_devices` et `admin_device_assignments` (SQL)
 - [config/config.php](/var/www/html/config/config.php)
 
 Structure :
 
-- les equipements OPNsense sont enregistres dans un JSON local
+- les equipements sont enregistres dans les tables SQL `network_devices` et `admin_device_assignments`
 - les tests de connectivite sont faits par cURL
 - certaines actions reseau comme la deconnexion de session passent par l'API OPNsense
 
@@ -408,10 +408,8 @@ Positionnement cible :
 
 Observation :
 
-- il y a deux strategies de configuration OPNsense dans le projet :
-  - via `config/config.php` pour les constantes globales
-  - via `config/opnsense.json` pour les devices enregistres
-- `config/opnsense.json` contient encore une entree orientee MikroTik, ce qui confirme une transition non terminee dans les donnees de configuration
+- les parametres globaux restent dans `config/config.php`
+- les Devices et leurs secrets sont en SQL ; l ancien JSON est archive hors runtime
 - l'etat courant de la branche `mikrotik` n'est plus experimental :
   - dashboard branche
   - gestion des profils branchee
@@ -464,7 +462,7 @@ Lecture cible :
 ### Dependances NAS / Devices
 
 - [api/nas.php](/var/www/html/api/nas.php) depend de la table `nas`
-- [api/network_devices_api.php](/var/www/html/api/network_devices_api.php) depend du JSON `config/opnsense.json`
+- [api/network_devices_api.php](/var/www/html/api/network_devices_api.php) depend des tables SQL `network_devices` et `admin_device_assignments`
 - [api/test_device.php](/var/www/html/api/test_device.php) depend des credentials fournis par formulaire
 - [pages/add_hotspot_user.php](/var/www/html/pages/add_hotspot_user.php) depend visuellement de `network_devices_api.php`, puis resout un contexte NAS via [includes/nas_resolver.php](/var/www/html/includes/nas_resolver.php)
 
@@ -557,7 +555,7 @@ Observation critique :
 
 ### Fichiers JSON
 
-- [config/opnsense.json](/var/www/html/config/opnsense.json) : liste d'equipements reseau du projet (`opnsense`, `mikrotik`, `radius`)
+- `network_devices` : liste SQL d'equipements du projet (`opnsense`, `mikrotik`, `radius`) ; l ancien JSON est archive
 - [config/radius.json](/var/www/html/config/radius.json) : configuration FreeRADIUS de test
 - [config/db.json](/var/www/html/config/db.json) : present mais non central dans les flux principaux observes
 
@@ -567,8 +565,24 @@ Observation critique :
 - front et back fortement couples par les noms de champs HTML
 - mapping direct entre modele interne et tables FreeRADIUS
 - presence d'une branche MikroTik active pour dashboard, sessions, users et creation hotspot
-- coexistence de donnees en SQL et en JSON local
+- coexistence SQL metier/RADIUS ; les JSON restants sont des parametres ou archives, pas la source Devices
 
 ## Resume
 
 Le projet est structure comme une application PHP monolithique avec rendu serveur, enrichie par des appels AJAX ciblant des endpoints internes. Le coeur metier repose sur des objets applicatifs communs (`users`, `profiles`) dont la traduction technique doit dependre du backend resolu par `nas_id` : tables FreeRADIUS pour la branche `radius`, API OPNsense pour `opnsense`, et logique locale MikroTik / Mikhmon pour `mikrotik`. L'architecture est lisible, mais heterogene et partiellement inachevee, ce qui impose une forte prudence lors des modifications.
+
+## Surveillance de qualite reseau MikroTik
+
+- `scripts/monitor_network_quality.php` effectue une collecte mutualisee toutes les 30 secondes pour chaque Device MikroTik SQL actif.
+- La collecte correle disponibilite API locale, DHCP/route WAN, deux sondes Internet, HTTPS reel, interfaces, CPU, conntrack, journaux DHCP/Hotspot et drops des Simple Queues.
+- `api/network_quality_monitor.php` relit uniquement l historique SQL du Device explicitement selectionne ; l affichage ne declenche aucune nouvelle collecte RouterOS.
+- L historique est glissant et supprime apres 48 heures. La page `traffic_control.php` expose des vues 6 h, 24 h et 48 h.
+- `includes/network_security_monitor.php` reutilise la meme connexion mutualisee pour collecter des vues conntrack ciblees et les deltas des regles DNS/WAN ; aucune connexion API supplementaire n est ouverte par widget.
+- Les preuves DoT, signaux DoQ, suspicions DoH vers une destination connue et compteurs WAN sont historises 48 heures puis exposes par le meme rapport SQL. Aucun signal n applique automatiquement une regle de blocage.
+
+
+## Rectification canonique — 2026-07-22
+
+Les paragraphes historiques mentionnant `config/opnsense.json` decrivent l ancien fonctionnement et ne sont plus applicables au runtime. La source actuelle des Devices est SQL (`network_devices` et `admin_device_assignments`), avec secrets chiffres et `owner_admin_id`. Le Device actif est propre a la session.
+
+Le flux backend est `nas_id -> nas.type -> backend -> device_id`. OPNsense est actuellement en pause ; aucune page ne doit le choisir comme fallback. Les profils et utilisateurs MikroTik restent sur RouterOS, tandis que les profils/utilisateurs RADIUS restent dans SQL et sont projetes vers les tables `rad*`.

@@ -24,8 +24,9 @@ try {
     $device = requireActiveDevice();
 
     if (($device['type'] ?? '') === 'mikrotik') {
-        $resource = getMikrotikSystemResource();
-        $routerboard = getMikrotikRouterboardInfo();
+        $nasContext = buildMikrotikContextFromDevice($device);
+        $resource = getMikrotikSystemResource($nasContext);
+        $routerboard = getMikrotikRouterboardInfo($nasContext);
         $parts = array_filter([
             trim((string)($resource['architecture-name'] ?? '')),
             trim((string)($resource['cpu'] ?? '')),

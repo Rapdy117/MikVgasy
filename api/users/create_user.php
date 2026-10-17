@@ -1,6 +1,8 @@
 <?php
-require '../../config/db.php'; // ta connexion PDO
+require_once __DIR__ . '/../../includes/hotspot_mac_labels.php';
+require '../../config/db.php';
 require_once '../../includes/auth.php';
+require_once '../../includes/crypto.php';
 require_once '../../includes/user_provisioning.php';
 require_once '../../includes/opnsense_shaper.php';
 require_once '../../includes/operation_history.php';
@@ -110,6 +112,18 @@ require_valid_csrf();
 /* =========================
    INPUT
 ========================= */
+$loginMode = post_string_or_null('login_mode') === 'mac' ? 'mac' : 'password';
+$hotspotLabel = post_string_or_null('label');
+// Restriction optionnelle à un appareil (compte avec mot de passe) : la MAC est enregistrée sur le compte.
+$macRestriction = post_string_or_null('mac');
+if ($macRestriction !== null && !preg_match('/^([0-9A-Fa-f]{2}:){5}[0-9A-Fa-f]{2}$/', $macRestriction)) {
+    http_response_code(400);
+    echo json_encode(['success' => false, 'message' => 'Adresse MAC de restriction invalide (format AA:BB:CC:DD:EE:FF).']);
+    exit;
+}
+if ($macRestriction !== null) {
+    $macRestriction = strtoupper($macRestriction);
+}
 $username = post_string_or_null('username');
 $password = post_string_or_null('password');
 $profile_id = post_int_or_default('profile_id', 0);
@@ -124,7 +138,7 @@ $isMikrotikDevice = false;
 if ($device_id !== null && $device_id !== '') {
     try {
         $deviceStore = loadDeviceStore();
-        $device = findDeviceById($deviceStore, $device_id);
+        $device = requireAccessibleDevice($deviceStore, $device_id);
         $isMikrotikDevice = is_array($device)
             && resolveDeviceBusinessSource((string)($device['type'] ?? '')) === 'mikrotik_local';
     } catch (Throwable $e) {
@@ -135,7 +149,7 @@ if ($device_id !== null && $device_id !== '') {
 /* =========================
    VALIDATION
 ========================= */
-if ($username === null || $password === null) {
+if ($username === null || ($password === null && $loginMode !== 'mac')) {
     http_response_code(400);
     echo json_encode([
         'success' => false,
@@ -195,7 +209,9 @@ try {
     $pdo->beginTransaction();
     $result = provisionUserWithProfile($pdo, [
         'username' => $username,
-        'password' => $password,
+        'password' => $loginMode === 'mac' ? '' : encryptField((string)$password), /* chiffré en DB, déchiffré au sync RADIUS */
+        'login_mode' => $loginMode,
+        'mac' => $macRestriction,
         'profile_id' => $profile_id,
         'profile_name' => $profile_name,
         'device_id' => $device_id,
@@ -244,6 +260,15 @@ try {
         $pdo->commit();
     } else {
         error_log('[create_user] Transaction lost before commit.');
+    }
+
+    // Libellé du compte MAC : affichage seulement. Un échec ici ne remet pas en cause la création RouterOS.
+    if ($loginMode === 'mac' && $hotspotLabel !== null) {
+        try {
+            saveHotspotMacLabel($pdo, (string)$device_id, (string)$username, $hotspotLabel);
+        } catch (Throwable $labelError) {
+            error_log('[create_user] libellé MAC non enregistré : ' . $labelError->getMessage());
+        }
     }
 
     $shaperSync = null;

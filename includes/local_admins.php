@@ -1,5 +1,6 @@
 <?php
 
+
 function ensureLocalAdminTable(PDO $pdo): void
 {
     $pdo->exec(
@@ -7,7 +8,8 @@ function ensureLocalAdminTable(PDO $pdo): void
             id INT(11) NOT NULL AUTO_INCREMENT,
             username VARCHAR(100) NOT NULL,
             password_hash VARCHAR(255) NOT NULL,
-            role ENUM('administrator','reseller') NOT NULL DEFAULT 'administrator',
+            role ENUM('superadmin','admin','reseller') NOT NULL DEFAULT 'admin',
+            owner_admin_id BIGINT UNSIGNED NULL,
             is_active TINYINT(1) NOT NULL DEFAULT 1,
             created_at TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP,
             updated_at TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
@@ -16,31 +18,22 @@ function ensureLocalAdminTable(PDO $pdo): void
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci"
     );
 
-    $count = (int)$pdo->query("SELECT COUNT(*) FROM local_admin_users")->fetchColumn();
     try {
         $columns = $pdo->query("SHOW COLUMNS FROM local_admin_users")->fetchAll(PDO::FETCH_COLUMN) ?: [];
         if (!in_array('role', $columns, true)) {
-            $pdo->exec("ALTER TABLE local_admin_users ADD COLUMN role ENUM('administrator','reseller') NOT NULL DEFAULT 'administrator' AFTER password_hash");
+            $pdo->exec("ALTER TABLE local_admin_users ADD COLUMN role ENUM('superadmin','admin','reseller') NOT NULL DEFAULT 'admin' AFTER password_hash");
         }
     } catch (Throwable $e) {
         // migration best effort
     }
 
-    if ($count === 0) {
-        $stmt = $pdo->prepare('INSERT INTO local_admin_users (username, password_hash, role, is_active) VALUES (?, ?, ?, 1)');
-        $stmt->execute([
-            'monutilisateur',
-            password_hash('monmotdepasse', PASSWORD_DEFAULT),
-            'administrator',
-        ]);
-    }
 }
 
 function verifyLocalAdminCredentials(PDO $pdo, string $username, string $password): ?array
 {
     ensureLocalAdminTable($pdo);
 
-    $stmt = $pdo->prepare('SELECT id, username, password_hash, role, is_active FROM local_admin_users WHERE username = ? LIMIT 1');
+    $stmt = $pdo->prepare('SELECT id, username, password_hash, role, owner_admin_id, is_active FROM local_admin_users WHERE username = ? LIMIT 1');
     $stmt->execute([trim($username)]);
     $row = $stmt->fetch(PDO::FETCH_ASSOC);
 
@@ -64,15 +57,23 @@ function listLocalAdmins(PDO $pdo): array
 
 function normalizeLocalAdminRole(?string $role): string
 {
-    return trim((string)$role) === 'reseller' ? 'reseller' : 'administrator';
+    return match (trim((string)$role)) {
+        'superadmin' => 'superadmin',
+        'reseller' => 'reseller',
+        default => 'admin',
+    };
 }
 
 function localAdminRoleLabel(?string $role): string
 {
-    return normalizeLocalAdminRole($role) === 'reseller' ? 'Revendeur' : 'Administrateur';
+    return match (normalizeLocalAdminRole($role)) {
+        'superadmin' => 'Superadministrateur',
+        'reseller' => 'Revendeur',
+        default => 'Administrateur',
+    };
 }
 
-function createLocalAdmin(PDO $pdo, string $username, string $password, ?string $role = null): void
+function createLocalAdmin(PDO $pdo, string $username, string $password, ?string $role = null, ?int $ownerAdminId = null): void
 {
     ensureLocalAdminTable($pdo);
 
@@ -81,11 +82,11 @@ function createLocalAdmin(PDO $pdo, string $username, string $password, ?string 
         throw new RuntimeException('Utilisateur ou mot de passe manquant');
     }
 
-    $stmt = $pdo->prepare('INSERT INTO local_admin_users (username, password_hash, role, is_active) VALUES (?, ?, ?, 1)');
-    $stmt->execute([$username, password_hash($password, PASSWORD_DEFAULT), normalizeLocalAdminRole($role)]);
+    $stmt = $pdo->prepare('INSERT INTO local_admin_users (username, password_hash, role, owner_admin_id, is_active) VALUES (?, ?, ?, ?, 1)');
+    $normalizedRole = normalizeLocalAdminRole($role); $owner = $normalizedRole === 'reseller' ? ($ownerAdminId ?: null) : null; $stmt->execute([$username, password_hash($password, PASSWORD_DEFAULT), $normalizedRole, $owner]);
 }
 
-function updateLocalAdmin(PDO $pdo, int $id, string $username, ?string $password, bool $isActive, ?string $role = null): void
+function updateLocalAdmin(PDO $pdo, int $id, string $username, ?string $password, bool $isActive, ?string $role = null, ?int $ownerAdminId = null): void
 {
     ensureLocalAdminTable($pdo);
 
@@ -97,13 +98,13 @@ function updateLocalAdmin(PDO $pdo, int $id, string $username, ?string $password
     $normalizedRole = normalizeLocalAdminRole($role);
 
     if ($password !== null && $password !== '') {
-        $stmt = $pdo->prepare('UPDATE local_admin_users SET username = ?, password_hash = ?, role = ?, is_active = ? WHERE id = ?');
-        $stmt->execute([$username, password_hash($password, PASSWORD_DEFAULT), $normalizedRole, $isActive ? 1 : 0, $id]);
+        $stmt = $pdo->prepare('UPDATE local_admin_users SET username = ?, password_hash = ?, role = ?, owner_admin_id = ?, is_active = ? WHERE id = ?');
+        $owner = $normalizedRole === 'reseller' ? ($ownerAdminId ?: null) : null; $stmt->execute([$username, password_hash($password, PASSWORD_DEFAULT), $normalizedRole, $owner, $isActive ? 1 : 0, $id]);
         return;
     }
 
-    $stmt = $pdo->prepare('UPDATE local_admin_users SET username = ?, role = ?, is_active = ? WHERE id = ?');
-    $stmt->execute([$username, $normalizedRole, $isActive ? 1 : 0, $id]);
+    $stmt = $pdo->prepare('UPDATE local_admin_users SET username = ?, role = ?, owner_admin_id = ?, is_active = ? WHERE id = ?');
+    $owner = $normalizedRole === 'reseller' ? ($ownerAdminId ?: null) : null; $stmt->execute([$username, $normalizedRole, $owner, $isActive ? 1 : 0, $id]);
 }
 
 function deleteLocalAdmin(PDO $pdo, int $id, ?string $protectedUsername = null): void

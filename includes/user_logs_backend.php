@@ -3,7 +3,8 @@
 require_once __DIR__ . '/device_manager.php';
 require_once __DIR__ . '/app_context.php';
 require_once __DIR__ . '/mikrotik_backend.php';
-require_once __DIR__ . '/operation_history.php';
+require_once __DIR__ . '/mikrotik_hotspot_log_collector.php';
+require_once __DIR__ . '/hotspot_mac_labels.php';
 require_once __DIR__ . '/event_translators.php';
 
 function formatUserLogsDeviceLabel(array $device): string
@@ -93,34 +94,17 @@ function mapRadiusTerminateCauseToStatus(string $cause, bool $isOnline): string
     };
 }
 
-function formatAmountLabel($value): string
-{
-    $amount = (float)($value ?? 0);
-    $formatted = number_format($amount, 2, '.', ' ');
-    return rtrim(rtrim($formatted, '0'), '.');
-}
-
-function rechargeModeLabel(string $mode): string
-{
-    return match ($mode) {
-        'replace_offer' => 'Changement profil',
-        'extend_offer' => 'Rechargement',
-        'accumulate_offer' => 'Réabonnement',
-        default => $mode !== '' ? $mode : 'Recharge',
-    };
-}
-
 /**
  * Contexte applicatif + device actif (aligné sur getActiveDeviceRecord, pas sur un device partiel seul).
  */
-function buildUserLogsContext(): array
+function buildUserLogsContext(?array $selectedDevice = null): array
 {
     $context = [
         'app' => buildAppContext(),
     ];
 
     $store = loadDeviceStore();
-    $activeDevice = getActiveDeviceRecord($store);
+    $activeDevice = is_array($selectedDevice) ? $selectedDevice : getActiveDeviceRecord($store);
     if (!is_array($activeDevice) || trim((string)($activeDevice['type'] ?? '')) === '') {
         $activeDeviceType = 'radius';
     } else {
@@ -130,12 +114,15 @@ function buildUserLogsContext(): array
     $context['is_radius_like'] = is_array($activeDevice) && in_array($activeDeviceType, ['opnsense', 'radius'], true);
 
     $context['device'] = $context['app']['device'] ?? null;
+    if (is_array($selectedDevice)) {
+        $context['device'] = $selectedDevice;
+    }
     $context['device_type'] = strtolower(trim((string)($context['device']['type'] ?? '')));
 
     return $context;
 }
 
-function buildUserLogsDeviceMaps(array $store): array
+function buildUserLogsDeviceMaps(array $store, string $requestedDeviceId = ''): array
 {
     $activeDevice = getActiveDeviceRecord($store);
     $activeDeviceId = (string)($activeDevice['id'] ?? '');
@@ -158,12 +145,18 @@ function buildUserLogsDeviceMaps(array $store): array
         }
     }
 
-    $selectedServerId = 'active';
-    $queryDeviceId = '';
-    if ($selectedServerId === 'active') {
-        $queryDeviceId = $activeDeviceId;
-    } elseif ($selectedServerId !== 'all') {
-        $queryDeviceId = $selectedServerId;
+    $allowedDeviceIds = array_keys($deviceLabelById);
+    $queryDeviceId = $activeDeviceId;
+    $requestedDeviceId = trim($requestedDeviceId);
+    if ($requestedDeviceId !== '' && $requestedDeviceId !== 'active' && in_array($requestedDeviceId, $allowedDeviceIds, true)) {
+        $queryDeviceId = $requestedDeviceId;
+    }
+    $selectedDevice = null;
+    foreach (($store['devices'] ?? []) as $device) {
+        if ((string)($device['id'] ?? '') === $queryDeviceId) {
+            $selectedDevice = $device;
+            break;
+        }
     }
 
     $queryDeviceIp = '';
@@ -184,6 +177,8 @@ function buildUserLogsDeviceMaps(array $store): array
         'device_by_ip' => $deviceByIp,
         'query_device_id' => $queryDeviceId,
         'query_device_ip' => $queryDeviceIp,
+        'selected_device' => $selectedDevice,
+        'allowed_device_ids' => $allowedDeviceIds,
     ];
 }
 
@@ -212,7 +207,11 @@ function buildUserLogsFilters(array $filters): array
     ];
 }
 
-function loadMikrotikHotspotEvents(array $context): array
+/* Lit l'archive locale (mikrotik_hotspot_log_events) au lieu du buffer live /log de RouterOS :
+   ce buffer est volatile (memory-lines=1000, tous topics confondus) et se reecrit en quelques
+   heures sur ce reseau - on perdait l'historique au-dela. L'archive est alimentee par un cron
+   toutes les 2h (scripts/monitor_mikrotik_hotspot_logs.php), retention 48h. */
+function loadMikrotikHotspotEvents(PDO $pdo, array $context): array
 {
     $events = [];
     $error = null;
@@ -221,19 +220,40 @@ function loadMikrotikHotspotEvents(array $context): array
         return ['rows' => $events, 'error' => $error];
     }
 
-    try {
-        foreach (getMikrotikHotspotLogs(400) as $row) {
-            if (!is_array($row)) {
-                continue;
-            }
+    $deviceId = trim((string)(($context['device']['id'] ?? '') ?: ($context['device']['host'] ?? '')));
+    if ($deviceId === '') {
+        return ['rows' => $events, 'error' => $error];
+    }
 
-            $parsed = parseMikrotikHotspotLogMessage($row);
-            if ($parsed !== null) {
-                $events[] = $parsed;
-            }
+    try {
+        /* 30000 couvre largement la fenetre de retention de 48h (mesure : ~521 lignes/heure,
+           ~25000 lignes max attendues) - l'ancienne limite de 2000 ne couvrait que ~4h, pas les
+           48h prevues. */
+        foreach (mikrotikHotspotLogFetch($pdo, $deviceId, 30000) as $row) {
+            $events[] = [
+                'time' => (string)($row['logged_at'] ?? ''),
+                'user' => (string)($row['username'] ?? ''),
+                'address' => (string)($row['address'] ?? ''),
+                'action' => (string)($row['action'] ?? ''),
+                'status' => (string)($row['status'] ?? ''),
+                'raw_message' => (string)($row['raw_message'] ?? ''),
+            ];
         }
     } catch (Throwable $e) {
         $error = $e->getMessage();
+    }
+
+    /* Comble l'ecart entre le dernier passage cron (toutes les 2h) et maintenant : lecture live du
+       routeur, seulement ce qui est plus recent que la derniere ligne archivee. Echec silencieux
+       (routeur injoignable) : on garde l'archive, pas d'erreur bloquante pour un complement. */
+    try {
+        $lastArchived = mikrotikHotspotLogLastTimestamp($pdo, $deviceId);
+        $liveGapEvents = mikrotikHotspotLogFetchLiveGap($context['device'] ?? [], $lastArchived);
+        foreach ($liveGapEvents as $liveEvent) {
+            $events[] = $liveEvent;
+        }
+    } catch (Throwable $e) {
+        // non bloquant : l'archive locale reste affichee telle quelle
     }
 
     return ['rows' => $events, 'error' => $error];
@@ -318,144 +338,6 @@ function loadRadiusSessionRows(PDO $pdo, array $context, array $filters, array $
     return ['rows' => $rows, 'error' => $error, 'first_login_map' => $firstLoginMap];
 }
 
-function loadRadiusAuthRows(PDO $pdo, array $context, array $filters): array
-{
-    $rows = [];
-    $error = null;
-
-    if (!$context['is_radius_like']) {
-        return ['rows' => $rows, 'error' => $error];
-    }
-
-    try {
-        $tableCheck = $pdo->query("SHOW TABLES LIKE 'radpostauth'");
-        $hasRadPostAuth = $tableCheck && $tableCheck->fetchColumn();
-
-        if ($hasRadPostAuth) {
-            $sql = "
-                SELECT username, reply, authdate
-                FROM radpostauth
-                WHERE reply IS NOT NULL AND reply <> ''
-            ";
-            $params = [];
-
-            if ($filters['day_filter'] !== '') {
-                $sql .= " AND DATE(authdate) = ?";
-                $params[] = $filters['day_filter'];
-            } elseif ($filters['month'] !== '' && $filters['year'] !== '') {
-                $sql .= " AND YEAR(authdate) = ? AND MONTH(authdate) = ?";
-                $params[] = (int)$filters['year'];
-                $params[] = (int)$filters['month'];
-            }
-
-            $sql .= " ORDER BY authdate DESC LIMIT 500";
-            $stmt = $pdo->prepare($sql);
-            $stmt->execute($params);
-            $rows = $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
-        }
-    } catch (Throwable $e) {
-        $error = $e->getMessage();
-    }
-
-    return ['rows' => $rows, 'error' => $error];
-}
-
-function loadOperationHistoryRows(PDO $pdo, array $context, array $filters, array $deviceMaps): array
-{
-    $rows = [];
-    $error = null;
-
-    if (!$context['is_mikrotik'] && !$context['is_radius_like']) {
-        return ['rows' => $rows, 'error' => $error];
-    }
-
-    try {
-        ensureOperationHistoryTable($pdo);
-
-        $sql = "
-            SELECT
-                operation_type,
-                actor_username,
-                target_name,
-                summary,
-                device_id,
-                profile_name,
-                created_at
-            FROM operation_history
-            WHERE operation_type IN ('user_notice_record', 'user_remove_record', 'session_disconnect')
-        ";
-        $params = [];
-
-        if ($filters['day_filter'] !== '') {
-            $sql .= " AND DATE(created_at) = ?";
-            $params[] = $filters['day_filter'];
-        } elseif ($filters['month'] !== '' && $filters['year'] !== '') {
-            $sql .= " AND YEAR(created_at) = ? AND MONTH(created_at) = ?";
-            $params[] = (int)$filters['year'];
-            $params[] = (int)$filters['month'];
-        }
-
-        if ($deviceMaps['query_device_id'] !== '') {
-            $sql .= " AND device_id = ?";
-            $params[] = $deviceMaps['query_device_id'];
-        }
-
-        $sql .= " ORDER BY created_at DESC, id DESC LIMIT 500";
-        $stmt = $pdo->prepare($sql);
-        $stmt->execute($params);
-        $rows = $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
-    } catch (Throwable $e) {
-        $error = $e->getMessage();
-    }
-
-    return ['rows' => $rows, 'error' => $error];
-}
-
-function loadRechargeHistoryRows(PDO $pdo, array $filters, array $deviceMaps): array
-{
-    $rows = [];
-    $error = null;
-
-    try {
-        $sql = "
-            SELECT
-                created_at,
-                device_id,
-                username,
-                profile_name,
-                mode,
-                operator_username,
-                effect_summary,
-                amount_value
-            FROM recharge_history
-            WHERE 1 = 1
-        ";
-        $params = [];
-
-        if ($filters['day_filter'] !== '') {
-            $sql .= " AND DATE(created_at) = ?";
-            $params[] = $filters['day_filter'];
-        } elseif ($filters['month'] !== '' && $filters['year'] !== '') {
-            $sql .= " AND YEAR(created_at) = ? AND MONTH(created_at) = ?";
-            $params[] = (int)$filters['year'];
-            $params[] = (int)$filters['month'];
-        }
-
-        if ($deviceMaps['query_device_id'] !== '') {
-            $sql .= " AND device_id = ?";
-            $params[] = $deviceMaps['query_device_id'];
-        }
-
-        $sql .= " ORDER BY created_at DESC, id DESC LIMIT 500";
-        $stmt = $pdo->prepare($sql);
-        $stmt->execute($params);
-        $rows = $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
-    } catch (Throwable $e) {
-        $error = $e->getMessage();
-    }
-
-    return ['rows' => $rows, 'error' => $error];
-}
 
 function buildMikrotikProfileMap(array $context): array
 {
@@ -466,7 +348,10 @@ function buildMikrotikProfileMap(array $context): array
     }
 
     try {
-        foreach (getMikrotikHotspotUsers(100) as $u) {
+        /* 0 = pas de troncature : getMikrotikHotspotUsers() lit deja TOUS les comptes depuis
+           RouterOS quel que soit $limit (il ne fait qu'un array_slice en sortie), donc relever
+           ce chiffre ne coute rien de plus - juste eviter de perdre des profils au-dela de 100. */
+        foreach (getMikrotikHotspotUsers(0, $context['device'] ?? null) as $u) {
             $name = trim((string)($u['username'] ?? $u['name'] ?? ''));
             $profile = trim((string)($u['profile'] ?? ''));
             if ($name !== '') {
@@ -480,9 +365,10 @@ function buildMikrotikProfileMap(array $context): array
     return $map;
 }
 
-function normalizeMikrotikLogRows(array $hotspotEvents, string $activeDeviceLabel, array $profileMap, bool $isMikrotik): array
+function normalizeMikrotikLogRows(array $hotspotEvents, string $activeDeviceLabel, array $profileMap, bool $isMikrotik, array $macLabels = []): array
 {
     $rows = [];
+    $macPattern = '/^(?:[0-9A-Fa-f]{2}:){5}[0-9A-Fa-f]{2}$/';
 
     foreach ($hotspotEvents as $log) {
         $hotspotAction = (string)translateHotspotAction((string)($log['action'] ?? '-'));
@@ -497,9 +383,17 @@ function normalizeMikrotikLogRows(array $hotspotEvents, string $activeDeviceLabe
         }
 
         $username = (string)($log['user'] ?? '-');
+        $mac = '-';
+        /* Les logins par MAC (hotspot "login by mac") portent la MAC en guise de nom d'utilisateur :
+           on l'affiche avec son libellé enregistre (hotspot_mac_labels), la MAC brute en secours. */
+        if (preg_match($macPattern, $username)) {
+            $mac = strtoupper($username);
+            $username = $macLabels[$mac] ?? $mac;
+        }
+
         $profile = '-';
         if ($isMikrotik && $username !== '-' && $username !== '') {
-            $profile = $profileMap[$username] ?? '-';
+            $profile = $profileMap[$username] ?? ($mac !== '-' ? ($profileMap[$mac] ?? '-') : '-');
         }
 
         $rows[] = [
@@ -508,7 +402,7 @@ function normalizeMikrotikLogRows(array $hotspotEvents, string $activeDeviceLabe
             'username' => $username,
             'profile' => $profile,
             'address' => (string)($log['address'] ?? '-'),
-            'mac' => '-',
+            'mac' => $mac,
             'action' => $hotspotAction,
             'status' => $hotspotStatus,
             'server' => $activeDeviceLabel,
@@ -562,113 +456,6 @@ function normalizeRadiusSessionRows(array $radiusSessions, array $firstLoginMap,
             'status' => mapRadiusTerminateCauseToStatus($terminateCause, $isOnline),
             'server' => $server,
             'source_key' => 'radius_session',
-        ];
-    }
-
-    return $rows;
-}
-
-function normalizeRadiusAuthRows(array $radiusAuthRows, array $deviceMaps): array
-{
-    $rows = [];
-
-    foreach ($radiusAuthRows as $row) {
-        $authDate = trim((string)($row['authdate'] ?? ''));
-        $timestamp = $authDate !== '' ? strtotime($authDate) : false;
-        $reply = strtolower(trim((string)($row['reply'] ?? '')));
-
-        if ($reply === '' || !str_contains($reply, 'reject')) {
-            continue;
-        }
-
-        $rows[] = [
-            'date' => $timestamp ? date('Y-m-d', $timestamp) : '-',
-            'time' => $timestamp ? date('H:i:s', $timestamp) : '-',
-            'username' => (string)($row['username'] ?? '-'),
-            'profile' => '-',
-            'address' => '-',
-            'mac' => '-',
-            'action' => 'Mot de passe invalide',
-            'status' => 'Echec',
-            'server' => $deviceMaps['query_device_id'] !== ''
-                ? ($deviceMaps['device_label_by_id'][$deviceMaps['query_device_id']] ?? $deviceMaps['query_device_id'])
-                : '-',
-            'source_key' => 'radius_auth',
-        ];
-    }
-
-    return $rows;
-}
-
-function normalizeRechargeRows(array $rechargeRows, array $deviceMaps): array
-{
-    $rows = [];
-
-    foreach ($rechargeRows as $row) {
-        $createdAt = trim((string)($row['created_at'] ?? ''));
-        $timestamp = $createdAt !== '' ? strtotime($createdAt) : false;
-        $profileName = trim((string)($row['profile_name'] ?? ''));
-        $amountValue = (float)($row['amount_value'] ?? 0);
-        $mode = trim((string)($row['mode'] ?? ''));
-        $summary = trim((string)($row['effect_summary'] ?? ''));
-        $action = $summary !== '' ? $summary : rechargeModeLabel($mode);
-
-        if ($amountValue > 0) {
-            $action = sprintf('%s (%s)', $action, formatAmountLabel($amountValue));
-        }
-
-        $deviceId = (string)($row['device_id'] ?? '');
-
-        $rows[] = [
-            'date' => $timestamp ? date('Y-m-d', $timestamp) : '-',
-            'time' => $timestamp ? date('H:i:s', $timestamp) : '-',
-            'username' => (string)($row['username'] ?? '-'),
-            'profile' => $profileName !== '' ? $profileName : '-',
-            'address' => '-',
-            'mac' => '-',
-            'action' => $action,
-            'status' => rechargeModeLabel($mode),
-            'server' => (string)($deviceMaps['device_label_by_id'][$deviceId] ?? ($deviceId !== '' ? $deviceId : '-')),
-            'source_key' => 'recharge',
-        ];
-    }
-
-    return $rows;
-}
-
-function normalizeOperationRows(array $operationRows, array $deviceMaps): array
-{
-    $rows = [];
-
-    foreach ($operationRows as $row) {
-        $createdAt = trim((string)($row['created_at'] ?? ''));
-        $timestamp = $createdAt !== '' ? strtotime($createdAt) : false;
-        $targetName = trim((string)($row['target_name'] ?? ''));
-        $actorUsername = trim((string)($row['actor_username'] ?? ''));
-        $summary = trim((string)($row['summary'] ?? ''));
-        $operationType = trim((string)($row['operation_type'] ?? ''));
-        $profileName = trim((string)($row['profile_name'] ?? ''));
-        $deviceId = (string)($row['device_id'] ?? '');
-
-        $rows[] = [
-            'date' => $timestamp ? date('Y-m-d', $timestamp) : '-',
-            'time' => $timestamp ? date('H:i:s', $timestamp) : '-',
-            'username' => $targetName !== '' ? $targetName : ($actorUsername !== '' ? $actorUsername : 'Système'),
-            'profile' => $profileName !== '' ? $profileName : '-',
-            'address' => '-',
-            'mac' => '-',
-            'action' => $summary !== '' ? $summary : operationTypeLabel($operationType),
-            'status' => match ($operationType) {
-                'user_create' => 'Ajout user',
-                'user_update' => 'Maj user',
-                'user_delete' => 'Suppression user',
-                'user_notice_record' => 'Expiration',
-                'user_remove_record' => 'Suppression quota',
-                'session_disconnect' => 'Déconnexion',
-                default => 'Operation',
-            },
-            'server' => (string)($deviceMaps['device_label_by_id'][$deviceId] ?? ($deviceId !== '' ? $deviceId : '-')),
-            'source_key' => 'operation',
         ];
     }
 
@@ -731,25 +518,26 @@ function filterUserLogRowsBySource(array $rows, string $selectedSource): array
 
 function loadUserLogsViewData(PDO $pdo, array $filters = []): array
 {
-    $context = buildUserLogsContext();
-    $store = loadDeviceStore();
-    $deviceMaps = buildUserLogsDeviceMaps($store);
     $preparedFilters = buildUserLogsFilters($filters);
+    $store = loadDeviceStore();
+    $deviceMaps = buildUserLogsDeviceMaps($store, (string)($filters['device_id'] ?? ''));
+    $context = buildUserLogsContext($deviceMaps['selected_device'] ?? null);
 
-    $mikrotikLogs = loadMikrotikHotspotEvents($context);
+    $mikrotikLogs = loadMikrotikHotspotEvents($pdo, $context);
     $radiusSessions = loadRadiusSessionRows($pdo, $context, $preparedFilters, $deviceMaps);
-    $radiusAuth = loadRadiusAuthRows($pdo, $context, $preparedFilters);
-    $operations = loadOperationHistoryRows($pdo, $context, $preparedFilters, $deviceMaps);
-    $recharges = loadRechargeHistoryRows($pdo, $preparedFilters, $deviceMaps);
     $mikrotikProfileMap = buildMikrotikProfileMap($context);
+    $macLabels = [];
+    if ($context['is_mikrotik']) {
+        $macDeviceId = trim((string)(($context['device']['id'] ?? '') ?: ($context['device']['host'] ?? '')));
+        if ($macDeviceId !== '') {
+            $macLabels = getHotspotMacLabels($pdo, $macDeviceId);
+        }
+    }
 
     $combinedRows = array_merge(
         [],
-        normalizeMikrotikLogRows($mikrotikLogs['rows'], $deviceMaps['active_device_label'], $mikrotikProfileMap, $context['is_mikrotik']),
-        normalizeRadiusSessionRows($radiusSessions['rows'], $radiusSessions['first_login_map'], $deviceMaps),
-        normalizeRadiusAuthRows($radiusAuth['rows'], $deviceMaps),
-        normalizeRechargeRows($recharges['rows'], $deviceMaps),
-        normalizeOperationRows($operations['rows'], $deviceMaps)
+        normalizeMikrotikLogRows($mikrotikLogs['rows'], formatUserLogsDeviceLabel($context['device'] ?? []), $mikrotikProfileMap, $context['is_mikrotik'], $macLabels),
+        normalizeRadiusSessionRows($radiusSessions['rows'], $radiusSessions['first_login_map'], $deviceMaps)
     );
 
     if ($context['is_mikrotik']) {
@@ -764,13 +552,12 @@ function loadUserLogsViewData(PDO $pdo, array $filters = []): array
         'view' => [
             'page_title' => $context['is_radius_like'] && !$context['is_mikrotik'] ? 'Sessions / Logs' : 'User Logs',
             'active_device_label' => $deviceMaps['active_device_label'],
+            'selected_device_id' => (string)($deviceMaps['query_device_id'] ?? ''),
+            'device_options' => $deviceMaps['device_label_by_id'],
             'source_filter_options' => [
                 'all' => 'Toutes sources',
                 'details_event' => 'Détails événements',
                 'radius_session' => 'RADIUS sessions',
-                'radius_auth' => 'RADIUS auth',
-                'recharge' => 'Recharges',
-                'operation' => 'Opérations',
             ],
             'month_names' => [
                 1 => 'Janvier',
@@ -792,14 +579,12 @@ function loadUserLogsViewData(PDO $pdo, array $filters = []): array
             'month' => $preparedFilters['month'],
             'year' => $preparedFilters['year'],
             'source' => $preparedFilters['source'],
+            'device_id' => (string)($deviceMaps['query_device_id'] ?? ''),
         ],
         'rows' => $combinedRows,
         'errors' => [
             'hotspot' => $mikrotikLogs['error'],
             'radius_sessions' => $radiusSessions['error'],
-            'operations' => $operations['error'],
-            'recharges' => $recharges['error'],
-            'radius_auth' => $radiusAuth['error'],
         ],
     ];
 }

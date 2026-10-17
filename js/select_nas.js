@@ -9,13 +9,10 @@ document.addEventListener("DOMContentLoaded", function () {
     const initialAddressPool = form?.dataset?.initialAddressPool || '';
     const initialParentQueue = form?.dataset?.initialParentQueue || '';
     const initialDeviceId = form?.dataset?.initialDeviceId || '';
-    const messageArea = document.getElementById('messageArea');
     const submitButton = form ? form.querySelector('button[type="submit"]') : null;
     const submitButtonHtml = submitButton ? submitButton.innerHTML : '';
-
     let deviceList = [];
     let nasMappingsByDeviceId = {};
-    let messageTimer = null;
 
     if (!select) {
         return;
@@ -25,32 +22,12 @@ document.addEventListener("DOMContentLoaded", function () {
         return String(type || '').trim().toLowerCase();
     }
 
-    function escapeHtml(value) {
-        return String(value || '')
-            .replace(/&/g, '&amp;')
-            .replace(/</g, '&lt;')
-            .replace(/>/g, '&gt;')
-            .replace(/"/g, '&quot;')
-            .replace(/'/g, '&#039;');
-    }
-
     function showProfileMessage(message, type = 'info') {
-        if (!messageArea) {
+        if (!window.AppToast || typeof window.AppToast.flash !== 'function') {
             return;
         }
 
-        window.clearTimeout(messageTimer);
-        messageArea.classList.remove('is-hiding');
-        messageArea.classList.add('is-visible');
-        messageArea.innerHTML = `<div class="alert alert-${type}" role="alert">${escapeHtml(message)}</div>`;
-
-        messageTimer = window.setTimeout(() => {
-            messageArea.classList.add('is-hiding');
-            window.setTimeout(() => {
-                messageArea.classList.remove('is-visible', 'is-hiding');
-                messageArea.innerHTML = '';
-            }, 280);
-        }, 4200);
+        window.AppToast.flash(message, type);
     }
 
     function setSubmitBusy(isBusy) {
@@ -139,6 +116,22 @@ document.addEventListener("DOMContentLoaded", function () {
 
             setSelectOptions(addressPoolSelect, data.address_pools || [], '-- Choisir --', initialAddressPool);
             setSelectOptions(parentQueueSelect, data.parent_queues || [], '-- Choisir --', initialParentQueue);
+            if (parentQueueSelect) {
+                // Option « AUCUN » : valeur RouterOS « none » (aucune file parente).
+                const noneOption = document.createElement('option');
+                noneOption.value = 'none';
+                noneOption.textContent = 'AUCUN';
+                parentQueueSelect.insertBefore(noneOption, parentQueueSelect.options[1] || null);
+                if (initialParentQueue === 'none') parentQueueSelect.value = 'none';
+            }
+            if (addressPoolSelect) {
+                // Option « AUCUN » : valeur RouterOS « none » (aucun pool d'adresses, adresse gérée par DHCP).
+                const noneOption = document.createElement('option');
+                noneOption.value = 'none';
+                noneOption.textContent = 'AUCUN';
+                addressPoolSelect.insertBefore(noneOption, addressPoolSelect.options[1] || null);
+                if (initialAddressPool === 'none') addressPoolSelect.value = 'none';
+            }
             if (addressPoolSelect) {
                 addressPoolSelect.disabled = false;
             }
@@ -331,6 +324,7 @@ document.addEventListener("DOMContentLoaded", function () {
             hydrateDeviceSelect(devicePayload);
         } catch (error) {
             console.error('Erreur devices:', error);
+            showProfileMessage(error.message || 'Chargement des serveurs impossible.', 'danger');
             return;
         }
 
@@ -356,6 +350,7 @@ document.addEventListener("DOMContentLoaded", function () {
 
             syncSelectedNasHiddenFields();
             const formData = new FormData(form);
+            showProfileMessage('Enregistrement du profil en cours...', 'info');
             setSubmitBusy(true);
 
             fetch('../api/profiles/create_profile.php', {
@@ -371,7 +366,9 @@ document.addEventListener("DOMContentLoaded", function () {
                     if (data.success) {
                         showProfileMessage(data.message || 'Profil enregistré.', 'success');
                         const profileIdValue = Number(formData.get('profile_id') || 0);
-                        if (profileIdValue <= 0) {
+                        const oldProfileNameInput = form.querySelector('input[name="old_profile_name"]');
+                        const isEditMode = profileIdValue > 0 || (oldProfileNameInput && oldProfileNameInput.value.trim() !== '');
+                        if (!isEditMode) {
                             const preservedDeviceId = select.value;
                             form.reset();
                             if (preservedDeviceId && deviceList.some((device) => device.device_id === preservedDeviceId)) {

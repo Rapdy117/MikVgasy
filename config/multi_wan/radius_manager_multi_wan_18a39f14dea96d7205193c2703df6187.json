@@ -1,0 +1,43 @@
+{
+    "engine_mode": "routeros",
+    "monthly_target_gb": 4096,
+    "sources": {
+        "wan1": {
+            "label": "Starlink 1- V4 STD · principale",
+            "interface": "ether1",
+            "weight": 20,
+            "enabled": true,
+            "daily_target_gb": 150,
+            "monthly_target_gb": 4500,
+            "bandwidth_mbps": 0
+        },
+        "wan2": {
+            "label": "Starlink 2 -  V4 Mini · secondaire",
+            "interface": "ether2",
+            "weight": 80,
+            "enabled": true,
+            "daily_target_gb": 400,
+            "monthly_target_gb": 8000,
+            "bandwidth_mbps": 0
+        },
+        "wan3": {
+            "label": "Réserve 3",
+            "interface": "ether3",
+            "weight": 0,
+            "enabled": false,
+            "daily_target_gb": 200,
+            "monthly_target_gb": 0,
+            "bandwidth_mbps": 0
+        },
+        "wan4": {
+            "label": "Réserve 4",
+            "interface": "ether4",
+            "weight": 0,
+            "enabled": false,
+            "daily_target_gb": 200,
+            "monthly_target_gb": 0,
+            "bandwidth_mbps": 0
+        }
+    },
+    "restored_from_operation_history_at": "2026-09-21T18:40:26+00:00"
+}

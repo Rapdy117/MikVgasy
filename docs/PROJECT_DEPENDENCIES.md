@@ -1,203 +1,73 @@
-# Cartographie Des Dependances Projet
+# Dependances du projet
 
-## Methode
+Mise a jour : 2026-07-22
 
-Cette cartographie est basee sur :
+## Sources runtime
 
-- `require`, `require_once`, `include`, `include_once`
-- liens `<script>` et `<link>`
-- appels `fetch` et `EventSource`
-- navigation, sidebar et index de recherche
-- documents de pilotage existants
+- PHP : pages, API et includes hors `docs/`.
+- SQL : `network_devices`, `admin_device_assignments`, comptes locaux et objets commerciaux.
+- RouterOS : profils, utilisateurs et sessions MikroTik.
+- FreeRADIUS : projections `radcheck`, `radreply`, `radusergroup` et observations `radacct`.
+- OPNsense : branche API en pause.
 
-Un fichier non reference ici n est pas automatiquement supprimable. Il doit d abord etre classe selon son role reel.
+## Fichiers sensibles
 
-## Entrees Principales
+- `includes/device_manager.php` : chargement SQL des Devices et contrôle de périmètre.
+- `includes/tenancy.php` : autorisations multi-tenant.
+- `includes/recharge_preview_service.php` : contrat preview/apply.
+- `includes/mikrotik_backend.php` : connexion explicite par Device.
+- `includes/vouchers.php` et `includes/voucher_batch_service.php` : registre SQL des vouchers.
 
-### Login
+## Archives hors runtime
 
-- `index.php`
-  - envoie le login vers `api_proxy.php`
-  - charge `style.css`
-  - redirige les utilisateurs connectes vers `pages/dashboard.php`
+- `config/opnsense.json.old`
+- `api/test_opnsense.php.old`
+- `includes/get_radius.php.old`
+- fichiers `*.old` dans `tools/` et `includes/`
 
-### Navigation Applicative
+Aucun fichier archive ne doit etre inclus ou execute.
 
-- `includes/navigation_index.php`
-  - index de recherche navbar
-  - liste les pages accessibles par recherche
-- `includes/sidebar.php`
-  - menu principal
-  - charge le contexte applicatif et les notifications
-  - fichier global protege
+## Points a verifier avant VPS
 
-### Scripts Systeme
+- [x] fonction morte `deviceConfigFilePath()` supprimée après vérification des callers ;
+- documenter ou retirer les alias `opnsense_*` ;
+- verifier les backups et doublons ;
+- maintenir une seule migration SQL par responsabilite.
 
-- `scripts/sync_opnsense_sessions.php`
-  - depend de `config/db.php`
-  - depend de `includes/device_manager.php`
-  - depend de `includes/opnsense_shaper.php`
-  - depend de `includes/admin_notifications.php`
 
-## Flux Runtime
+## Licences et maintenance
 
-### Pages Vers JavaScript Puis APIs
+- `tools/migrations/009_device_licenses.sql` et `includes/license.php` : registre SQL des licences.
+- `tools/migrations/009_system_maintenance.sql`, `api/admin/database_maintenance.php` et `tools/backup_sensitive.php` : maintenance et sauvegarde hors web.
+- `tools/install_vps.sh` installe `/etc/cron.d/radius-manager-sensitive-backup`.
+- `includes/recouvrement_invoices.php` centralise les scopes owner/Device/operator.
+- `pages/users_list.php` et `api/users/update_user.php` portent le contrat d expiration date-only.
 
-- `pages/dashboard.php`
-  - charge `js/dashboard.js`
-  - `js/dashboard.js` utilise `api/device_stream.php`, `api/get_live_metrics.php`, `api/get_stats.php`
-- `pages/traffic_monitoring.php`
-  - charge `js/traffic_monitoring.js`
-  - utilise `api/traffic_stream.php`
-- `pages/network_devices.php`
-  - charge `js/network_device.js`
-  - utilise `api/network_devices_api.php` et `api/test_device.php`
-- `pages/freeradius.php`
-  - charge `js/freeradius.js`
-  - utilise `config/radius.php` et `api/test_radius.php`
-- `pages/add_hotspot_user.php`
-  - charge `js/add_hotspot_user.js`
-  - utilise `api/nas.php` et `api/users/create_user.php`
-- `pages/add_profile.php`
-  - charge `js/select_nas.js`
-  - utilise `api/network_devices_api.php`, `api/nas.php`, `api/profiles/create_profile.php`, `api/profiles/mikrotik_options.php`
-- `pages/users_list.php`
-  - charge `js/users_list.js`
-  - utilise `api/users/get_user_sessions.php` et `api/nas.php`
-- `pages/generate.php`
-  - charge `js/generate.js`
-  - utilise `api/users/profile_options.php`, `api/vouchers/prepare_batch.php`, `api/vouchers/apply_batch.php`, `api/vouchers/cancel_batch.php`
-- `pages/user_recharge.php`
-  - charge `js/user_recharge.js`
-  - utilise `api/network_devices_api.php` et les APIs recharge
-- `pages/sessions_list.php`
-  - charge `js/pages/sessions_list.js`
-  - utilise `api/disconnect_session.php` et le partial HTML `?_partial=sessions`
 
-### Pages Vers Includes
+## Inventaire P0 des archives et doublons — 2026-07-22
 
-- Les pages internes passent par `includes/auth.php` ou une verification de session.
-- Les pages applicatives partagent `includes/sidebar.php`.
-- Les pages metier utilisent selon le cas :
-  - `config/db.php`
-  - `includes/device_manager.php`
-  - `includes/nas_resolver.php`
-  - `includes/mikrotik_backend.php`
-  - `includes/radius_sync.php`
-  - `includes/user_provisioning.php`
-  - `includes/profile_schema.php`
-  - `includes/user_schema.php`
-  - `includes/recharge_preview_service.php`
-  - `includes/recharge_history_store.php`
-  - `includes/operation_history.php`
-  - `includes/vouchers.php`
-  - `includes/recouvrement_invoices.php`
+### Archives `.old` hors runtime
 
-### APIs Vers Includes Et Config
+Les fichiers suivants sont conserves uniquement pour contrôle/nettoyage final et ne doivent jamais être inclus :
 
-- `api/network_devices_api.php`
-  - gere les devices et configs JSON associees
-- `api/test_device.php`
-  - endpoint de test mutualise
-- `api/test_opnsense.php`
-  - compatibilite active, inclut `api/test_device.php`
-- `api/test_radius.php`
-  - utilise par `js/freeradius.js`
-- `api/users/*`
-  - gere creation, mise a jour, suppression, recharge et consultations utilisateur
-- `api/profiles/*`
-  - gere profils et options MikroTik
-- `api/vouchers/*`
-  - gere preparation, application et annulation de lots vouchers
-- `api/recouvrement/*`
-  - gere creation de factures recouvrement
+- `api/test_opnsense.php.old` ;
+- `config/opnsense.json.old` ;
+- `includes/get_radius.php.old`, `local_admins.php.old`, `radius_standard_io.php.old`, `radius_sync.php.old`, `tenancy.php.old` ;
+- `pages/administration.php.old` ;
+- `scripts/sync_mikrotik_user_snapshot.php.old` ;
+- `tools/encrypt_configs.php.old`, `generate_license.php.old`, `install.php.old`, `license_manager.php.old`, `migrate_devices.php.old` ;
+- `tools/migrations/001_multi_tenant_foundation.sql.old`.
 
-## Fichiers Proteges
+### Archives à ne pas renommer
 
-Ne pas modifier sans autorisation explicite :
+- `uploads/portal_captive/templates/default_mikrotik.zip.bak` est un modèle portail référencé par le runtime ; il reste une dépendance fonctionnelle et doit être remplacé par un ZIP valide avant suppression.
+- `project-backup-20260330-165851.zip` et `Backup 14/07.rar` sont des sauvegardes globales hors runtime ; elles doivent être déplacées hors de la racine web lors du nettoyage VPS, après vérification de restauration.
+- `docs/archive/` est une référence historique et ne doit jamais être chargée par PHP.
 
-- `css/theme.css`
-- `css/sidebar.css`
-- `includes/sidebar.php`
+### Normalisation effectuée
 
-Ces fichiers ont un impact global sur plusieurs pages.
+- `docs/DECISIONS.md.orig` a été renommé `docs/DECISIONS.md.old`; aucune référence runtime n a été trouvée.
 
-## Orphelins Confirmes
+### Règle de décision
 
-Ces fichiers sont hors runtime probable et doivent etre classes avant suppression :
-
-- `api/get_stats.php.pre-restore-20260401-083410`
-- `css/generate.css.bak`
-- `js/generate.js.bak`
-- `pages/print_vouchers.php.bak`
-- `project-backup-20260330-165851.zip`
-- `.cursor/debug-423b8d.log`
-
-Statut recommande : `TODO`, classer puis supprimer ou archiver apres validation.
-
-## Orphelins Ou References A Verifier
-
-- `about.php`
-  - doublon probable de `pages/about.php`
-  - `pages/about.php` est reference par navigation, sidebar et auth
-- `docs/template_default.zip`
-  - reference documentaire ou archive
-- `docs/template_optimized.zip`
-  - reference documentaire ou archive
-- `docs/*.xlsx`
-  - documents d analyse, hors runtime
-- `exports/*.sql`
-  - exports ponctuels, hors runtime
-- `docs/archive/*`
-  - reference uniquement
-  - ne doit jamais etre charge en runtime
-
-## Dependance Cassee
-
-### `pages/portal_profiles.php`
-
-Statut : `BLOCKED`
-
-Dependance manquante :
-
-- `../modules/portal/PortalProfileController.php`
-
-Constat :
-
-- le dossier `modules/` n existe pas a la racine
-- une version existe dans `docs/archive/modules/portal/`
-- `docs/archive` ne doit pas etre utilise en runtime
-
-Decision requise :
-
-- restaurer le module dans un emplacement runtime stable
-- ou retirer/desactiver proprement la page
-
-## Compatibilites Actives
-
-### `api/test_opnsense.php`
-
-- inclut `api/test_device.php`
-- ne pas supprimer tant que consommateurs et docs ne sont pas migres vers `test_device.php`
-
-### `api/test_radius.php`
-
-- utilise par `js/freeradius.js`
-- reste actif comme test FreeRADIUS
-
-## Archives Et References
-
-- `docs/archive/*` : reference uniquement.
-- `exports/*` : exports SQL ponctuels.
-- `docs/PROJECT_TREE_*.json` : inventaires documentaires.
-- `.codex/prompts/*` : templates manuels, non auto-charges.
-
-## Regles De Suppression
-
-Avant de supprimer, renommer ou deplacer un fichier :
-
-1. lire `docs/project_rules.md`
-2. verifier cette cartographie
-3. chercher les references directes dans pages, APIs, JS, includes, docs et scripts
-4. verifier que le fichier n est pas une compatibilite active
-5. mettre a jour `docs/PROJECT_PLAN.md` si le fichier appartient a un chantier incomplet
+Aucun fichier n est supprimé dans ce chantier. Un fichier encore appelé par le runtime ne peut pas être renommé ; il est seulement marqué `runtime dependency` jusqu à remplacement validé.

@@ -1,0 +1,4 @@
+# Radius Manager - diagnostic Starlink, MikroTik et réseau local toutes les 30 secondes
+* * * * * root /usr/bin/php /var/www/html/scripts/monitor_network_quality.php >/dev/null 2>&1
+* * * * * root /bin/sleep 30 && /usr/bin/php /var/www/html/scripts/monitor_network_quality.php >/dev/null 2>&1
+* * * * * root /usr/bin/php /var/www/html/scripts/monitor_mikrotik_traffic.php >/dev/null 2>&1

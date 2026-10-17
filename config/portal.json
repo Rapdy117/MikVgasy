@@ -1,0 +1,40 @@
+{
+    "api_base_url": "http://10.10.10.2",
+    "captive_device_id": "dev_1775288316",
+    "template_relative_path": "uploads/portal_captive/templates/captive_dev_1775288316_20261006_020248.zip",
+    "logo_relative_path": null,
+    "advertisement_relative_paths": [
+        "uploads/portal_captive/advertisements/connexion-stable-mac-limitee-v1.png",
+        "uploads/portal_captive/advertisements/information-service-v2.png"
+    ],
+    "advertisement_captions": [
+        "Mode d\u00e9grad\u00e9 \u2014 consignes r\u00e9seau",
+        "Mise \u00e0 jour du service Internet"
+    ],
+    "advertisement_captions_visible": false,
+    "advertisement_target_url": null,
+    "active_hotspot_profile": "hsprof1",
+    "last_deployment": {
+        "profile": "hsprof1",
+        "previous_html_directory": "hotspot_rm_20261005_224717_dab448",
+        "remote_directory": "hotspot_rm_20261005_230249_91576a",
+        "files_uploaded": 25,
+        "deployed_at": "2026-10-05T23:02:49+00:00"
+    },
+    "last_compat": {
+        "level": "ok",
+        "summary": "Archive valide",
+        "detail": "Structure detectee compatible MikroTik et prete au deploiement FTP.",
+        "device_type": "mikrotik",
+        "zip_files": 29,
+        "deploy_note": "Template transfere et active sur MikroTik.",
+        "injected_entry_file": "Mikrotik Templace Build/status.html",
+        "status_api_url": "http://10.10.10.2/api/portal/mikrotik_user_status.php",
+        "injected_device_id": "dev_1775288316",
+        "injected_router_host": "10.10.10.1",
+        "injection_verified": true,
+        "source_template": "captive_dev_1775288316_20260914_000631.zip",
+        "active_hotspot_profile": "hsprof1",
+        "remote_directory": "hotspot_rm_20261005_230249_91576a"
+    }
+}

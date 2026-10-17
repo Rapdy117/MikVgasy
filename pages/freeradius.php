@@ -6,7 +6,11 @@ if (!isset($_SESSION['logged_in']) || $_SESSION['logged_in'] !== true) {
     header('Location: ../index.php');
     exit();
 }
-requireAdministratorAccess();
+if (!isSuperAdministrator()) {
+    http_response_code(403);
+    header('Location: /pages/dashboard.php');
+    exit();
+}
 ?>
 
 <?php
@@ -126,7 +130,7 @@ require_once '../includes/layout_header.php';
     <i class="fa fa-terminal me-2"></i> Sortie du test
 </h6>
 
-<pre id="testResult" class="radius-output-box small p-3 bg-dark rounded border border-white-10 text-white-50" style="min-height: 200px;">Aucun test effectué.</pre>
+<pre id="testResult" class="radius-output-box small p-3 bg-dark rounded border border-white-10 text-white-50" style="min-height: 150px;">Aucun test effectué.</pre>
 
 </div>
 </div>

@@ -11,7 +11,8 @@ final class RechargeService
         string $profileValue,
         string $mode,
         ?string $profileId = null,
-        ?string $profileName = null
+        ?string $profileName = null,
+        ?array $nasContext = null
     ): array {
         return buildRechargePreview(
             $pdo,
@@ -20,7 +21,8 @@ final class RechargeService
             $profileValue,
             $mode,
             $profileId,
-            $profileName
+            $profileName,
+            $nasContext
         );
     }
 }

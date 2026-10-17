@@ -42,7 +42,7 @@ try {
     }
 
     $store = loadDeviceStore();
-    $device = findDeviceById($store, $deviceId);
+    $device = requireAccessibleDevice($store, $deviceId);
 
     if (!$device) {
         throw new RuntimeException('Device introuvable');

@@ -42,7 +42,7 @@ function schedulerEditorSourceLabel(?array $device): string
 
 if ($isMikrotik) {
     try {
-        $items = getMikrotikSchedulers(300);
+        $items = getMikrotikSchedulers(300, buildMikrotikContextFromDevice($activeDevice));
         if ($selectedSchedulerId !== '') {
             foreach ($items as $item) {
                 if ((string)($item['id'] ?? '') === $selectedSchedulerId) {
@@ -171,6 +171,7 @@ require_once __DIR__ . '/../includes/layout_header.php';
 <form id="addSchedulerForm" class="network-device-form" method="POST" autocomplete="off">
 <input type="hidden" name="csrf_token" value="<?= htmlspecialchars((string)$_SESSION['csrf_token']) ?>">
 <input type="hidden" name="scheduler_id" value="<?= htmlspecialchars((string)($selectedScheduler['id'] ?? '')) ?>">
+<input type="hidden" name="device_id" value="<?= htmlspecialchars((string)($activeDevice['id'] ?? '')) ?>">
 
 <div class="d-flex justify-content-between align-items-center mb-4">
     <h6 class="text-white small mb-0">

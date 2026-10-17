@@ -955,6 +955,23 @@ function disableRadiusUserWithNotice(PDO $pdo, array $device, array $user, array
     ];
 }
 
+function hasExpiredNoticeHistory(PDO $pdo, string $username, bool $recordCommercial): bool
+{
+    ensureOperationHistoryTable($pdo);
+
+    $operationType = $recordCommercial ? 'user_notice_record' : 'user_notice';
+    $stmt = $pdo->prepare("
+        SELECT COUNT(*)
+        FROM operation_history
+        WHERE operation_type = ?
+          AND target_type = 'user'
+          AND target_name = ?
+    ");
+    $stmt->execute([$operationType, $username]);
+
+    return (int)$stmt->fetchColumn() > 0;
+}
+
 function enforceOpnsenseExpiredModePolicies(PDO $pdo, array $device, string $interface): array
 {
     $stmt = $pdo->query("
@@ -985,7 +1002,11 @@ function enforceOpnsenseExpiredModePolicies(PDO $pdo, array $device, string $int
         }
 
         $mode = strtolower(trim((string)($row['expired_mode'] ?? 'none')));
-        if (($mode === 'notice' || $mode === 'notice_record') && strtolower(trim((string)($row['status'] ?? 'active'))) === 'expired') {
+        if (
+            ($mode === 'notice' || $mode === 'notice_record')
+            && strtolower(trim((string)($row['status'] ?? 'active'))) === 'expired'
+            && hasExpiredNoticeHistory($pdo, $username, $mode === 'notice_record')
+        ) {
             continue;
         }
 

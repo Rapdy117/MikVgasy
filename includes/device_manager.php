@@ -1,10 +1,19 @@
 <?php
 
 require_once __DIR__ . '/../config/config.php';
+require_once __DIR__ . '/crypto.php';
 
-function deviceConfigFilePath(): string
+/* Champs sensibles chiffrés dans le device store */
+const DEVICE_SENSITIVE_FIELDS = ['api_key', 'api_secret', 'secret'];
+
+function &deviceStoreRuntimeCache(): array
 {
-    return __DIR__ . '/../config/opnsense.json';
+    static $cache = [
+        'mtime' => null,
+        'store' => null,
+    ];
+
+    return $cache;
 }
 
 function normalizeDeviceType(string $type): string
@@ -172,8 +181,15 @@ function normalizeDeviceRecord(array $device): array
         'verify_ssl' => !empty($device['verify_ssl']),
         'port' => isset($device['port']) ? (int)$device['port'] : null,
         'vendor' => isset($device['vendor']) ? (string)$device['vendor'] : null,
-        'created_at' => $device['created_at'] ?? null,
-        'updated_at' => $device['updated_at'] ?? null,
+        'created_at'          => $device['created_at'] ?? null,
+        'updated_at'          => $device['updated_at'] ?? null,
+        /* Licence */
+        'device_fingerprint'  => trim((string)($device['device_fingerprint'] ?? '')),
+        'hardware_info'       => is_array($device['hardware_info'] ?? null) ? $device['hardware_info'] : [],
+        'license_key'         => trim((string)($device['license_key']    ?? '')),
+        'license_status'      => trim((string)($device['license_status'] ?? '')),
+        'license_expiry'      => trim((string)($device['license_expiry'] ?? '')),
+        'license_issued'      => trim((string)($device['license_issued'] ?? '')),
     ];
 }
 
@@ -189,38 +205,62 @@ function ensureDeviceStore(array $payload): array
 
 function loadDeviceStore(): array
 {
-    $file = deviceConfigFilePath();
-
-    if (!is_file($file)) {
-        return [
-            'active_device_id' => null,
-            'devices' => [],
-        ];
+    static $store = null;
+    static $loaded = false;
+    if ($loaded && is_array($store)) return $store;
+    require_once __DIR__ . '/../config/db.php';
+    require_once __DIR__ . '/auth.php';
+    global $pdo;
+    $baseSql = 'SELECT DISTINCT d.id,d.owner_admin_id,d.name,d.type,d.host,d.backend_driver,d.api_key,d.api_secret,d.secret,d.verify_ssl,d.port,d.vendor,d.device_fingerprint,d.hardware_info,d.license_key,d.license_status,d.license_expiry,d.license_issued,d.created_at,d.updated_at FROM network_devices d';
+    $params = [];
+    if (currentLocalUserRole() === 'superadmin') {
+        $rows = $pdo->query($baseSql . ' WHERE d.is_active = 1 ORDER BY d.name,d.id')->fetchAll(PDO::FETCH_ASSOC);
+    } else {
+        $userStmt = $pdo->prepare('SELECT id FROM local_admin_users WHERE username=? AND is_active=1 LIMIT 1');
+        $userStmt->execute([currentLocalUsername()]); $scopeId = (int)($userStmt->fetchColumn() ?: 0);
+        $rowsStmt = $pdo->prepare($baseSql . ' LEFT JOIN admin_device_assignments a ON a.device_id=d.id WHERE d.is_active=1 AND (d.owner_admin_id=? OR a.admin_id=?) ORDER BY d.name,d.id');
+        $rowsStmt->execute([$scopeId, $scopeId]); $rows = $rowsStmt->fetchAll(PDO::FETCH_ASSOC);
     }
-
-    $payload = json_decode((string)file_get_contents($file), true);
-    if (!is_array($payload)) {
-        return [
-            'active_device_id' => null,
-            'devices' => [],
-        ];
+    $devices = [];
+    foreach ($rows as $row) {
+        $row['verify_ssl'] = (bool)$row['verify_ssl'];
+        $row['hardware_info'] = is_string($row['hardware_info']) ? (json_decode($row['hardware_info'], true) ?: []) : (is_array($row['hardware_info']) ? $row['hardware_info'] : []);
+        $devices[] = decryptFields(normalizeDeviceRecord($row), DEVICE_SENSITIVE_FIELDS);
     }
-
-    return ensureDeviceStore($payload);
+    $activeId = (string)($_SESSION['active_device_id'] ?? '');
+    if ($activeId === '' && $devices) { $activeId = (string)$devices[0]['id']; $_SESSION['active_device_id'] = $activeId; }
+    $store = ['active_device_id' => $activeId !== '' ? $activeId : null, 'devices' => $devices];
+    $loaded = true;
+    return $store;
 }
 
 function saveDeviceStore(array $store): void
 {
-    $normalized = ensureDeviceStore($store);
-    $forSave = $normalized;
-    $forSave['devices'] = array_map(static function (array $device): array {
-        $out = $device;
-        unset($out['backend']);
+    require_once __DIR__ . '/../config/db.php';
+    global $pdo;
+    $pdo->beginTransaction();
+    try {
+        $ownerStmt = $pdo->prepare('SELECT id FROM local_admin_users WHERE username = ? AND is_active = 1 LIMIT 1'); $ownerStmt->execute([currentLocalUsername()]); $ownerId = (int)($ownerStmt->fetchColumn() ?: 0);
+        if ($ownerId <= 0) throw new RuntimeException('Propriétaire admin introuvable.');
+        $stmt = $pdo->prepare('INSERT INTO network_devices (id,owner_admin_id,name,type,host,backend_driver,api_key,api_secret,secret,verify_ssl,port,vendor,device_fingerprint,hardware_info,license_key,license_status,license_expiry,license_issued,created_at,updated_at,is_active) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,1) ON DUPLICATE KEY UPDATE name=VALUES(name),type=VALUES(type),host=VALUES(host),backend_driver=VALUES(backend_driver),api_key=VALUES(api_key),api_secret=VALUES(api_secret),secret=VALUES(secret),verify_ssl=VALUES(verify_ssl),port=VALUES(port),vendor=VALUES(vendor),device_fingerprint=VALUES(device_fingerprint),hardware_info=VALUES(hardware_info),license_key=VALUES(license_key),license_status=VALUES(license_status),license_expiry=VALUES(license_expiry),license_issued=VALUES(license_issued),updated_at=VALUES(updated_at),is_active=1');
+        foreach (ensureDeviceStore($store)['devices'] as $device) {
+            $d = encryptFields($device, DEVICE_SENSITIVE_FIELDS);
+            $stmt->execute([$d['id'],$ownerId,$d['name'],$d['type'],$d['host'],$d['backend_driver'],$d['api_key'],$d['api_secret'],$d['secret'],$d['verify_ssl']?1:0,$d['port'],$d['vendor'],$d['device_fingerprint'],json_encode($d['hardware_info'],JSON_UNESCAPED_UNICODE),$d['license_key'],$d['license_status'],$d['license_expiry'],$d['license_issued'],$d['created_at'],$d['updated_at']]);
+        }
+        $pdo->commit();
+    } catch (Throwable $e) { $pdo->rollBack(); throw $e; }
+}
 
-        return $out;
-    }, $normalized['devices']);
-
-    file_put_contents(deviceConfigFilePath(), json_encode($forSave, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES), LOCK_EX);
+function requireAccessibleDevice(array $store, ?string $deviceId): array
+{
+    $device = findDeviceById($store, $deviceId);
+    if (!$device) {
+        http_response_code(403);
+        header('Content-Type: application/json; charset=utf-8');
+        echo json_encode(['success' => false, 'message' => 'Device non autorisé pour ce compte.']);
+        exit;
+    }
+    return $device;
 }
 
 function findDeviceById(array $store, ?string $deviceId): ?array
@@ -269,7 +309,7 @@ function findDeviceByAddress(array $store, ?string $address, ?string $type = nul
 
 function getActiveDeviceRecord(array $store): ?array
 {
-    $storedDeviceId = isset($store['active_device_id']) ? (string)$store['active_device_id'] : null;
+    $storedDeviceId = isset($_SESSION['active_device_id']) ? (string)$_SESSION['active_device_id'] : null;
 
     if ($storedDeviceId === null || $storedDeviceId === '') {
         unset($_SESSION['active_device_id']);
@@ -297,9 +337,7 @@ function setActiveDeviceId(string $deviceId): ?array
         return null;
     }
 
-    $store['active_device_id'] = $device['id'];
     $_SESSION['active_device_id'] = $device['id'];
-    saveDeviceStore($store);
 
     return $device;
 }

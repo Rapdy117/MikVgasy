@@ -1,5 +1,6 @@
 <?php
 
+require_once __DIR__ . '/crypto.php';
 require_once __DIR__ . '/nas_resolver.php';
 require_once __DIR__ . '/radius_sync.php';
 require_once __DIR__ . '/user_schema.php';
@@ -155,6 +156,8 @@ function buildProvisionedUserPayload(array $profile, array $input): array
     return [
         'username' => trim((string)($input['username'] ?? '')),
         'password' => trim((string)($input['password'] ?? '')),
+        'login_mode' => ($input['login_mode'] ?? 'password') === 'mac' ? 'mac' : 'password',
+        'mac' => strtoupper(trim((string)($input['mac'] ?? ''))),
         'status' => trim((string)($input['status'] ?? 'active')) ?: 'active',
         'session_timeout' => $resolvedSessionTimeout,
         'data_limit' => $resolvedDataLimitMb,
@@ -170,12 +173,26 @@ function buildProvisionedUserPayload(array $profile, array $input): array
 
 function provisionUserWithProfile(PDO $pdo, array $input): array
 {
+    $loginMode = ($input['login_mode'] ?? 'password') === 'mac' ? 'mac' : 'password';
     $username = trim((string)($input['username'] ?? ''));
     $password = trim((string)($input['password'] ?? ''));
 
-    if ($username === '' || $password === '') {
+    if ($loginMode === 'mac') {
+        // Login par MAC (mac-as-username) : le nom du compte est la MAC, sans mot de passe.
+        $username = strtoupper($username);
+        if (!preg_match('/^([0-9A-F]{2}:){5}[0-9A-F]{2}$/', $username)) {
+            throw new RuntimeException('Adresse MAC invalide (format AA:BB:CC:DD:EE:FF).');
+        }
+        $password = '';
+    }
+
+    if ($username === '' || ($loginMode === 'password' && $password === '')) {
         throw new RuntimeException('Le nom d utilisateur et le mot de passe sont obligatoires.');
     }
+
+    // Accept either plain text or previously encrypted password values.
+    $plainPassword = $loginMode === 'mac' ? '' : decryptField($password);
+    $encryptedPassword = $loginMode === 'mac' ? '' : encryptField($plainPassword);
 
     $nasIdIn = isset($input['nas_id']) ? (int)$input['nas_id'] : 0;
     $nasContext = resolveProvisioningNasContext(
@@ -198,7 +215,9 @@ function provisionUserWithProfile(PDO $pdo, array $input): array
         throw new RuntimeException('NAS introuvable');
     }
 
-    $userPayload = buildProvisionedUserPayload($profile, $input);
+    $userPayload = buildProvisionedUserPayload($profile, array_merge($input, [
+        'password' => $businessSource === 'mikrotik_local' ? $plainPassword : $encryptedPassword,
+    ]));
     syncUserToNasBackend($pdo, $userPayload, $profile['name'], $nasContext);
 
     $userId = null;

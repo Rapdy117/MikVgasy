@@ -1,6 +1,7 @@
 <?php
 require '../../config/db.php';
 require_once '../../includes/auth.php';
+require_once '../../includes/crypto.php';
 require_once '../../includes/nas_resolver.php';
 require_once '../../includes/opnsense_shaper.php';
 require_once '../../includes/radius_sync.php';
@@ -188,9 +189,13 @@ if (($session_timeout !== null && $session_timeout < 0) || $simultaneous_use < 0
 
 try {
     ensureOperationHistoryTable($pdo);
+    ensureAdminNotificationsTable($pdo);
     ensureUsersExtendedSchema($pdo);
     $pdo->beginTransaction();
 
+    // Le Device fourni par le formulaire doit être autorisé par le compte connecté.
+    $deviceStore = loadDeviceStore();
+    requireAccessibleDevice($deviceStore, trim((string)$device_id));
     $nasContext = resolveNasContextFromInputs($pdo, $nas_id, $device_id);
 
     if ((int)($nasContext['nas_id'] ?? 0) !== (int)$nas_id) {
@@ -224,7 +229,11 @@ try {
     }
 
     if ($password === null) {
+        /* Garde le mot de passe existant (déjà chiffré en DB) */
         $password = $existingUser['password'];
+    } else {
+        /* Nouveau mot de passe → chiffre avant stockage */
+        $password = encryptField($password);
     }
 
     /* =========================

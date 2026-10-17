@@ -196,6 +196,57 @@ function buildMikrotikStandardRawUserRow(array $user): array
     ];
 }
 
+function readMikrotikStandardNetworkResources(array $device): array
+{
+    $api = connectToMikrotikApiByDevice($device);
+
+    try {
+        $bindingRows = $api->comm('/ip/hotspot/ip-binding/print');
+        $leaseRows = $api->comm('/ip/dhcp-server/lease/print');
+
+        $bindings = [];
+        foreach (is_array($bindingRows) ? $bindingRows : [] as $row) {
+            if (!is_array($row)) {
+                continue;
+            }
+            $bindings[] = [
+                'address' => trim((string)($row['address'] ?? '')),
+                'mac' => trim((string)($row['mac-address'] ?? '')),
+                'to_address' => trim((string)($row['to-address'] ?? '')),
+                'type' => trim((string)($row['type'] ?? 'regular')),
+                'server' => trim((string)($row['server'] ?? '')),
+                'comment' => trim((string)($row['comment'] ?? '')),
+                'disabled' => mikrotikApiBoolean($row['disabled'] ?? false),
+            ];
+        }
+
+        $staticLeases = [];
+        foreach (is_array($leaseRows) ? $leaseRows : [] as $row) {
+            if (!is_array($row) || mikrotikApiBoolean($row['dynamic'] ?? false)) {
+                continue;
+            }
+            $staticLeases[] = [
+                'address' => trim((string)($row['address'] ?? '')),
+                'mac' => trim((string)($row['mac-address'] ?? '')),
+                'host_name' => trim((string)($row['host-name'] ?? '')),
+                'server' => trim((string)($row['server'] ?? '')),
+                'comment' => trim((string)($row['comment'] ?? '')),
+                'disabled' => mikrotikApiBoolean($row['disabled'] ?? false),
+            ];
+        }
+
+        usort($bindings, static fn(array $a, array $b): int => strcasecmp($a['address'] . $a['mac'], $b['address'] . $b['mac']));
+        usort($staticLeases, static fn(array $a, array $b): int => strcasecmp($a['address'] . $a['mac'], $b['address'] . $b['mac']));
+
+        return [
+            'ip_bindings' => $bindings,
+            'dhcp_static_leases' => $staticLeases,
+        ];
+    } finally {
+        $api->disconnect();
+    }
+}
+
 function buildMikrotikStandardExportDocument(array $device): array
 {
     $profiles = loadMikrotikHotspotProfilesCached($device, 1);
@@ -233,11 +284,17 @@ function buildMikrotikStandardExportDocument(array $device): array
     usort($rawProfiles, static fn(array $a, array $b): int => strcasecmp($a['name'], $b['name']));
     usort($commonUsers, static fn(array $a, array $b): int => strcasecmp($a['username'], $b['username']));
     usort($rawUsers, static fn(array $a, array $b): int => strcasecmp($a['username'], $b['username']));
+    $networkResources = readMikrotikStandardNetworkResources($device);
 
     return [
         'format' => 'radius-manager-standard',
         'version' => 2,
         'source_backend' => 'mikrotik',
+        'source_device' => [
+            'id' => trim((string)($device['id'] ?? '')),
+            'name' => trim((string)($device['name'] ?? '')),
+            'type' => 'mikrotik',
+        ],
         'exported_at' => gmdate('Y-m-d\TH:i:s\Z'),
         'profiles' => $commonProfiles,
         'users' => $commonUsers,
@@ -245,13 +302,15 @@ function buildMikrotikStandardExportDocument(array $device): array
             'mikrotik' => [
                 'profiles' => $rawProfiles,
                 'users' => $rawUsers,
+                'ip_bindings' => $networkResources['ip_bindings'],
+                'dhcp_static_leases' => $networkResources['dhcp_static_leases'],
             ],
         ],
     ];
 }
 
 /**
- * @return array{profiles: array, users: array, document_version: int}
+ * @return array{profiles: array, users: array, ip_bindings: array, dhcp_static_leases: array, document_version: int}
  */
 function mikrotikStandardParseImportDocument(array $payload): array
 {
@@ -282,6 +341,8 @@ function mikrotikStandardParseImportDocument(array $payload): array
         return [
             'profiles' => $profiles,
             'users' => $users,
+            'ip_bindings' => [],
+            'dhcp_static_leases' => [],
             'document_version' => 1,
         ];
     }
@@ -293,6 +354,8 @@ function mikrotikStandardParseImportDocument(array $payload): array
 
     $rawProfiles = is_array($mik['profiles'] ?? null) ? $mik['profiles'] : [];
     $rawUsers = is_array($mik['users'] ?? null) ? $mik['users'] : [];
+    $ipBindings = is_array($mik['ip_bindings'] ?? null) ? $mik['ip_bindings'] : [];
+    $dhcpStaticLeases = is_array($mik['dhcp_static_leases'] ?? null) ? $mik['dhcp_static_leases'] : [];
 
     $rawProfilesByName = [];
     foreach ($rawProfiles as $rp) {
@@ -341,6 +404,8 @@ function mikrotikStandardParseImportDocument(array $payload): array
     return [
         'profiles' => $mergedProfiles,
         'users' => $mergedUsers,
+        'ip_bindings' => $ipBindings,
+        'dhcp_static_leases' => $dhcpStaticLeases,
         'document_version' => 2,
     ];
 }

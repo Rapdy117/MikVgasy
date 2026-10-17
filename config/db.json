@@ -1,6 +1,6 @@
 {
     "host": "localhost",
-    "user": "radius",
-    "pass": "Bl@ckOps2024#",
+    "user": "radius_app",
+    "pass": "Secret123!",
     "dbname": "radius_manager"
 }

@@ -107,9 +107,15 @@ function getNavigationSearchIndex(): array
         ],
         [
             'label' => 'Traffic Monitor',
-            'breadcrumb' => 'Traffic Monitor',
+            'breadcrumb' => 'Gestion du trafic > Traffic Monitor',
             'href' => '/pages/traffic_monitoring.php',
             'keywords' => ['traffic', 'monitoring', 'bande passante', 'debit'],
+        ],
+        [
+            'label' => 'DNS et réseau',
+            'breadcrumb' => 'Gestion du trafic > DNS et réseau',
+            'href' => '/pages/traffic_control.php',
+            'keywords' => ['adguard', 'dns', 'observation', 'conntrack', 'connexions', 'blocages', 'liste blanche', 'whitelist', 'filtres', 'publicite'],
         ],
         [
             'label' => 'Rapport',
@@ -124,8 +130,8 @@ function getNavigationSearchIndex(): array
             'keywords' => ['recharge', 'rechargement', 'rajout', 'reabonnement'],
         ],
         [
-            'label' => 'Rouvrement',
-            'breadcrumb' => 'Finances > Rouvrement',
+            'label' => 'Recouvrement',
+            'breadcrumb' => 'Finances > Recouvrement',
             'href' => '/pages/recouvrement.php',
             'keywords' => ['recouvrement', 'collection', 'suivi', 'operations sensibles'],
         ],

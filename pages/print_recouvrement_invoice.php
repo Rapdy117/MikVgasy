@@ -5,7 +5,7 @@ require_once '../includes/auth.php';
 require_once '../config/db.php';
 require_once '../includes/recouvrement_invoices.php';
 
-requireAdministratorAccess('La facture de recouvrement est réservée à l administrateur.');
+requireRecouvrementAccess('La facture de recouvrement est réservée à l administrateur.');
 
 $invoiceId = (int)($_GET['invoice_id'] ?? 0);
 $operator = trim((string)($_GET['operator'] ?? ''));

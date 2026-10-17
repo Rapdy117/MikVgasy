@@ -132,7 +132,7 @@ function mikrotikRadiusImportNormalizeProfileRow(array $profileRow, ?array $back
         'lock_user' => 0,
         'parent_queue' => trim((string)($backendSpecificRow['parent_queue'] ?? '')) ?: null,
         'validity_routeros' => trim((string)($backendSpecificRow['validity_routeros'] ?? ($profileRow['validity'] ?? ''))) ?: null,
-        'simultaneous_use' => $sharedUsers > 0 ? $sharedUsers : 1,
+        'simultaneous_use' => max(0, $sharedUsers),
         'ip_pool' => trim((string)($backendSpecificRow['ip_pool'] ?? '')) ?: null,
         'account_type' => 'standard',
     ];

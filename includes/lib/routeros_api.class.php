@@ -177,16 +177,18 @@ class RouterosAPI
                 if (in_array($x, array('!fatal','!re','!trap'))) {
                     if ($x == '!re') {
                         $CURRENT =& $PARSED[];
+                        $CURRENT = array();
                     } else {
                         $CURRENT =& $PARSED[$x][];
+                        $CURRENT = array();
                     }
                 } elseif ($x != '!done') {
-                    $MATCHES = array();
-                    if (preg_match_all('/[^=]+/i', $x, $MATCHES)) {
-                        if ($MATCHES[0][0] == 'ret') {
-                            $singlevalue = $MATCHES[0][1];
-                        }
-                        $CURRENT[$MATCHES[0][0]] = (isset($MATCHES[0][1]) ? $MATCHES[0][1] : '');
+                    if (is_string($x) && str_starts_with($x, '=')) {
+                        $parts = explode('=', substr($x, 1), 2);
+                        if (count($parts) !== 2) continue;
+                        [$key, $value] = $parts;
+                        if ($key === 'ret') $singlevalue = $value;
+                        if ($CURRENT !== null) $CURRENT[$key] = $value;
                     }
                 }
             }
@@ -211,37 +213,12 @@ class RouterosAPI
      */
     public function parseResponse4Smarty($response)
     {
-        if (is_array($response)) {
-            $PARSED      = array();
-            $CURRENT     = null;
-            $singlevalue = null;
-            foreach ($response as $x) {
-                if (in_array($x, array('!fatal','!re','!trap'))) {
-                    if ($x == '!re') {
-                        $CURRENT =& $PARSED[];
-                    } else {
-                        $CURRENT =& $PARSED[$x][];
-                    }
-                } elseif ($x != '!done') {
-                    $MATCHES = array();
-                    if (preg_match_all('/[^=]+/i', $x, $MATCHES)) {
-                        if ($MATCHES[0][0] == 'ret') {
-                            $singlevalue = $MATCHES[0][1];
-                        }
-                        $CURRENT[$MATCHES[0][0]] = (isset($MATCHES[0][1]) ? $MATCHES[0][1] : '');
-                    }
-                }
-            }
-            foreach ($PARSED as $key => $value) {
-                $PARSED[$key] = $this->arrayChangeKeyName($value);
-            }
-            return $PARSED;
-            if (empty($PARSED) && !is_null($singlevalue)) {
-                $PARSED = $singlevalue;
-            }
-        } else {
-            return array();
+        $parsed = $this->parseResponse($response);
+        if (!is_array($parsed)) return $parsed;
+        foreach ($parsed as $key => $value) {
+            $parsed[$key] = $this->arrayChangeKeyName($value);
         }
+        return $parsed;
     }
 
 
@@ -271,6 +248,24 @@ class RouterosAPI
     }
 
 
+    private function readBytes($length)
+    {
+        $data = '';
+        while (strlen($data) < $length) {
+            $chunk = fread($this->socket, $length - strlen($data));
+            if ($chunk === false || $chunk === '') {
+                $status = stream_get_meta_data($this->socket);
+                $this->error_str = !empty($status['timed_out'])
+                    ? 'Délai de lecture API MikroTik dépassé.'
+                    : 'Connexion API MikroTik interrompue pendant la lecture.';
+                $this->disconnect();
+                throw new RuntimeException($this->error_str);
+            }
+            $data .= $chunk;
+        }
+        return $data;
+    }
+
     /**
      * Read data from Router OS
      *
@@ -289,7 +284,7 @@ class RouterosAPI
         while (true) {
             // Read the first byte of input which gives us some or all of the length
             // of the remaining reply.
-            $BYTE   = ord(fread($this->socket, 1));
+            $BYTE   = ord($this->readBytes(1));
             $LENGTH = 0;
             // If the first bit is set then we need to remove the first four bits, shift left 8
             // and then read another byte in.
@@ -298,21 +293,21 @@ class RouterosAPI
             // and then read in yet another byte.
             if ($BYTE & 128) {
                 if (($BYTE & 192) == 128) {
-                    $LENGTH = (($BYTE & 63) << 8) + ord(fread($this->socket, 1));
+                    $LENGTH = (($BYTE & 63) << 8) + ord($this->readBytes(1));
                 } else {
                     if (($BYTE & 224) == 192) {
-                        $LENGTH = (($BYTE & 31) << 8) + ord(fread($this->socket, 1));
-                        $LENGTH = ($LENGTH << 8) + ord(fread($this->socket, 1));
+                        $LENGTH = (($BYTE & 31) << 8) + ord($this->readBytes(1));
+                        $LENGTH = ($LENGTH << 8) + ord($this->readBytes(1));
                     } else {
                         if (($BYTE & 240) == 224) {
-                            $LENGTH = (($BYTE & 15) << 8) + ord(fread($this->socket, 1));
-                            $LENGTH = ($LENGTH << 8) + ord(fread($this->socket, 1));
-                            $LENGTH = ($LENGTH << 8) + ord(fread($this->socket, 1));
+                            $LENGTH = (($BYTE & 15) << 8) + ord($this->readBytes(1));
+                            $LENGTH = ($LENGTH << 8) + ord($this->readBytes(1));
+                            $LENGTH = ($LENGTH << 8) + ord($this->readBytes(1));
                         } else {
-                            $LENGTH = ord(fread($this->socket, 1));
-                            $LENGTH = ($LENGTH << 8) + ord(fread($this->socket, 1));
-                            $LENGTH = ($LENGTH << 8) + ord(fread($this->socket, 1));
-                            $LENGTH = ($LENGTH << 8) + ord(fread($this->socket, 1));
+                            $LENGTH = ord($this->readBytes(1));
+                            $LENGTH = ($LENGTH << 8) + ord($this->readBytes(1));
+                            $LENGTH = ($LENGTH << 8) + ord($this->readBytes(1));
+                            $LENGTH = ($LENGTH << 8) + ord($this->readBytes(1));
                         }
                     }
                 }
@@ -324,13 +319,8 @@ class RouterosAPI
 
             // If we have got more characters to read, read them in.
             if ($LENGTH > 0) {
-                $_      = "";
-                $retlen = 0;
-                while ($retlen < $LENGTH) {
-                    $toread = $LENGTH - $retlen;
-                    $_ .= fread($this->socket, $toread);
-                    $retlen = strlen($_);
-                }
+                $_ = $this->readBytes($LENGTH);
+                $retlen = strlen($_);
                 $RESPONSE[] = $_;
                 $this->debug('>>> [' . $retlen . '/' . $LENGTH . '] bytes read.');
             }
@@ -376,31 +366,24 @@ class RouterosAPI
             throw new RuntimeException($this->error_str);
         }
         if ($command) {
-            $data = explode("\n", $command);
-            foreach ($data as $com) {
-                $com = trim($com);
-                $bytes = @fwrite($this->socket, $this->encodeLength(strlen($com)) . $com);
-                if ($bytes === false) {
-                    $this->error_str = $this->error_str ?: 'Connexion MikroTik perdue lors de l envoi.';
-                    throw new RuntimeException($this->error_str);
-                }
-                $this->debug('<<< [' . strlen($com) . '] ' . $com);
-            }
-
+            // One API word: newlines and whitespace belong to the attribute value.
+            $packet = $this->encodeLength(strlen($command)) . $command;
             if (gettype($param2) == 'integer') {
-                $bytes = @fwrite($this->socket, $this->encodeLength(strlen('.tag=' . $param2)) . '.tag=' . $param2 . chr(0));
-                if ($bytes === false) {
-                    $this->error_str = $this->error_str ?: 'Connexion MikroTik perdue lors de l envoi.';
-                    throw new RuntimeException($this->error_str);
-                }
-                $this->debug('<<< [' . strlen('.tag=' . $param2) . '] .tag=' . $param2);
+                $packet .= $this->encodeLength(strlen('.tag=' . $param2)) . '.tag=' . $param2 . chr(0);
             } elseif (gettype($param2) == 'boolean') {
-                $bytes = @fwrite($this->socket, ($param2 ? chr(0) : ''));
-                if ($bytes === false) {
+                $packet .= $param2 ? chr(0) : '';
+            }
+            $offset = 0;
+            $length = strlen($packet);
+            while ($offset < $length) {
+                $bytes = @fwrite($this->socket, substr($packet, $offset));
+                if ($bytes === false || $bytes === 0) {
                     $this->error_str = $this->error_str ?: 'Connexion MikroTik perdue lors de l envoi.';
                     throw new RuntimeException($this->error_str);
                 }
+                $offset += $bytes;
             }
+            $this->debug('<<< [' . strlen($command) . '] ' . $command);
 
             return true;
         } else {

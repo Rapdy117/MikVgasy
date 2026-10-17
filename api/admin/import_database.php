@@ -10,7 +10,11 @@ if (!isset($_SESSION['logged_in']) || $_SESSION['logged_in'] !== true) {
     header('Location: /index.php');
     exit();
 }
-requireAdministratorAccess();
+if (!isSuperAdministrator()) {
+    http_response_code(403);
+    set_message('Accès réservé au superadmin.', 'danger');
+    exit();
+}
 
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     http_response_code(405);
@@ -67,5 +71,5 @@ try {
     set_message($e->getMessage(), 'danger');
 }
 
-header('Location: /pages/administration.php');
+header('Location: /tools/install.php');
 exit();

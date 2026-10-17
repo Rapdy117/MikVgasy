@@ -1,6 +1,14 @@
 config.php
 .DS_Store
 .vscode/
+.claude/
+.playwright-cli/
+Backup 26/
+output/
+uploads/
+*.old
+*.bak
+migrate.log
 ui/ui/compiled
 ui/compiled/*.php
 ui/cache/*.php

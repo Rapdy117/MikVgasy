@@ -1,16 +1,18 @@
 <?php
 
 require_once __DIR__ . '/message.php';
+require_once __DIR__ . '/tenancy.php';
 
 function currentLocalUserRole(): string
 {
-    $role = trim((string)($_SESSION['user_role'] ?? 'administrator'));
-    return $role === 'reseller' ? 'reseller' : 'administrator';
+    return normalizeTenantRole((string)($_SESSION['user_role'] ?? 'admin'));
 }
 
 function currentLocalUserRoleLabel(): string
 {
-    return currentLocalUserRole() === 'reseller' ? 'Revendeur' : 'Administrateur';
+    return match (currentLocalUserRole()) {
+        'superadmin' => 'Superadministrateur', 'admin' => 'Administrateur', 'reseller' => 'Revendeur',
+    };
 }
 
 function currentLocalUsername(): string
@@ -20,11 +22,20 @@ function currentLocalUsername(): string
 
 function isAdministrator(): bool
 {
-    return currentLocalUserRole() === 'administrator';
+    return in_array(currentLocalUserRole(), ['superadmin', 'admin'], true);
+}
+
+function isSuperAdministrator(): bool
+{
+    return currentLocalUserRole() === 'superadmin';
 }
 
 function canAccessApplicationPage(string $page): bool
 {
+    if ($page === 'freeradius.php') {
+        return isSuperAdministrator();
+    }
+
     if (isAdministrator()) {
         return true;
     }

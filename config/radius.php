@@ -7,6 +7,8 @@ header('Content-Type: application/json');
 
 $file = __DIR__ . '/radius.json';
 
+require_once __DIR__ . '/../includes/crypto.php';
+
 session_start();
 
 if (!isset($_SESSION['logged_in']) || $_SESSION['logged_in'] !== true) {
@@ -19,20 +21,25 @@ if (!isset($_SESSION['logged_in']) || $_SESSION['logged_in'] !== true) {
 }
 
 // =========================
-// SAVE
+// SAVE — chiffre les champs sensibles
 // =========================
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     $data = [
-        'host' => $_POST['host'] ?? '',
+        'host'      => $_POST['host']      ?? '',
         'auth_port' => (int)($_POST['auth_port'] ?? 1812),
         'acct_port' => (int)($_POST['acct_port'] ?? 1813),
-        'secret' => $_POST['secret'] ?? '',
-        'timeout' => (int)($_POST['timeout'] ?? 3)
+        'secret'    => encryptField((string)($_POST['secret']    ?? '')),
+        'test_user' => $_POST['test_user'] ?? '',
+        'test_pass' => encryptField((string)($_POST['test_pass'] ?? '')),
+        'timeout'   => (int)($_POST['timeout'] ?? 3),
     ];
 
     file_put_contents($file, json_encode($data, JSON_PRETTY_PRINT), LOCK_EX);
 
+    /* Retourne les valeurs déchiffrées au frontend */
+    $data['secret']    = decryptField($data['secret']);
+    $data['test_pass'] = decryptField($data['test_pass']);
     echo json_encode($data);
     exit;
 }
@@ -80,7 +87,11 @@ if (!$data) {
     exit;
 }
 
+/* Déchiffre les champs sensibles avant envoi au frontend */
+$data['secret']    = decryptField((string)($data['secret']    ?? ''));
+$data['test_pass'] = decryptField((string)($data['test_pass'] ?? ''));
+
 echo json_encode(array_merge([
     'test_user' => '',
-    'test_pass' => ''
+    'test_pass' => '',
 ], $data));

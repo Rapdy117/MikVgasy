@@ -43,7 +43,7 @@ if ($deviceId === '') {
 
 try {
     $store = loadDeviceStore();
-    $device = findDeviceById($store, $deviceId);
+    $device = requireAccessibleDevice($store, $deviceId);
     if (!is_array($device)) {
         throw new RuntimeException('Device introuvable.');
     }
@@ -55,6 +55,8 @@ try {
     $document = buildMikrotikStandardExportDocument($device);
     $profileCount = count($document['profiles'] ?? []);
     $userCount = count($document['users'] ?? []);
+    $ipBindingCount = count($document['backend_specific']['mikrotik']['ip_bindings'] ?? []);
+    $dhcpStaticLeaseCount = count($document['backend_specific']['mikrotik']['dhcp_static_leases'] ?? []);
 
     recordOperationHistory($pdo, [
         'operation_scope' => 'admin',
@@ -68,6 +70,8 @@ try {
         'details_json' => [
             'profiles' => $profileCount,
             'users' => $userCount,
+            'ip_bindings' => $ipBindingCount,
+            'dhcp_static_leases' => $dhcpStaticLeaseCount,
         ],
     ]);
 

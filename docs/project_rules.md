@@ -120,6 +120,15 @@ Concretement :
 - un refactor qui remplace une source de verite par un fallback, un merge ou une voie secondaire est invalide
 - une regression "toleree" par fallback n est pas une correction ; c est une duplication
 
+### Marquage Des Fichiers Obsoletes
+
+- tout fichier remplace mais conserve temporairement pour controle doit etre renomme avec le suffixe `.old`
+- le nom archive doit rester explicite, par exemple `service.php.old`
+- aucun fichier `.old` ne doit etre charge, inclus ou execute en runtime
+- un fichier encore utilise par l application ne doit jamais etre renomme avant la bascule complete vers sa nouvelle source de verite
+- les fichiers `.old` sont supprimes seulement pendant le nettoyage final, apres validation fonctionnelle
+- ne pas multiplier les suffixes concurrents `.orig`, `.bak`, `.backup` ou `.deployed.*`
+
 ---
 
 ## Regles Par Backend
@@ -172,6 +181,17 @@ Telemetrie live :
 - limiter les connexions API directes au routeur aux actions d ecriture ou aux lectures non couvertes par le collecteur
 - objectif explicite : reduire la charge CPU routeur et eviter les logs repetes `user admin logged in ... via api` / `logged out ... via api`
 - le collecteur ou le cache doit rester rattache au routeur exact (`device_id` / `host/ip`) et ne jamais fusionner plusieurs MikroTik sous une meme cle de type
+
+### Affectation N-WAN Hotspot
+
+- le moteur runtime d'affectation est le script RouterOS `RM-NWAN-ASSIGN` ; PHP configure et observe, SQL conserve uniquement les exceptions manuelles par routeur et nom d'utilisateur
+- `RM-NWAN-ASSIGN-BOOT` s'exécute uniquement au démarrage ; chaque nouveau login Hotspot appelle directement `RM-NWAN-ASSIGN` via le hook `on-login`
+- aucun scheduler N-WAN périodique, notamment à 30 secondes, ne doit vérifier ou réaffecter les sessions ; ne pas confondre cette règle avec un scheduler séparé de surveillance du mode dégradé
+- l'affectation WAN d'une session active reste stable jusqu'à sa déconnexion ; l'arrivée d'un autre client ne doit pas déplacer les sessions déjà affectées
+- au login, supprimer l'affectation précédente de l'IP qui revient, puis choisir son WAN selon les poids courants ; les affectations des autres IP Hotspot encore actives doivent être conservées
+- une exception manuelle est persistée par `device_id + username`, projetée dans le script RouterOS et prioritaire sur le choix automatique à chaque login ; elle ne dépend pas de l'IP précédente
+- les poids décrivent la répartition des clients affectés, pas une garantie de répartition du débit ; le routage effectif doit être contrôlé séparément
+- les entrées d'affectation ne reçoivent pas de délai artificiel de 10 minutes ; les entrées inactives peuvent rester jusqu'au prochain login ou redémarrage, où elles sont nettoyées
 
 ### OPNsense / RADIUS
 
@@ -234,6 +254,13 @@ Notes :
 - en mode RADIUS/OPNsense, l "Actuel" ne lit plus `session_timeout` / `data_limit` : il utilise le credit courant moins la consommation.
 
 ---
+
+## Regle Mobile / Performance
+
+- Depuis l'ajout du support PWA (manifest + service worker, `includes/layout_header.php` / `layout_footer.php`), l'app est installable et consultee depuis des mobiles, souvent en donnees cellulaires.
+- Toujours optimiser le chargement d'une page avant de l'alourdir : eviter les reponses HTML volumineuses (tableaux de plusieurs milliers de lignes rendues en un seul bloc), les appels reseau repetes non necessaires, et les actualisations automatiques lourdes.
+- Si une fonctionnalite est couteuse (gros volume de donnees, rafraichissement automatique, appel live repete) et n'apporte pas de valeur equivalente sur mobile, la **desactiver ou l'alleger sur mobile** plutot que de forcer le meme comportement que sur desktop. Exemple applique : `pages/user_logs.php` detecte un user-agent mobile, plafonne le nombre de lignes chargees et masque le bouton d'auto-refresh 30s (couteux en donnees cellulaires sur une page de plusieurs Mo).
+- Detection mobile : sniff simple de `$_SERVER['HTTP_USER_AGENT']` cote serveur (pas de dependance JS supplementaire), voir `includes/mobile_detect.php`.
 
 ## Regles D'Acces
 
@@ -378,8 +405,11 @@ Regle metier :
 ### Rechargement
 
 - profil courant conserve
-- time limit et data limit s ajoutent
-- expiration ne change que si elle existe deja et que le compte est encore valide
+- expiration conservee strictement, sans recalcul ni prolongation
+- compteurs non reinitialises
+- seules les limites presentes dans l offre sont ajoutees : quota DATA, limite temps, ou les deux
+- `MikroTik` : ajouter l offre aux limites techniques existantes du routeur, sans `reset-counters`, sans changement de profil, sans modification du commentaire d expiration
+- `RADIUS / OPNsense` : ajouter l offre aux credits alloues existants sans recreer la baseline de compteurs, sans changement de `profile_id`, sans modification de `users.expiration_date`
 
 ### Reabonnement
 
@@ -416,6 +446,8 @@ Regle metier de reference :
 Etat reel du code :
 
 - `MikroTik` : mapping natif Mikhmon conserve cote RouterOS (`rem`, `ntf`, `remc`, `ntfc`)
+- `MikroTik` : l expiration du commentaire doit etre comparee avec date et heure ; `rem`/`remc` suppriment, `ntf`/`ntfc` marquent `limit-uptime=1s`
+- `MikroTik` : une activation depuis `users_list.php` doit vider l ancien commentaire d expiration si aucune nouvelle date future n est fournie
 - `OPNsense + RADIUS` : moteur automatique disponible via [sync_opnsense_sessions.php](/var/www/html/scripts/sync_opnsense_sessions.php)
 - `RADIUS` pur : pas encore de reconcileur transverse dedie
 
@@ -531,6 +563,51 @@ Regle de reference :
 - les fichiers globaux partages comme [css/sidebar.css](/var/www/html/css/sidebar.css), [includes/sidebar.php](/var/www/html/includes/sidebar.php) et [css/theme.css](/var/www/html/css/theme.css) ne doivent pas etre modifies sans autorisation explicite prealable
 - si la demande utilisateur cible une page locale, le perimetre de modification doit rester local tant qu'une autorisation explicite n'etend pas ce perimetre
 
+## Identite Visuelle — Regle Canonique Non Negociable
+
+Decision validee par le proprietaire du projet (2026-04-20).
+
+Les deux piliers visuels du projet sont :
+
+1. **Transparence / Glassmorphism** : `backdrop-filter: blur()`, fonds `rgba` semi-transparents, bordures subtiles `rgba(148, 163, 184, 0.12)`, fonds de page sombres autour de `#060d18`.
+2. **Bleu cyan** : couleur d'accent unique `#17a2b8`, disponible via la variable CSS `--accent`.
+
+Regles derivees :
+
+- toute nouvelle page ou composant UI herite de ces deux piliers
+- aucune couleur d'accent concurrente ne doit etre introduite sans autorisation explicite
+- les boutons primaires, les focus, les bordures actives et les badges utilisent `#17a2b8` et ses variantes `rgba`
+- les animations d'ambiance (vagues, particules, lumieres) renforcent ces piliers sans les surcharger
+- `--accent: #17a2b8` doit etre declare comme variable CSS racine dans tout nouveau fichier CSS de page
+
+### Semantique Des Couleurs D'Etat
+
+Les couleurs d'etat ne remplacent pas l'accent canonique `#17a2b8`; elles indiquent uniquement le sens fonctionnel du message ou de l'action.
+
+- **Bleu** : information neutre, contexte, aide, etat de lecture ou notification non bloquante
+- **Vert** : succes, validation, operation terminee, etat confirme
+- **Jaune** : avertissement, attention, risque non critique, action a verifier
+- **Rouge** : alerte critique, danger, suppression, fermeture ou action demandant confirmation explicite
+
 ## Regle De Prudence Pour Les Modifications
 
 - si un champ est affiche dans l'UI mais non persiste cote backend, il ne doit pas etre suppose fonctionnel tant que la chaine complete formulaire -> backend -> stockage n'est pas verifiee
+
+
+## Règle Devices SQL (2026-07-21)
+
+- `network_devices` est la source unique des routeurs, paramètres techniques, secrets chiffrés et licences.
+- `admin_device_assignments` porte l’attribution d’un Device à un compte administrateur.
+- Chaque Device doit avoir un `owner_admin_id` valide et actif.
+- `active_device_id` est strictement stocké dans la session du compte connecté ; aucune valeur globale JSON ne doit être utilisée.
+- Les pages/API doivent charger les Devices via `includes/device_manager.php` et vérifier le périmètre du compte avant toute opération.
+- `config/opnsense.json.old` est une archive de migration et ne doit jamais être lu par le runtime.
+- La page Administration permet aux admins/superadmin de consulter et gérer les attributions autorisées ; les resellers seront activés après validation du périmètre admin.
+
+
+## Règles recharge et vouchers (2026-07-22)
+
+- `preview_token` est obligatoire entre preview et apply ; un contexte modifie retourne `409` sans ecriture.
+- Une recharge n applique que les composantes presentes (DATA et/ou temps) et conserve le profil courant si aucun changement de profil n est demande.
+- Les vouchers generes sont persistés en SQL, rattaches au Device et a l operateur ; la pagination ne charge jamais plus de 5000 lignes.
+- Les fichiers `.old` sont hors runtime et ne doivent jamais etre inclus.

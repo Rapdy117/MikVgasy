@@ -13,13 +13,16 @@ if (!isset($_SESSION['logged_in']) || $_SESSION['logged_in'] !== true) {
 }
 
 try {
-    requireMikrotikNasContextForActiveDevice();
+    $deviceId = trim((string)($_POST['device_id'] ?? ''));
+    $store = loadDeviceStore(); $device = requireAccessibleDevice($store, $deviceId);
+    if (($device['type'] ?? '') !== 'mikrotik') throw new RuntimeException('Device MikroTik requis.');
+    $nasContext = buildMikrotikContextFromDevice($device);
     $csrf = trim((string)($_POST['csrf_token'] ?? ''));
     if ($csrf === '' || !hash_equals($_SESSION['csrf_token'] ?? '', $csrf)) {
         throw new RuntimeException('CSRF invalide');
     }
 
-    removeMikrotikScheduler((string)($_POST['scheduler_id'] ?? ''));
+    removeMikrotikScheduler((string)($_POST['scheduler_id'] ?? ''), $nasContext);
 
     echo json_encode(['success' => true, 'message' => 'Scheduler supprime']);
 } catch (Throwable $e) {

@@ -20,7 +20,10 @@ if (!isset($_SESSION['logged_in']) || $_SESSION['logged_in'] !== true) {
 
 try {
     $device = requireActiveDevice();
-    $requestedInterface = trim((string)($_GET['interface'] ?? ''));
+    $requestedInterfaces = array_values(array_unique(array_filter(array_map(
+        static fn($value): string => trim((string)$value),
+        explode(',', (string)($_GET['interfaces'] ?? $_GET['interface'] ?? ''))
+    ), static fn(string $value): bool => $value !== '')));
 
     if (($device['type'] ?? '') === 'mikrotik') {
         $interfaces = listMikrotikInterfaces();
@@ -33,13 +36,29 @@ try {
             return $name !== '' && $name !== 'lo' && $name !== 'loopback';
         }));
 
-        $selectedInterface = $requestedInterface;
-        if ($selectedInterface === '') {
+        $selectedInterfaces = array_values(array_filter($requestedInterfaces, static function (string $requested) use ($filteredInterfaces): bool {
+            foreach ($filteredInterfaces as $interface) {
+                if ((string)($interface['name'] ?? '') === $requested) {
+                    return true;
+                }
+            }
+            return false;
+        }));
+        if ($selectedInterfaces === []) {
             $selected = selectMikrotikDashboardInterface($filteredInterfaces);
-            $selectedInterface = (string)($selected['name'] ?? '');
+            $selectedInterfaces = [(string)($selected['name'] ?? '')];
         }
 
-        $sample = getMikrotikTrafficSample($selectedInterface);
+        $trafficInterfaces = [];
+        foreach (getMikrotikTrafficSamples($selectedInterfaces) as $sample) {
+            $trafficInterfaces[$sample['interface']] = [
+                'name' => $sample['interface'],
+                'inbytes' => $sample['rx_bps'],
+                'outbytes' => $sample['tx_bps'],
+                'rx_bytes' => $sample['rx_bytes'],
+                'tx_bytes' => $sample['tx_bytes'],
+            ];
+        }
         $interfaceOptions = array_map(static function (array $interface): array {
             return [
                 'name' => (string)($interface['name'] ?? ''),
@@ -52,17 +71,12 @@ try {
         echo json_encode([
             'time' => microtime(true),
             'interval' => 2000,
-            'interfaces' => [
-                'wan' => [
-                    'name' => $sample['interface'],
-                    'inbytes' => $sample['rx_bps'],
-                    'outbytes' => $sample['tx_bps'],
-                ],
-            ],
+            'interfaces' => $trafficInterfaces,
             'metric_mode' => 'rate',
-            'interface_label' => $sample['interface'],
+            'interface_label' => implode(', ', $selectedInterfaces),
             'interface_options' => $interfaceOptions,
-            'selected_interface' => $sample['interface'],
+            'selected_interface' => $selectedInterfaces[0],
+            'selected_interfaces' => $selectedInterfaces,
             'last_update' => date('H:i:s'),
         ]);
         exit;
@@ -115,10 +129,33 @@ try {
         $filteredInterfaces = $interfaces;
     }
 
+    $selectedInterfaces = array_values(array_filter($requestedInterfaces, static fn(string $requested): bool => array_key_exists($requested, $filteredInterfaces)));
+    if ($selectedInterfaces === []) {
+        $selectedInterfaces = [(string)array_key_first($filteredInterfaces)];
+    }
+
+    $selectedInterface = $selectedInterfaces[0];
+    $selectedStats = is_array($filteredInterfaces[$selectedInterface] ?? null) ? $filteredInterfaces[$selectedInterface] : [];
+    $interfaceOptions = [];
+    foreach ($filteredInterfaces as $key => $stats) {
+        if (!is_array($stats)) {
+            continue;
+        }
+        $interfaceOptions[] = [
+            'name' => (string)$key,
+            'label' => (string)($stats['name'] ?? $key),
+            'running' => true,
+        ];
+    }
+
     echo json_encode([
         'time' => $timestamp,
         'interval' => 2000,
         'interfaces' => $filteredInterfaces,
+        'interface_options' => $interfaceOptions,
+        'selected_interface' => $selectedInterface,
+        'selected_interfaces' => $selectedInterfaces,
+        'interface_label' => (string)($selectedStats['name'] ?? $selectedInterface),
         'last_update' => date('H:i:s'),
         'device_type' => 'opnsense',
         'business_source' => resolveDeviceBusinessSource('opnsense'),

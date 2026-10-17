@@ -45,12 +45,17 @@ if ($sessionId === '') {
     json_error('ID de session manquant dans la requete.');
 }
 
-$device = requireActiveDevice();
+$deviceId = trim((string)($payload['device_id'] ?? ''));
+if ($deviceId === '') {
+    json_error('Device manquant dans la requete.', 422);
+}
+$device = requireAccessibleDevice(loadDeviceStore(), $deviceId);
+$nasContext = ($device['type'] ?? '') === 'mikrotik' ? buildMikrotikContextFromDevice($device) : null;
 $deviceType = normalizeDeviceType((string)$device['type']);
 
 if ($deviceType === 'mikrotik') {
     try {
-        disconnectMikrotikHotspotActiveSession($sessionId);
+        disconnectMikrotikHotspotActiveSession($sessionId, $nasContext);
         recordOperationHistory($pdo, [
             'operation_scope' => 'admin',
             'operation_type' => 'session_disconnect',

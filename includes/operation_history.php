@@ -13,6 +13,7 @@ function ensureOperationHistoryTable(PDO $pdo): void
     $pdo->exec(
         "CREATE TABLE IF NOT EXISTS operation_history (
             id INT(11) NOT NULL AUTO_INCREMENT,
+            owner_admin_id INT(11) DEFAULT NULL,
             operation_scope VARCHAR(30) NOT NULL DEFAULT 'admin',
             operation_type VARCHAR(50) NOT NULL,
             actor_username VARCHAR(100) DEFAULT NULL,
@@ -28,6 +29,7 @@ function ensureOperationHistoryTable(PDO $pdo): void
             details_json LONGTEXT DEFAULT NULL,
             created_at TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP,
             PRIMARY KEY (id),
+            KEY idx_operation_history_owner (owner_admin_id),
             KEY idx_operation_history_scope (operation_scope),
             KEY idx_operation_history_type (operation_type),
             KEY idx_operation_history_actor (actor_username),
@@ -44,6 +46,7 @@ function recordOperationHistory(PDO $pdo, array $payload): void
 
     $stmt = $pdo->prepare("
         INSERT INTO operation_history (
+            owner_admin_id,
             operation_scope,
             operation_type,
             actor_username,
@@ -58,6 +61,7 @@ function recordOperationHistory(PDO $pdo, array $payload): void
             summary,
             details_json
         ) VALUES (
+            :owner_admin_id,
             :operation_scope,
             :operation_type,
             :actor_username,
@@ -75,11 +79,18 @@ function recordOperationHistory(PDO $pdo, array $payload): void
     ");
 
     $details = $payload['details_json'] ?? null;
+    $detailsPayload = is_array($details) ? $details : [];
     if (is_array($details)) {
         $details = json_encode($details, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
     }
 
+    $ownerAdminId = isset($payload['owner_admin_id']) ? max(0, (int)$payload['owner_admin_id']) : max(0, (int)($_SESSION['owner_admin_id'] ?? $_SESSION['local_admin_id'] ?? 0));
+    if (strtolower((string)($_SESSION['user_role'] ?? '')) === 'reseller') {
+        $ownerAdminId = max(0, (int)($_SESSION['owner_admin_id'] ?? $ownerAdminId));
+    }
+
     $stmt->execute([
+        ':owner_admin_id' => $ownerAdminId > 0 ? $ownerAdminId : null,
         ':operation_scope' => trim((string)($payload['operation_scope'] ?? 'admin')) ?: 'admin',
         ':operation_type' => trim((string)($payload['operation_type'] ?? 'unknown')) ?: 'unknown',
         ':actor_username' => trim((string)($payload['actor_username'] ?? '')) ?: null,
@@ -96,6 +107,33 @@ function recordOperationHistory(PDO $pdo, array $payload): void
     ]);
 
     $operationType = trim((string)($payload['operation_type'] ?? ''));
+    if ($operationType === 'recharge') {
+        $targetName = trim((string)($payload['target_name'] ?? '')) ?: 'Utilisateur';
+        $actor = trim((string)($payload['actor_username'] ?? '')) ?: 'Systeme';
+        $mode = trim((string)($detailsPayload['mode'] ?? ''));
+        $isOfferChange = $mode === 'replace_offer';
+        $title = $isOfferChange ? "Changement d'offre" : 'Recharge utilisateur';
+        $message = $isOfferChange
+            ? sprintf("Offre de %s modifiee par %s.", $targetName, $actor)
+            : sprintf("Recharge de %s effectuee par %s.", $targetName, $actor);
+        createAdminNotification($pdo, [
+            'severity' => 'info',
+            'category' => 'commercial',
+            'source_type' => 'recharge',
+            'source_ref' => $targetName,
+            'title' => $title,
+            'message' => $message,
+            'details_json' => [
+                'operation_type' => $operationType,
+                'actor' => $actor,
+                'device_id' => trim((string)($payload['device_id'] ?? '')),
+                'profile_name' => trim((string)($payload['profile_name'] ?? '')),
+                'mode' => $mode,
+                'amount_value' => $payload['amount_value'] ?? null,
+            ],
+        ]);
+    }
+
     if (in_array($operationType, ['user_create', 'user_update', 'user_delete'], true)) {
         $targetName = trim((string)($payload['target_name'] ?? '')) ?: 'Utilisateur';
         $actor = trim((string)($payload['actor_username'] ?? '')) ?: 'Systeme';

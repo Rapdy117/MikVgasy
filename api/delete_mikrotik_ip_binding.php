@@ -33,11 +33,19 @@ if ($csrfToken === '' || !hash_equals((string)($_SESSION['csrf_token'] ?? ''), $
 try {
     requireMikrotikNasContextForActiveDevice();
     $bindingId = post_string('binding_id');
-    removeMikrotikIpBinding($bindingId);
+    $deleteDhcpLease = post_string('delete_dhcp_lease') === '1';
+    $dhcpLeaseDeleted = removeMikrotikIpBinding($bindingId, $deleteDhcpLease);
+
+    $message = 'IP binding supprimé.';
+    if ($deleteDhcpLease) {
+        $message .= $dhcpLeaseDeleted
+            ? ' Lease DHCP correspondant supprimé.'
+            : ' Aucun lease DHCP fixe correspondant trouvé.';
+    }
 
     echo json_encode([
         'success' => true,
-        'message' => 'IP binding supprimé.',
+        'message' => $message,
     ]);
 } catch (Throwable $e) {
     http_response_code(500);

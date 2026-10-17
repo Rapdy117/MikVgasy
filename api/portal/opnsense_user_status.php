@@ -121,7 +121,7 @@ try {
     $store = loadDeviceStore();
     $device = null;
     if ($deviceId !== null) {
-        $candidate = findDeviceById($store, $deviceId);
+        $candidate = requireAccessibleDevice($store, $deviceId);
         if ($candidate && normalizeDeviceType((string)($candidate['type'] ?? '')) === 'opnsense') {
             $device = $candidate;
         }

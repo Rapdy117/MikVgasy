@@ -1,13 +1,68 @@
-document.addEventListener('DOMContentLoaded', () => {
-    const sortTables = Array.from(document.querySelectorAll('table[data-sort-table="1"]'));
+(() => {
+    const parseHumanMetricValue = (value) => {
+        const normalized = String(value ?? '')
+            .trim()
+            .replace(/\s+/g, '')
+            .replace(',', '.')
+            .toLowerCase();
+        const match = normalized.match(/^(-?\d+(?:\.\d+)?)([a-z°%]*)$/i);
+        if (!match) {
+            const numeric = Number.parseFloat(normalized);
+            return Number.isNaN(numeric) ? Number.NEGATIVE_INFINITY : numeric;
+        }
+
+        const amount = Number.parseFloat(match[1]);
+        if (Number.isNaN(amount)) {
+            return Number.NEGATIVE_INFINITY;
+        }
+
+        const unit = match[2];
+        const byteUnits = {
+            o: 1,
+            b: 1,
+            k: 1024,
+            ko: 1024,
+            kb: 1024,
+            m: 1024 ** 2,
+            mo: 1024 ** 2,
+            mb: 1024 ** 2,
+            g: 1024 ** 3,
+            go: 1024 ** 3,
+            gb: 1024 ** 3,
+            t: 1024 ** 4,
+            to: 1024 ** 4,
+            tb: 1024 ** 4,
+        };
+        const bitRateUnits = {
+            bps: 1,
+            bit: 1,
+            bits: 1,
+            kbit: 1000,
+            kbps: 1000,
+            kbitps: 1000,
+            mbps: 1000 ** 2,
+            mbit: 1000 ** 2,
+            mbitps: 1000 ** 2,
+            gbps: 1000 ** 3,
+            gbit: 1000 ** 3,
+            gbitps: 1000 ** 3,
+        };
+
+        if (Object.prototype.hasOwnProperty.call(bitRateUnits, unit)) {
+            return amount * bitRateUnits[unit];
+        }
+        if (Object.prototype.hasOwnProperty.call(byteUnits, unit)) {
+            return amount * byteUnits[unit];
+        }
+
+        return amount;
+    };
 
     const parseValue = (rawValue, type) => {
         const value = String(rawValue ?? '').trim();
 
         if (type === 'number' || type === 'bytes' || type === 'currency') {
-            const normalized = value.replace(/\s+/g, '').replace(',', '.');
-            const numeric = Number.parseFloat(normalized);
-            return Number.isNaN(numeric) ? Number.NEGATIVE_INFINITY : numeric;
+            return parseHumanMetricValue(value);
         }
 
         if (type === 'date') {
@@ -49,6 +104,12 @@ document.addEventListener('DOMContentLoaded', () => {
             return '';
         }
 
+        // Tri par nom : un compte en login par MAC trie sur son libellé (ce qui est affiché),
+        // pas sur la MAC brute, quand un libellé existe.
+        if (key === 'username' && row.dataset && String(row.dataset.label ?? '').trim() !== '') {
+            return String(row.dataset.label);
+        }
+
         const datasetValue = row.dataset ? row.dataset[key] : undefined;
         if (datasetValue !== undefined && datasetValue !== null && String(datasetValue).trim() !== '') {
             return String(datasetValue);
@@ -69,7 +130,7 @@ document.addEventListener('DOMContentLoaded', () => {
         return '';
     };
 
-    sortTables.forEach((table) => {
+    const initializeSortTable = (table) => {
         const tbody = table.tBodies[0];
         if (!tbody) {
             return;
@@ -106,28 +167,51 @@ document.addEventListener('DOMContentLoaded', () => {
             applyIndicators(table, key, direction);
         };
 
-        headers.forEach((header) => {
-            header.classList.add('sortable-column');
-            header.addEventListener('click', () => {
-                const key = header.dataset.sortKey;
-                const type = header.dataset.sortType || 'text';
-                if (!key) {
-                    return;
-                }
+        if (table.dataset.sortInitialized !== '1') {
+            headers.forEach((header) => {
+                header.classList.add('sortable-column');
+                header.addEventListener('click', () => {
+                    const key = header.dataset.sortKey;
+                    const type = header.dataset.sortType || 'text';
+                    if (!key) {
+                        return;
+                    }
 
-                const currentKey = table.dataset.currentSortKey || '';
-                const currentDirection = table.dataset.currentSortDirection || 'asc';
-                const nextDirection = currentKey === key && currentDirection === 'asc' ? 'desc' : 'asc';
+                    const currentKey = table.dataset.currentSortKey || '';
+                    const currentDirection = table.dataset.currentSortDirection || 'asc';
+                    const nextDirection = currentKey === key && currentDirection === 'asc' ? 'desc' : 'asc';
 
-                sortRows(key, nextDirection, type);
+                    sortRows(key, nextDirection, type);
+                });
             });
-        });
+            table.dataset.sortInitialized = '1';
+        }
+
+        const currentKey = table.dataset.currentSortKey || '';
+        if (currentKey) {
+            const currentDirection = table.dataset.currentSortDirection || 'asc';
+            const currentHeader = headers.find((header) => header.dataset.sortKey === currentKey);
+            sortRows(currentKey, currentDirection, currentHeader?.dataset.sortType || 'text');
+            return;
+        }
 
         const defaultKey = table.dataset.defaultSortKey || '';
-        if (defaultKey) {
+        if (defaultKey && table.dataset.sortDefaultApplied !== '1') {
             const defaultDirection = table.dataset.defaultSortDirection || 'asc';
             const defaultHeader = headers.find((header) => header.dataset.sortKey === defaultKey);
             sortRows(defaultKey, defaultDirection, defaultHeader?.dataset.sortType || 'text');
+            table.dataset.sortDefaultApplied = '1';
         }
+    };
+
+    const initializeAllSortTables = () => {
+        Array.from(document.querySelectorAll('table[data-sort-table="1"]')).forEach(initializeSortTable);
+    };
+
+    window.TableSort = Object.assign(window.TableSort || {}, {
+        refresh: initializeAllSortTables,
+        parseValue,
     });
-});
+
+    document.addEventListener('DOMContentLoaded', initializeAllSortTables);
+})();

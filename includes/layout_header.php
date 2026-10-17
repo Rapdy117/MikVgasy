@@ -18,16 +18,26 @@ if (!isset($appContext)) {
 
 // Titre par défaut
 $pageTitle = $pageTitle ?? 'Radius Manager';
+$htmlClass = trim((string)($htmlClass ?? ''));
 $bodyClass = trim((string)($bodyClass ?? ''));
+$contentClass = trim((string)($contentClass ?? ''));
 $bodyAttributes = is_array($bodyAttributes ?? null) ? $bodyAttributes : [];
 ?>
 <!DOCTYPE html>
-<html lang="fr">
+<html lang="fr"<?= $htmlClass !== '' ? ' class="' . htmlspecialchars($htmlClass, ENT_QUOTES) . '"' : '' ?>>
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title><?= htmlspecialchars($pageTitle) ?></title>
-    
+
+    <!-- PWA -->
+    <link rel="manifest" href="../manifest.json">
+    <meta name="theme-color" content="#030820">
+    <link rel="apple-touch-icon" href="../assets/icons/icon-192.png">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+
     <!-- Fonts & Icons -->
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
@@ -37,6 +47,7 @@ $bodyAttributes = is_array($bodyAttributes ?? null) ? $bodyAttributes : [];
     
     <!-- Global CSS -->
     <link rel="stylesheet" href="../css/theme.css">
+    <link rel="stylesheet" href="../css/toast.css?v=20260430a">
     
     <!-- Page Specific CSS -->
     <?php if (isset($extraCss) && is_array($extraCss)): ?>
@@ -70,7 +81,7 @@ $bodyAttributes = is_array($bodyAttributes ?? null) ? $bodyAttributes : [];
 
     <!-- Page Content Wrapper -->
     <div id="page-content-wrapper">
-        <div class="container-fluid py-3 page-content">
+        <div class="container-fluid py-3 page-content<?= $contentClass !== '' ? ' ' . htmlspecialchars($contentClass, ENT_QUOTES) : '' ?>">
             <!-- Messages System -->
             <?php 
             require_once __DIR__ . '/message.php';

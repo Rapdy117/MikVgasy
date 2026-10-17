@@ -42,6 +42,7 @@ function profileCatalogNormalizeMikrotikRow(array $profile): array
         'select_value' => $selectValue,
         'service_type' => 'hotspot',
         'rate_limit' => (string)($profile['rate_limit'] ?? ''),
+        'degraded_rate' => (string)($profile['degraded_rate'] ?? ''),
         'session_timeout' => isset($profile['session_timeout']) ? (int)$profile['session_timeout'] : 0,
         'idle_timeout' => 0,
         'validity_time' => isset($profile['validity_time']) ? (int)$profile['validity_time'] : 0,

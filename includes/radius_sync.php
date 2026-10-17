@@ -1,6 +1,7 @@
 <?php
 
 require_once __DIR__ . '/mikrotik_backend.php';
+require_once __DIR__ . '/crypto.php';
 
 function insertReply($pdo, $group, $attribute, $value)
 {
@@ -46,6 +47,29 @@ function convertMegabytesToBytes($megabytes)
     return (int)$megabytes * 1024 * 1024;
 }
 
+function formatRadiusExpirationDate($value): ?string
+{
+    $raw = trim((string)$value);
+    if ($raw === '') {
+        return null;
+    }
+
+    if (preg_match('/^\d{1,2} [A-Z][a-z]{2} \d{4}(?: \d{2}:\d{2}:\d{2})?$/', $raw)) {
+        return str_contains($raw, ':') ? $raw : $raw . ' 00:00:00';
+    }
+
+    if (!preg_match('/^\d{4}-\d{2}-\d{2}/', $raw)) {
+        return null;
+    }
+
+    $date = DateTimeImmutable::createFromFormat('!Y-m-d', substr($raw, 0, 10));
+    if (!$date) {
+        return null;
+    }
+
+    return $date->format('d M Y H:i:s');
+}
+
 function hasCapability(array $capabilities, string $attribute): bool
 {
     if ($capabilities === []) {
@@ -60,10 +84,20 @@ function canWriteUserReplyAttribute(string $attribute, array $user = []): bool
     // In this deployment, FreeRADIUS accepts Max-Octets on the profile/group,
     // but rejects authentication when it is written directly to radreply.
     if ($attribute === 'Max-Octets') {
-        return false;
+        return !empty($user['allow_user_max_octets']);
     }
 
     return true;
+}
+
+function shouldForceUserReplyAttribute(string $attribute, array $user = []): bool
+{
+    $forced = $user['force_user_reply_attributes'] ?? [];
+    if (!is_array($forced)) {
+        return false;
+    }
+
+    return in_array($attribute, $forced, true);
 }
 
 function shouldWriteUserReplyAttribute(
@@ -78,6 +112,10 @@ function shouldWriteUserReplyAttribute(
 
     if (!canWriteUserReplyAttribute($attribute, $user)) {
         return false;
+    }
+
+    if (shouldForceUserReplyAttribute($attribute, $user)) {
+        return true;
     }
 
     return !isset($groupReplyAttributes[$attribute]);
@@ -242,7 +280,9 @@ function deleteProfileFromRadius($pdo, string $groupname): void
 function syncUserToRadius($pdo, array $user, string $groupname): void
 {
     $username = $user['username'];
-    $password = $user['password'];
+    /* Déchiffre le mot de passe stocké en DB avant écriture dans radcheck */
+    $password = decryptField((string)($user['password'] ?? ''));
+    $status = strtolower(trim((string)($user['status'] ?? 'active')));
     $nasType = (string)($user['nas_type'] ?? '');
     if ($nasType === '') {
         throw new InvalidArgumentException('nas_type requis pour syncUserToRadius');
@@ -252,6 +292,14 @@ function syncUserToRadius($pdo, array $user, string $groupname): void
 
     $stmt = $pdo->prepare("DELETE FROM radcheck WHERE username = ? AND attribute = 'Auth-Type'");
     $stmt->execute([$username]);
+
+    if (in_array($status, ['disabled', 'expired'], true)) {
+        $stmt = $pdo->prepare("
+            INSERT INTO radcheck (username, attribute, op, value)
+            VALUES (?, 'Auth-Type', ':=', 'Reject')
+        ");
+        $stmt->execute([$username]);
+    }
 
     $stmt = $pdo->prepare("
         INSERT INTO radcheck (username, attribute, op, value)
@@ -284,8 +332,9 @@ function syncUserToRadius($pdo, array $user, string $groupname): void
         insertUserReply($pdo, $username, 'Max-Octets', convertMegabytesToBytes($user['data_limit']));
     }
 
-    if (!empty($user['expiration_date'])) {
-        insertUserReply($pdo, $username, 'Expiration', $user['expiration_date']);
+    $expirationDate = formatRadiusExpirationDate($user['expiration_date'] ?? null);
+    if ($expirationDate !== null) {
+        insertUserReply($pdo, $username, 'Expiration', $expirationDate);
     }
 
     applyUserRateLimit($pdo, $username, $user['rate_limit'] ?? null, $nasType, $capabilities, $groupReplyAttributes);
@@ -293,8 +342,11 @@ function syncUserToRadius($pdo, array $user, string $groupname): void
 
 function updateUserInRadius($pdo, array $user, string $groupname): void
 {
-    $username = $user['username'];
+    $username    = $user['username'];
     $oldUsername = $user['old_username'] ?? $username;
+    $status      = strtolower(trim((string)($user['status'] ?? 'active')));
+    /* Déchiffre le mot de passe stocké en DB avant écriture dans radcheck */
+    $user['password'] = decryptField((string)($user['password'] ?? ''));
     $nasType = (string)($user['nas_type'] ?? '');
     if ($nasType === '') {
         throw new InvalidArgumentException('nas_type requis pour updateUserInRadius');
@@ -308,22 +360,43 @@ function updateUserInRadius($pdo, array $user, string $groupname): void
         $stmt->execute([$username]);
     }
 
-    $stmt = $pdo->prepare("
-        UPDATE radcheck
-        SET username = ?, value = ?
-        WHERE username = ? AND attribute = 'Cleartext-Password'
-    ");
-    $stmt->execute([$username, $user['password'], $oldUsername]);
+    if (in_array($status, ['disabled', 'expired'], true)) {
+        $stmt = $pdo->prepare("
+            INSERT INTO radcheck (username, attribute, op, value)
+            VALUES (?, 'Auth-Type', ':=', 'Reject')
+        ");
+        $stmt->execute([$username]);
+    }
+
+    $stmt = $pdo->prepare("DELETE FROM radcheck WHERE username = ? AND attribute = 'Cleartext-Password'");
+    $stmt->execute([$oldUsername]);
+    if ($oldUsername !== $username) {
+        $stmt->execute([$username]);
+    }
 
     $stmt = $pdo->prepare("
-        UPDATE radusergroup
-        SET username = ?, groupname = ?
-        WHERE username = ?
+        INSERT INTO radcheck (username, attribute, op, value)
+        VALUES (?, 'Cleartext-Password', ':=', ?)
     ");
-    $stmt->execute([$username, $groupname, $oldUsername]);
+    $stmt->execute([$username, $user['password']]);
+
+    $stmt = $pdo->prepare("DELETE FROM radusergroup WHERE username = ?");
+    $stmt->execute([$oldUsername]);
+    if ($oldUsername !== $username) {
+        $stmt->execute([$username]);
+    }
+
+    $stmt = $pdo->prepare("
+        INSERT INTO radusergroup (username, groupname, priority)
+        VALUES (?, ?, 1)
+    ");
+    $stmt->execute([$username, $groupname]);
 
     $stmt = $pdo->prepare("DELETE FROM radreply WHERE username = ?");
     $stmt->execute([$oldUsername]);
+    if ($oldUsername !== $username) {
+        $stmt->execute([$username]);
+    }
 
     if (($user['session_timeout'] ?? 0) > 0 && shouldWriteUserReplyAttribute('Session-Timeout', $capabilities, $groupReplyAttributes, $user)) {
         insertUserReply($pdo, $username, 'Session-Timeout', $user['session_timeout']);
@@ -344,8 +417,9 @@ function updateUserInRadius($pdo, array $user, string $groupname): void
         insertUserReply($pdo, $username, 'Max-Octets', convertMegabytesToBytes($user['data_limit']));
     }
 
-    if (!empty($user['expiration_date'])) {
-        insertUserReply($pdo, $username, 'Expiration', $user['expiration_date']);
+    $expirationDate = formatRadiusExpirationDate($user['expiration_date'] ?? null);
+    if ($expirationDate !== null) {
+        insertUserReply($pdo, $username, 'Expiration', $expirationDate);
     }
 
     applyUserRateLimit($pdo, $username, $user['rate_limit'] ?? null, $nasType, $capabilities, $groupReplyAttributes);

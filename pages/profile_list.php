@@ -21,8 +21,17 @@ $csrfToken = ensureCsrfToken();
 $context = ['app' => buildAppContext()];
 $activeDevice = $context['app']['device'] ?? null;
 $deviceStore = loadDeviceStore();
-if (is_array($activeDevice) && trim((string)($activeDevice['id'] ?? '')) !== '') {
-    $fullActiveDevice = findDeviceById($deviceStore, (string)$activeDevice['id']);
+$requestedDeviceId = trim((string)($_GET['device_id'] ?? ''));
+if ($requestedDeviceId !== '') {
+    // A profile page may target a router explicitly; never use an arbitrary device.
+    $requestedDevice = requireAccessibleDevice($deviceStore, $requestedDeviceId);
+    if (!is_array($requestedDevice)) {
+        http_response_code(403);
+        exit('Device non autorise');
+    }
+    $activeDevice = $requestedDevice;
+} elseif (is_array($activeDevice) && trim((string)($activeDevice['id'] ?? '')) !== '') {
+    $fullActiveDevice = requireAccessibleDevice($deviceStore, (string)$activeDevice['id']);
     if (is_array($fullActiveDevice)) {
         $activeDevice = $fullActiveDevice;
     }
@@ -62,28 +71,17 @@ try {
     }
 }
 ?>
-<!DOCTYPE html>
-<html lang="fr" class="profile-list-page">
-<head>
-<meta charset="UTF-8">
-<title>Liste des Profils</title>
 
-<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
-<link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="../css/theme.css">
-<link rel="stylesheet" href="../css/profile_liste.css?v=20260410b">
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
-
-</head>
-
-<body class="profile-list-page">
-
-<div class="d-flex" id="wrapper">
-
-<?php include_once '../includes/sidebar.php'; ?>
-
-<div id="page-content-wrapper">
-<div class="container-fluid py-3 profile-list-shell">
+<?php
+$pageTitle = 'Liste des Profils';
+$htmlClass = 'profile-list-page';
+$bodyClass = 'profile-list-page';
+$contentClass = 'profile-list-shell';
+$extraCss = [
+    '../css/profile_liste.css?v=20260417c',
+];
+require_once '../includes/layout_header.php';
+?>
 
 <div class="row profiles-layout-row" id="profilesLayoutRow">
 <div class="col-12 profiles-list-column users-list-column" id="profilesListColumn">
@@ -94,10 +92,12 @@ try {
 </div>
 <?php endif; ?>
 
-<div class="alert alert-info page-flow-explanation py-2 px-3 small mb-3">
-    <div class="fw-semibold"><?= htmlspecialchars($profileStorageLabel) ?></div>
-    <div><?= htmlspecialchars($profileStorageDescription) ?></div>
-</div>
+<div
+    class="d-none"
+    id="profilesFlowExplanation"
+    data-toast-title="<?= htmlspecialchars($profileStorageLabel, ENT_QUOTES) ?>"
+    data-toast-message="<?= htmlspecialchars($profileStorageDescription, ENT_QUOTES) ?>"
+></div>
 
 <div class="card shadow-sm profiles-table-card">
 <div class="card-header profiles-list-card-header users-list-card-header d-flex align-items-center justify-content-between flex-wrap gap-2">
@@ -198,7 +198,7 @@ try {
         </div>
 
         <a href="add_profile.php" class="btn btn-save">
-            <i class="fa fa-plus me-1"></i> Ajouter Profil
+            <i class="fa fa-plus me-1"></i> Nouveau
         </a>
     </div>
 </div>
@@ -366,24 +366,11 @@ try {
 </div>
 </div>
 
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
-<script src="../js/sidebar.js?v=20260402a"></script>
-<script src="../js/table_sort.js"></script>
-<script src="../js/profile_list.js"></script>
-<script>
-document.addEventListener('DOMContentLoaded', () => {
-    const wrap = document.getElementById('profilesTableWrap');
-    if (!wrap) {
-        return;
-    }
-    const applyScrollableState = () => {
-        const needsScroll = wrap.scrollHeight > wrap.clientHeight + 2;
-        wrap.classList.toggle('is-scrollable', needsScroll);
-    };
-    applyScrollableState();
-    window.addEventListener('resize', applyScrollableState);
-});
-</script>
 
-</body>
-</html>
+<?php
+$extraJs = array (
+  0 => '../js/table_sort.js',
+  1 => '../js/profile_list.js',
+);
+require_once '../includes/layout_footer.php';
+?>

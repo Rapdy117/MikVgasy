@@ -1,3 +1,84 @@
+/* Dashboard summary links and shortcuts share the existing button interaction. */
+.dashboard-page .dashboard-summary-link {
+    color: inherit;
+    text-decoration: none;
+    border-radius: 8px;
+    transition: background-color 0.2s ease, transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.dashboard-page .dashboard-summary-link:hover,
+.dashboard-page .dashboard-summary-link:focus-visible {
+    color: inherit;
+    background: var(--theme-primary-hover);
+    transform: translateY(-1px);
+    box-shadow: 0 3px 8px rgba(23, 162, 184, 0.18);
+}
+
+.dashboard-page .card-shortcut {
+    transition: transform 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.dashboard-page .card-shortcut:hover,
+.dashboard-page .card-shortcut:focus-visible {
+    background: var(--theme-primary-hover);
+    border-color: var(--theme-primary);
+    color: var(--theme-primary);
+    transform: translateY(-1px);
+    box-shadow: 0 3px 8px rgba(23, 162, 184, 0.18);
+}
+
+/* Dashboard et vouchers : interaction alignée sur le survol du sidebar.
+   Dimensions, rayons et espacements restent ceux des composants existants. */
+.hotspot-vouchers-page .btn-save:hover,
+.hotspot-vouchers-page .btn-save:focus-visible,
+.hotspot-vouchers-page .btn-test:hover,
+.hotspot-vouchers-page .btn-test:focus-visible,
+.hotspot-vouchers-page .btn-delete:hover,
+.hotspot-vouchers-page .btn-delete:focus-visible {
+    background: var(--theme-primary-hover);
+    border-color: var(--theme-primary);
+    color: var(--theme-primary);
+    transform: translateY(-1px);
+    box-shadow: 0 3px 8px rgba(23, 162, 184, 0.18);
+    transition: background-color .3s ease, border-color .3s ease, box-shadow .3s ease, transform .3s ease;
+}
+
+.sessions-table .session-action-btn:hover,
+.sessions-table .session-action-btn:focus-visible {
+    background: var(--theme-primary-hover);
+    border-color: var(--theme-primary);
+    color: var(--theme-primary);
+    transform: translateY(-1px);
+    box-shadow: 0 3px 8px rgba(23, 162, 184, 0.18);
+    transition: background-color .3s ease, border-color .3s ease, box-shadow .3s ease, transform .3s ease;
+}
+
+.sessions-table .session-action-btn:disabled:hover,
+.sessions-table .session-action-btn[disabled]:hover {
+    background: rgba(220, 53, 69, 0.15);
+    border-color: #dc3545;
+    color: #dc3545;
+    transform: none;
+    box-shadow: none;
+}
+
+.hotspot-vouchers-page .btn-delete:disabled,
+.hotspot-vouchers-page .btn-delete[disabled] {
+    opacity: .45;
+    cursor: not-allowed;
+    transform: none;
+    box-shadow: none;
+}
+
+.hotspot-vouchers-page .btn-delete:disabled:hover,
+.hotspot-vouchers-page .btn-delete[disabled]:hover {
+    background: rgba(220, 53, 69, 0.15);
+    border-color: #dc3545;
+    color: #dc3545;
+    transform: none;
+    box-shadow: none;
+}
+
 /* =====================================================
    THEME COMMUN
 ===================================================== */
@@ -525,9 +606,39 @@ body::before {
 }
 
 .menu-item > .submenu-group {
+    position: relative;
     margin-left: 10px;
     padding-left: 12px;
-    border-left: 1px dashed rgba(0, 255, 255, 0.2);
+    border-left: 0;
+}
+
+.menu-item > .submenu-group::before {
+    content: "";
+    position: absolute;
+    top: 4px;
+    bottom: 4px;
+    left: -1px;
+    width: 2px;
+    pointer-events: none;
+    background: rgba(23, 162, 184, 0.34);
+    border-radius: 999px;
+    box-shadow: 0 0 5px rgba(23, 162, 184, 0.22);
+}
+
+.menu-item > .submenu-group::after {
+    content: "";
+    position: absolute;
+    top: 4px;
+    left: -1px;
+    width: 2px;
+    height: 18px;
+    pointer-events: none;
+    border-radius: 999px;
+    background: linear-gradient(180deg, rgba(255, 255, 255, 0.95), rgba(103, 232, 249, 0.95), rgba(34, 211, 238, 0.35));
+    box-shadow:
+        0 0 7px rgba(34, 211, 238, 0.95),
+        0 0 14px rgba(34, 211, 238, 0.45);
+    animation: sidebarLedDotTravel 2.7s ease-in-out infinite alternate;
 }
 
 .level-0 {
@@ -539,6 +650,20 @@ body::before {
     padding-left: 30px;
     background-color: rgba(0, 0, 0, 0.2);
     border-left: 3px solid rgba(0, 255, 255, 0.25);
+}
+
+@keyframes sidebarLedDotTravel {
+    from {
+        top: 4px;
+        opacity: 0.78;
+    }
+    50% {
+        opacity: 1;
+    }
+    to {
+        top: calc(100% - 22px);
+        opacity: 0.88;
+    }
 }
 
 /* =====================================================
@@ -714,6 +839,16 @@ body::before {
     color: #f4f7fb;
     font-size: 0.92rem;
     font-weight: 700;
+}
+
+.sales-summary-meta {
+    display: block;
+    margin-top: 2px;
+    color: var(--theme-text-muted);
+    font-size: 0.68rem;
+    font-weight: 500;
+    line-height: 1.1;
+    white-space: nowrap;
 }
 
 .dashboard-pill-list {
@@ -913,6 +1048,21 @@ body::before {
     align-items: center;
 }
 
+.device-card-grid .dashboard-summary-list,
+.device-card-grid .dashboard-summary-item,
+.device-card-grid .dashboard-status-popover-wrap {
+    min-width: 0;
+}
+
+.device-card-grid .dashboard-summary-value {
+    min-width: 0;
+    max-width: 100%;
+    overflow: hidden;
+    text-align: right;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
 .dashboard-summary-label-stack {
     display: flex;
     flex-direction: column;
@@ -920,8 +1070,25 @@ body::before {
 }
 
 .dashboard-summary-value-stack {
-    white-space: pre-line;
     line-height: 1.2;
+    white-space: pre-line;
+}
+
+.device-card-grid .dashboard-summary-item-zones .dashboard-summary-value {
+    overflow-wrap: anywhere;
+    white-space: normal !important;
+}
+
+.device-card-grid .cpu-gauge-wrap {
+    min-width: 180px;
+}
+
+.dashboard-device-row #deviceSummaryTitle,
+.dashboard-device-row #deviceSummarySubtitle {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
 }
 
 @media (max-width: 991.98px) {
@@ -1810,7 +1977,7 @@ body::before {
 .standard-card-header {
     background: var(--theme-primary-soft) !important;
     color: var(--theme-primary) !important;
-    font-size: calc(0.8rem - 1px);
+    font-size: 0.8rem;
     font-weight: 600;
     padding: 6px 10px;
     border-bottom: 1px solid rgba(0, 255, 255, 0.1) !important;

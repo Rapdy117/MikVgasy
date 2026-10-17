@@ -1,9 +1,9 @@
 {
     "test_user": "radius",
-    "test_pass": "Bl@clOps2024#",
+    "test_pass": "enc:MDc1MzAxZjc3NDUwNWU3MDc3MWQwZDE1MTVlM2IzYTE6UG9ybUptZTBSZWxhOENDTE1XcXNkZz09",
     "host": "10.10.10.2",
     "auth_port": 1812,
     "acct_port": 1813,
-    "secret": "starlink123",
+    "secret": "enc:MjQ2YjVmZTY4NmU2YzFlODA2NWQyYjQ4ZmIzZDkwMDA6dnk5K1NsMWFXWXhGV3FwVWYvcE8vdz09",
     "timeout": 3
 }

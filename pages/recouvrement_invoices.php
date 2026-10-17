@@ -6,7 +6,7 @@ require_once '../includes/auth.php';
 require_once '../config/db.php';
 require_once '../includes/recouvrement_invoices.php';
 
-requireAdministratorAccess('Le suivi facture est réservé à l administrateur.');
+requireRecouvrementAccess('Le suivi facture est réservé à l administrateur.');
 
 if (empty($_SESSION['csrf_token'])) {
     $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
@@ -46,26 +46,19 @@ try {
     $invoiceItems = [];
 }
 ?>
-<!DOCTYPE html>
-<html lang="fr" class="recouvrement-invoices-page">
-<head>
-<meta charset="UTF-8">
-<title>Suivi Facture</title>
-<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
-<link rel="stylesheet" href="../css/theme.css">
-<link rel="stylesheet" href="../css/recouvrement_invoices.css?v=20260403a">
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
-</head>
-<body class="recouvrement-invoices-page">
-<div class="d-flex" id="wrapper">
-<?php include '../includes/sidebar.php'; ?>
 
-<div id="page-content-wrapper">
-<div class="container-fluid py-3">
-<?php display_message(); ?>
+<?php
+$pageTitle = 'Suivi Facture';
+$htmlClass = 'recouvrement-invoices-page';
+$bodyClass = 'recouvrement-invoices-page';
+$extraCss = [
+    '../css/recouvrement_invoices.css',
+];
+require_once '../includes/layout_header.php';
+?>
 
 <div class="card shadow-sm administration-card recouvrement-invoices-main-card">
-    <div class="card-header d-flex justify-content-between align-items-center">
+    <div class="card-header recouvrement-invoices-toolbar d-flex justify-content-between align-items-center">
         <span><i class="fa fa-file-invoice-dollar me-2"></i> Suivi paiement facture</span>
         <a href="/pages/recouvrement.php" class="btn btn-test btn-sm">
             <i class="fa fa-hand-holding-dollar me-1"></i> Retour recouvrement
@@ -135,8 +128,10 @@ try {
 </div>
 </div>
 </div>
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
-<script src="../js/sidebar.js?v=20260402a"></script>
-<script src="../js/table_sort.js"></script>
-</body>
-</html>
+
+<?php
+$extraJs = array (
+  0 => '../js/table_sort.js',
+);
+require_once '../includes/layout_footer.php';
+?>

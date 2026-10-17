@@ -138,7 +138,7 @@ try {
     $deviceStore = loadDeviceStore();
     $requestedDevice = null;
     if ($deviceId !== '') {
-        $requestedDevice = findDeviceById($deviceStore, $deviceId);
+        $requestedDevice = requireAccessibleDevice($deviceStore, $deviceId);
         if (!is_array($requestedDevice)) {
             throw new Exception('Serveur introuvable');
         }

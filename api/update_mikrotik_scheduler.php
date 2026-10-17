@@ -13,7 +13,10 @@ if (!isset($_SESSION['logged_in']) || $_SESSION['logged_in'] !== true) {
 }
 
 try {
-    requireMikrotikNasContextForActiveDevice();
+    $deviceId = trim((string)($_POST['device_id'] ?? ''));
+    $store = loadDeviceStore(); $device = requireAccessibleDevice($store, $deviceId);
+    if (($device['type'] ?? '') !== 'mikrotik') throw new RuntimeException('Device MikroTik requis.');
+    $nasContext = buildMikrotikContextFromDevice($device);
     $csrf = trim((string)($_POST['csrf_token'] ?? ''));
     if ($csrf === '' || !hash_equals($_SESSION['csrf_token'] ?? '', $csrf)) {
         throw new RuntimeException('CSRF invalide');
@@ -29,7 +32,8 @@ try {
             'start_time' => (string)($_POST['start_time'] ?? ''),
             'comment' => (string)($_POST['comment'] ?? ''),
             'disabled' => ((string)($_POST['disabled'] ?? '0')) === '1',
-        ]
+        ],
+        $nasContext
     );
 
     echo json_encode(['success' => true, 'message' => 'Scheduler mis a jour']);

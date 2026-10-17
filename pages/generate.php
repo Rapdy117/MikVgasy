@@ -48,7 +48,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $deviceId = trim((string)($_POST['device_id'] ?? ''));
         $quantity = max(1, min(500, (int)($_POST['quantity'] ?? 1)));
         $prefix = trim((string)($_POST['prefix'] ?? ''));
-        $length = max(4, min(24, (int)($_POST['length'] ?? 6)));
+        $length = max(4, min(24, (int)($_POST['length'] ?? 4)));
         $ticketOptions = normalizePostedVoucherTicketOptions($_POST);
 
         if ($profileId <= 0 && $profileName === '') {
@@ -106,24 +106,16 @@ $defaultLogoUrl = (string)($pendingTicketOptions['logo_url'] ?? '');
 // Phase 2 : plus de liste SQL des profils — chargement via API JS (profile_options.php)
 ?>
 
-<!DOCTYPE html>
-<html lang="fr">
-<head>
-<meta charset="UTF-8">
-<title>Générer Vouchers</title>
-<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
-<link rel="stylesheet" href="../css/theme.css">
-<link rel="stylesheet" href="../css/generate.css">
-<link rel="stylesheet" href="../css/voucher_ticket_shared.css?v=20260410b">
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
-</head>
-<body class="generate-page">
-<div class="d-flex" id="wrapper">
-<?php include_once '../includes/sidebar.php'; ?>
-
-<div id="page-content-wrapper">
-<div class="container-fluid generate-shell">
-<?php display_message(); ?>
+<?php
+$pageTitle = 'Générer Vouchers';
+$bodyClass = 'generate-page';
+$contentClass = 'generate-shell';
+$extraCss = [
+    '../css/generate.css',
+    '../css/voucher_ticket_shared.css?v=20260410b',
+];
+require_once '../includes/layout_header.php';
+?>
 
 <div class="card shadow-sm mb-3">
 <div class="card-body py-3">
@@ -149,7 +141,7 @@ $defaultLogoUrl = (string)($pendingTicketOptions['logo_url'] ?? '');
 <div class="card-body">
 <div class="input-group">
 <span class="input-group-text">Serveur</span>
-<select class="form-select" name="device_id">
+<select class="form-select" name="device_id" required>
     <option value="">-- Choisir un serveur --</option>
     <?php foreach ($devices as $device): ?>
     <option value="<?= htmlspecialchars((string)$device['id']) ?>" <?= (($device['id'] ?? '') === $activeDeviceId) ? 'selected' : '' ?>>
@@ -178,7 +170,7 @@ $defaultLogoUrl = (string)($pendingTicketOptions['logo_url'] ?? '');
 
 <div class="input-group">
 <span class="input-group-text">Quantité</span>
-<input type="number" class="form-control" name="quantity" value="1" min="1" max="500">
+<input type="number" class="form-control" name="quantity" value="40" min="1" max="500">
 </div>
 
 <div class="input-group">
@@ -188,7 +180,7 @@ $defaultLogoUrl = (string)($pendingTicketOptions['logo_url'] ?? '');
 
 <div class="input-group mb-0">
 <span class="input-group-text">Longueur</span>
-<input type="number" class="form-control" name="length" value="6" min="4" max="24">
+<input type="number" class="form-control" name="length" value="4" min="4" max="24">
 </div>
 </div>
 </div>
@@ -353,7 +345,7 @@ $defaultLogoUrl = (string)($pendingTicketOptions['logo_url'] ?? '');
 <button type="button" id="applyAndPrintBtn" class="btn btn-success<?= $hasPendingBatch ? '' : ' d-none' ?>">
     <i class="fa fa-print me-1"></i> Appliquer &amp; Imprimer
 </button>
-<button type="button" id="printDisabledBtn" class="btn btn-test<?= $hasPendingBatch ? ' d-none' : '' ?>" disabled>
+<button type="button" id="printDisabledBtn" class="btn btn-test<?= $hasPendingBatch ? ' d-none' : '' ?>">
 <i class="fa fa-print me-1"></i> Imprimer
 </button>
 </div>
@@ -362,10 +354,12 @@ $defaultLogoUrl = (string)($pendingTicketOptions['logo_url'] ?? '');
 </div>
 </div>
 </div>
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
-<script src="../js/sidebar.js?v=20260402a"></script>
-<script src="../js/profile_options_loader.js?v=20260417a"></script>
-<script src="../js/generate.js"></script>
-</body>
-</html>
+
+<?php
+$extraJs = array (
+  0 => 'https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js',
+  1 => '../js/profile_options_loader.js?v=20260417a',
+  2 => '../js/generate.js',
+);
+require_once '../includes/layout_footer.php';
+?>

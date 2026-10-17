@@ -56,6 +56,7 @@ if (is_array($sessionRenderPayload['items'] ?? null) && $sessionRenderPayload['i
     }
 
     $placeholders = implode(',', array_fill(0, count($voucherIds), '?'));
+    $queryStartTime = microtime(true);
     $stmt = $pdo->prepare("
         SELECT
             v.id,
@@ -63,7 +64,7 @@ if (is_array($sessionRenderPayload['items'] ?? null) && $sessionRenderPayload['i
             v.username,
             v.password,
             v.printed_by,
-            v.created_at,
+            v.created_at AS printed_at,
             p.name AS profile_name,
             p.rate_limit,
             p.validity_time,
@@ -78,6 +79,8 @@ if (is_array($sessionRenderPayload['items'] ?? null) && $sessionRenderPayload['i
     ");
     $stmt->execute($voucherIds);
     $items = $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
+    $queryDuration = microtime(true) - $queryStartTime;
+    error_log(sprintf('[PERF] print_vouchers SELECT: %.3f sec for %d vouchers', $queryDuration, count($voucherIds)));
 }
 
 if ($items !== []) {

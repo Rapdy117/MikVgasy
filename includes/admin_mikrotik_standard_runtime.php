@@ -54,6 +54,44 @@ function adminMikrotikStandardReadIdentity(array $device): ?string
     }
 }
 
+function adminMikrotikStandardExtractAddressPoolNames(array $rows): array
+{
+    $addressPools = [];
+    foreach ($rows as $row) {
+        if (!is_array($row)) {
+            continue;
+        }
+        $name = trim((string)($row['name'] ?? ''));
+        if ($name !== '') {
+            $addressPools[strtolower($name)] = $name;
+        }
+    }
+
+    natcasesort($addressPools);
+    return array_values($addressPools);
+}
+
+function adminMikrotikStandardReadTargetInfo(array $device): array
+{
+    $api = adminMikrotikStandardConnectDevice($device);
+
+    try {
+        $identityRows = $api->comm('/system/identity/print');
+        $firstRow = is_array($identityRows) ? ($identityRows[0] ?? []) : [];
+        $routerIdentity = is_array($firstRow) ? trim((string)($firstRow['name'] ?? '')) : '';
+
+        $poolRows = $api->comm('/ip/pool/print');
+        $addressPools = adminMikrotikStandardExtractAddressPoolNames(is_array($poolRows) ? $poolRows : []);
+
+        return [
+            'router_identity' => $routerIdentity !== '' ? $routerIdentity : null,
+            'address_pools' => $addressPools,
+        ];
+    } finally {
+        $api->disconnect();
+    }
+}
+
 function adminMikrotikStandardFindBackendSpecificUserRow(array $payload, string $username): ?array
 {
     $rows = $payload['backend_specific']['mikrotik']['users'] ?? [];
@@ -124,15 +162,45 @@ function adminMikrotikStandardBuildUserPayload(array $userRow, ?array $backendSp
         $limitUptimeRaw = mikrotikIntervalFromSeconds((int)$userRow['session_timeout']);
     }
 
-    $limitBytesTotalRaw = trim((string)($bs['limit_bytes_total_raw'] ?? ''));
-    if ($limitBytesTotalRaw === '') {
-        $remainingBytes = $userRow['data_limit'] !== null ? max(0, (int)$userRow['data_limit']) : 0;
-        $consumedBytes = max(0, (int)($userRow['data_consumed_bytes'] ?? 0));
-        $reconstructedTotalBytes = $remainingBytes + $consumedBytes;
-        if ($reconstructedTotalBytes > 0) {
-            $limitBytesTotalRaw = (string)$reconstructedTotalBytes;
-        }
+    /*
+ * data_limit exporté par mikrotik_standard_io.php correspond déjà
+ * au quota restant disponible sur le routeur source.
+ *
+ * Il ne faut surtout pas reconstruire le quota initial en ajoutant
+ * les octets consommés, sinon les utilisateurs récupèrent
+ * l'intégralité de leur forfait après migration.
+ */
+
+$limitBytesTotalRaw = '';
+
+if (array_key_exists('data_limit', $userRow)
+    && $userRow['data_limit'] !== null) {
+
+    $remainingBytes = max(
+        0,
+        (int)$userRow['data_limit']
+    );
+
+    /*
+     * Si quota restant = 0, on conserve explicitement 0 afin
+     * que l'utilisateur puisse être importé désactivé.
+     */
+    $limitBytesTotalRaw = (string)$remainingBytes;
+}
+
+/*
+ * Compatibilité anciens exports (v1 ou documents incomplets)
+ */
+if ($limitBytesTotalRaw === '') {
+
+    $legacyValue = trim((string)(
+        $bs['limit_bytes_total_raw'] ?? ''
+    ));
+
+    if ($legacyValue !== '') {
+        $limitBytesTotalRaw = $legacyValue;
     }
+}
 
     $statusRaw = trim((string)($bs['status_raw'] ?? ''));
     $status = $statusRaw !== '' ? mikrotikStandardNormalizeStatus($statusRaw) : mikrotikStandardNormalizeStatus((string)($userRow['status_effective'] ?? 'active'));
@@ -149,6 +217,109 @@ function adminMikrotikStandardBuildUserPayload(array $userRow, ?array $backendSp
         'imported_session_total_seconds' => max(0, (int)($userRow['session_total_seconds'] ?? 0)),
         'imported_data_consumed_bytes' => max(0, (int)($userRow['data_consumed_bytes'] ?? 0)),
     ];
+}
+
+function adminMikrotikStandardFindNetworkRow(array $rows, string $address, string $mac): ?array
+{
+    $address = strtolower(trim($address));
+    $mac = strtolower(trim($mac));
+
+    foreach ($rows as $row) {
+        if (!is_array($row)) {
+            continue;
+        }
+        $rowAddress = strtolower(trim((string)($row['address'] ?? '')));
+        $rowMac = strtolower(trim((string)($row['mac-address'] ?? '')));
+        if (($mac !== '' && $rowMac === $mac) || ($address !== '' && $rowAddress === $address)) {
+            return $row;
+        }
+    }
+
+    return null;
+}
+
+function adminMikrotikStandardUpsertIpBinding(RouterosAPI $api, array $binding, string $mode): string
+{
+    $address = trim((string)($binding['address'] ?? ''));
+    $mac = trim((string)($binding['mac'] ?? ''));
+    if ($address === '' && $mac === '') {
+        throw new RuntimeException('IP binding sans adresse et sans MAC.');
+    }
+
+    $rows = $api->comm('/ip/hotspot/ip-binding/print');
+    $existing = adminMikrotikStandardFindNetworkRow(is_array($rows) ? $rows : [], $address, $mac);
+    if ($existing && $mode === 'skip') {
+        return 'skipped';
+    }
+
+    $command = [
+        'type' => strtolower(trim((string)($binding['type'] ?? 'regular'))),
+        'disabled' => !empty($binding['disabled']) ? 'yes' : 'no',
+        'address' => $address,
+        'mac-address' => $mac,
+        'to-address' => trim((string)($binding['to_address'] ?? '')),
+        'server' => trim((string)($binding['server'] ?? '')),
+        'comment' => trim((string)($binding['comment'] ?? '')),
+    ];
+
+    if ($existing && $mode === 'replace') {
+        $command['.id'] = (string)($existing['.id'] ?? '');
+        $api->comm('/ip/hotspot/ip-binding/set', $command);
+        return 'updated';
+    }
+
+    unset($command['.id']);
+    if ($command['address'] === '') unset($command['address']);
+    if ($command['mac-address'] === '') unset($command['mac-address']);
+    if ($command['to-address'] === '') unset($command['to-address']);
+    if ($command['server'] === '') unset($command['server']);
+    if ($command['comment'] === '') unset($command['comment']);
+    $api->comm('/ip/hotspot/ip-binding/add', $command);
+
+    return 'created';
+}
+
+function adminMikrotikStandardUpsertDhcpStaticLease(RouterosAPI $api, array $lease, string $mode): string
+{
+    $address = trim((string)($lease['address'] ?? ''));
+    $mac = trim((string)($lease['mac'] ?? ''));
+    if ($address === '' && $mac === '') {
+        throw new RuntimeException('Lease DHCP fixe sans adresse et sans MAC.');
+    }
+
+    $rows = $api->comm('/ip/dhcp-server/lease/print');
+    $staticRows = array_values(array_filter(is_array($rows) ? $rows : [], static function ($row): bool {
+        return is_array($row) && !mikrotikApiBoolean($row['dynamic'] ?? false);
+    }));
+    $existing = adminMikrotikStandardFindNetworkRow($staticRows, $address, $mac);
+    if ($existing && $mode === 'skip') {
+        return 'skipped';
+    }
+
+    $command = [
+        'address' => $address,
+        'mac-address' => $mac,
+        'host-name' => trim((string)($lease['host_name'] ?? '')),
+        'server' => trim((string)($lease['server'] ?? '')),
+        'comment' => trim((string)($lease['comment'] ?? '')),
+        'disabled' => !empty($lease['disabled']) ? 'yes' : 'no',
+    ];
+
+    if ($existing && $mode === 'replace') {
+        $command['.id'] = (string)($existing['.id'] ?? '');
+        $api->comm('/ip/dhcp-server/lease/set', $command);
+        return 'updated';
+    }
+
+    unset($command['.id']);
+    if ($command['address'] === '') unset($command['address']);
+    if ($command['mac-address'] === '') unset($command['mac-address']);
+    if ($command['host-name'] === '') unset($command['host-name']);
+    if ($command['server'] === '') unset($command['server']);
+    if ($command['comment'] === '') unset($command['comment']);
+    $api->comm('/ip/dhcp-server/lease/add', $command);
+
+    return 'created';
 }
 
 function adminMikrotikStandardUpsertProfile(RouterosAPI $api, array $profile, string $mode, array $device): string
@@ -172,7 +343,7 @@ function adminMikrotikStandardUpsertProfile(RouterosAPI $api, array $profile, st
         'name' => $profileName,
         'shared-users' => (string)max(1, (int)($profile['simultaneous_use'] ?? 1)),
         'status-autorefresh' => '1m',
-        'on-login' => mikrotikBuildProfileOnLogin($profile),
+        'on-login' => mikrotikBuildProfileOnLogin($profile, mikrotikNwanWeightsForDevice($device)),
     ];
 
     $rateLimit = trim((string)($profile['rate_limit'] ?? ''));

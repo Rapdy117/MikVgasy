@@ -1,11 +1,14 @@
 <?php
+require_once __DIR__ . '/../includes/hotspot_log_events.php';
 require_once __DIR__ . '/../config/db.php';
 require_once __DIR__ . '/../config/config.php';
 require_once __DIR__ . '/../includes/device_manager.php';
 require_once __DIR__ . '/../includes/mikrotik_backend.php';
+require_once __DIR__ . '/../includes/multi_wan_config.php';
 require_once __DIR__ . '/../includes/operation_history.php';
 require_once __DIR__ . '/../includes/vouchers.php';
 require_once __DIR__ . '/../includes/profile_schema.php';
+require_once __DIR__ . '/../includes/commercial_report_source.php';
 
 if (session_status() === PHP_SESSION_NONE) {
     session_start();
@@ -41,6 +44,28 @@ header('Cache-Control: no-cache, no-store, must-revalidate');
 header('Connection: keep-alive');
 header('X-Accel-Buffering: no');
 
+
+function dashboardMultiWanSources(array $device): array
+{
+    $sources = [];
+    if (function_exists('multiWanLoadConfig')) {
+        $config = multiWanLoadConfig($device);
+        foreach (($config['sources'] ?? []) as $slot => $source) {
+            if (!is_array($source)) continue;
+            if (array_key_exists('enabled', $source) && !$source['enabled']) continue;
+            $iface = trim((string)($source['interface'] ?? ''));
+            $weight = filter_var($source['weight'] ?? 0, FILTER_VALIDATE_INT);
+            if ($iface === '' || $weight === false || (int)$weight <= 0) continue;
+            $sources[$iface] = [
+                'interface' => $iface,
+                'label' => trim((string)($source['label'] ?? '')) ?: strtoupper((string)$slot),
+                'slot' => (string)$slot,
+            ];
+        }
+    }
+    return array_values($sources);
+}
+
 function formatCommercialAmount(float $amount): string
 {
     if ($amount <= 0) {
@@ -52,65 +77,7 @@ function formatCommercialAmount(float $amount): string
 
 function commercialEntriesUnionSql(): string
 {
-    return "
-        SELECT
-            'recharge' AS source_type,
-            id AS source_id,
-            created_at,
-            COALESCE(amount_value, 0) AS amount_value
-        FROM recharge_history
-
-        UNION ALL
-
-        SELECT
-            'voucher_use' AS source_type,
-            v.id AS source_id,
-            v.used_at AS created_at,
-            COALESCE(p.price, 0) AS amount_value
-        FROM vouchers v
-        LEFT JOIN profiles p ON p.id = v.profile_id
-        WHERE v.used_at IS NOT NULL
-
-        UNION ALL
-
-        SELECT
-            'user_create_first_login' AS source_type,
-            oh.id AS source_id,
-            fl.first_login AS created_at,
-            0 AS amount_value
-        FROM (
-            SELECT MAX(id) AS id, target_name
-            FROM operation_history
-            WHERE operation_type = 'user_create'
-            GROUP BY target_name
-        ) oh
-        INNER JOIN (
-            SELECT username, MIN(acctstarttime) AS first_login
-            FROM radacct
-            WHERE acctstarttime IS NOT NULL AND acctstarttime <> ''
-            GROUP BY username
-        ) fl ON fl.username = oh.target_name
-
-        UNION ALL
-
-        SELECT
-            'commercial_notice' AS source_type,
-            id AS source_id,
-            created_at,
-            COALESCE(amount_value, 0) AS amount_value
-        FROM operation_history
-        WHERE operation_type = 'user_notice_record'
-
-        UNION ALL
-
-        SELECT
-            'commercial_remove' AS source_type,
-            id AS source_id,
-            created_at,
-            COALESCE(amount_value, 0) AS amount_value
-        FROM operation_history
-        WHERE operation_type = 'user_remove_record'
-    ";
+    return commercialReportEntriesUnionSql();
 }
 
 function ensureRechargeHistoryStatsTable(PDO $pdo): void
@@ -155,61 +122,7 @@ function loadCommercialSummary(PDO $pdo): array
         $schemaReady = true;
     }
 
-    $commercialEntriesSql = commercialEntriesUnionSql();
-
-    $todayStmt = $pdo->query("
-        SELECT
-            COUNT(DISTINCT CONCAT(source_type, ':', source_id)) AS total_count,
-            COALESCE(SUM(amount_value), 0) AS total_amount
-        FROM ($commercialEntriesSql) commercial_entries
-        WHERE created_at IS NOT NULL
-          AND created_at <> ''
-          AND DATE(created_at) = CURDATE()
-    ");
-    $today = $todayStmt ? ($todayStmt->fetch(PDO::FETCH_ASSOC) ?: []) : [];
-
-    $monthStmt = $pdo->query("
-        SELECT
-            COUNT(DISTINCT CONCAT(source_type, ':', source_id)) AS total_count,
-            COALESCE(SUM(amount_value), 0) AS total_amount
-        FROM ($commercialEntriesSql) commercial_entries
-        WHERE created_at IS NOT NULL
-          AND created_at <> ''
-          AND YEAR(created_at) = YEAR(CURDATE())
-          AND MONTH(created_at) = MONTH(CURDATE())
-    ");
-    $month = $monthStmt ? ($monthStmt->fetch(PDO::FETCH_ASSOC) ?: []) : [];
-
-    $trendStmt = $pdo->query("
-        SELECT
-            DAY(created_at) AS sale_day,
-            COUNT(DISTINCT CONCAT(source_type, ':', source_id)) AS total
-        FROM ($commercialEntriesSql) commercial_entries
-        WHERE created_at IS NOT NULL
-          AND created_at <> ''
-          AND YEAR(created_at) = YEAR(CURDATE())
-          AND MONTH(created_at) = MONTH(CURDATE())
-        GROUP BY DAY(created_at)
-        ORDER BY sale_day ASC
-    ");
-    $trendRaw = $trendStmt ? ($trendStmt->fetchAll(PDO::FETCH_KEY_PAIR) ?: []) : [];
-
-    $daysInMonth = (int)date('t');
-    $trend = [];
-    for ($day = 1; $day <= $daysInMonth; $day++) {
-        $trend[] = [
-            'day' => $day,
-            'total' => (int)($trendRaw[$day] ?? 0),
-        ];
-    }
-
-    return [
-        'today_count' => (int)($today['total_count'] ?? 0),
-        'today_amount' => (float)($today['total_amount'] ?? 0),
-        'month_count' => (int)($month['total_count'] ?? 0),
-        'month_amount' => (float)($month['total_amount'] ?? 0),
-        'trend' => $trend,
-    ];
+    return commercialReportSummary($pdo);
 }
 
 function parseMikrotikLogTimeLabel(?string $raw): array
@@ -262,79 +175,7 @@ function buildMikrotikRecentEventsForStream(RouterosAPI $api, int $limit = 20): 
     }
     $rows = array_slice($rows, -80);
 
-    $keywords = [
-        'trying to log in',
-        'logged in',
-        'logged out',
-        'login failed',
-        'keepalive timeout',
-        'user request',
-        'idle timeout',
-        'session timeout',
-    ];
-
-    $events = [];
-    $seen = [];
-
-    foreach (array_reverse($rows) as $row) {
-        if (!is_array($row)) {
-            continue;
-        }
-
-        $message = trim((string)($row['message'] ?? ''));
-        if ($message === '') {
-            continue;
-        }
-
-        $topics = strtolower(trim((string)($row['topics'] ?? '')));
-        if (!str_contains($topics, 'hotspot')) {
-            continue;
-        }
-
-        $lowerMessage = strtolower($message);
-        $isUseful = false;
-        foreach ($keywords as $keyword) {
-            if (str_contains($lowerMessage, $keyword)) {
-                $isUseful = true;
-                break;
-            }
-        }
-        if (!$isUseful) {
-            continue;
-        }
-
-        $clean = trim((string)preg_replace('/^\-\>\:\s*/', '', $message));
-        [$timeLabel] = parseMikrotikLogTimeLabel((string)($row['time'] ?? ''));
-        if (preg_match('/^(?<user>[^:]+?)\s*:\s*(?<action>.+)$/', $clean, $matches)) {
-            $userLabel = trim((string)$matches['user']);
-            $action = trim((string)$matches['action']);
-        } else {
-            $userLabel = '-';
-            $action = trim($clean);
-        }
-
-        if ($action === '') {
-            continue;
-        }
-
-        $signature = strtolower(($timeLabel !== '' ? $timeLabel : '--') . '|' . $userLabel . '|' . $action);
-        if (isset($seen[$signature])) {
-            continue;
-        }
-        $seen[$signature] = true;
-
-        $events[] = [
-            'time' => $timeLabel !== '' ? $timeLabel : '--',
-            'user' => $userLabel !== '' ? $userLabel : '-',
-            'action' => preg_replace('/\s+/', ' ', $action),
-        ];
-
-        if (count($events) >= $limit) {
-            break;
-        }
-    }
-
-    return $events;
+    return hotspotLogEventsFromRows($rows, $limit, hotspotActiveMacLabels(), static fn(string $t) => parseMikrotikLogTimeLabel($t)[0] ?? '');
 }
 
 $device = requireActiveDevice();
@@ -366,17 +207,13 @@ $salesCache = [
     'today_count' => 0,
     'month_count' => 0,
 ];
-$loggingEnsured = false;
+$lastQueueLimitsCheck = 0;
+$queueLimitsCache = ['download_mbps' => null, 'upload_mbps' => null];
 
 while (!connection_aborted()) {
     try {
         if (!$api) {
             $api = connectToMikrotikApiByDevice($device);
-            ensureMikrotikHotspotLogging($api);
-            $loggingEnsured = true;
-        } elseif (!$loggingEnsured) {
-            ensureMikrotikHotspotLogging($api);
-            $loggingEnsured = true;
         }
 
         $resource = mikrotikFirstRow($api->comm('/system/resource/print'));
@@ -397,14 +234,30 @@ while (!connection_aborted()) {
             $lastInterfaceCheck = $now;
         }
 
-        if ($selectedInterface === '') {
-            $selectedInterface = 'ether1';
+        $trafficInterfaces = [];
+        $trafficInterfaceNames = [];
+        $totalRxBps = 0.0;
+        $totalTxBps = 0.0;
+        foreach (dashboardMultiWanSources($device) as $wanSource) {
+            $iface = (string)$wanSource['interface'];
+            if ($iface === '') continue;
+            $traffic = mikrotikFirstRow($api->comm('/interface/monitor-traffic', [
+                'interface' => $iface,
+                'once' => '',
+            ]));
+            $totalRxBps += (float)($traffic['rx-bits-per-second'] ?? 0);
+            $totalTxBps += (float)($traffic['tx-bits-per-second'] ?? 0);
+            $trafficInterfaceNames[] = $iface;
         }
-
-        $traffic = mikrotikFirstRow($api->comm('/interface/monitor-traffic', [
-            'interface' => $selectedInterface,
-            'once' => '',
-        ]));
+        if ($trafficInterfaceNames !== []) {
+            $trafficInterfaces['total_wan'] = [
+                'name' => 'Total WAN',
+                'label' => 'Total WAN',
+                'slot' => 'total',
+                'inbytes' => $totalRxBps,
+                'outbytes' => $totalTxBps,
+            ];
+        }
 
         if (($now - $lastCountsCheck) >= 5) {
             $countsCache = [
@@ -431,7 +284,32 @@ while (!connection_aborted()) {
             $lastSalesCheck = $now;
         }
 
+        if (($now - $lastQueueLimitsCheck) >= 120) {
+            $queueLimitsCache = ['download_mbps' => null, 'upload_mbps' => null];
+            $queueRows = $api->comm('/queue/simple/print', ['.proplist' => 'comment,max-limit,disabled']);
+            foreach ((is_array($queueRows) ? $queueRows : []) as $queueRow) {
+                $comment = (string)($queueRow['comment'] ?? '');
+                if (!str_starts_with($comment, 'Radius Manager - interface queue:') || mikrotikApiBoolean($queueRow['disabled'] ?? false)) {
+                    continue;
+                }
+                $parts = explode('/', trim((string)($queueRow['max-limit'] ?? '')));
+                $toMbps = static function (string $part): ?float {
+                    $part = trim($part);
+                    if (!preg_match('/^([0-9.]+)([kKmMgG]?)$/', $part, $m)) return null;
+                    $multiplier = ['k' => 1e3, 'm' => 1e6, 'g' => 1e9][strtolower($m[2])] ?? 1;
+                    return ((float)$m[1] * $multiplier) / 1e6;
+                };
+                $queueLimitsCache = [
+                    'upload_mbps' => $toMbps($parts[0] ?? ''),
+                    'download_mbps' => $toMbps($parts[1] ?? ''),
+                ];
+                break;
+            }
+            $lastQueueLimitsCheck = $now;
+        }
+
         emitSse([
+            'hotspot_queue_limits' => $queueLimitsCache,
             'device' => [
                 'id' => (string)($device['id'] ?? ''),
                 'name' => trim((string)($device['name'] ?? '')) ?: ($boardName !== '' ? $boardName : 'MikroTik'),
@@ -444,23 +322,23 @@ while (!connection_aborted()) {
                 'status' => 'CONNECTED',
                 'message' => 'Telemetrie du device chargee via le backend actif.',
                 'version' => $version !== '' ? $version : 'Version inconnue',
-                'zones' => $selectedInterface !== '' ? [$selectedInterface] : [],
-                'zone_count' => $selectedInterface !== '' ? 1 : 0,
+                'zones' => $trafficInterfaceNames,
+                'zone_count' => count($trafficInterfaceNames),
                 'telemetry_supported' => true,
                 'last_update' => date('H:i:s'),
             ],
-            'traffic_live' => [
+            'traffic_live' => $trafficInterfaces !== [] ? [
                 'time' => microtime(true),
                 'metric_mode' => 'rate',
-                'interfaces' => [
-                    'wan' => [
-                        'name' => $selectedInterface,
-                        'inbytes' => (float)($traffic['rx-bits-per-second'] ?? 0),
-                        'outbytes' => (float)($traffic['tx-bits-per-second'] ?? 0),
-                    ],
-                ],
-                'interface_label' => $selectedInterface,
-                'selected_interface' => $selectedInterface,
+                'interfaces' => $trafficInterfaces,
+                'interface_label' => implode(', ', $trafficInterfaceNames),
+                'selected_interface' => $trafficInterfaceNames[0] ?? '',
+                'selected_interfaces' => $trafficInterfaceNames,
+                'last_update' => date('H:i:s'),
+            ] : [
+                'supported' => false,
+                'message' => 'Aucune source multi-WAN active configurée pour le dashboard.',
+                'interfaces' => [],
                 'last_update' => date('H:i:s'),
             ],
             'resource_usage' => [

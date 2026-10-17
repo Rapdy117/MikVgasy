@@ -6,6 +6,7 @@ $configFile = __DIR__ . '/../config/radius.json';
 
 session_start();
 require_once __DIR__ . '/../includes/auth.php';
+require_once __DIR__ . '/../includes/crypto.php';
 
 function post_string_or_null(string $key): ?string
 {
@@ -25,6 +26,11 @@ function post_int_or_default(string $key, int $default): ?int
     }
 
     return (int)$value;
+}
+
+function radius_radclient_quote(string $value): string
+{
+    return '"' . addcslashes($value, "\\\"") . '"';
 }
 
 if (!isset($_SESSION['logged_in']) || $_SESSION['logged_in'] !== true) {
@@ -50,6 +56,9 @@ if (!file_exists($configFile)) {
 }
 
 $config = json_decode(file_get_contents($configFile), true);
+if (!is_array($config)) { $config = []; }
+$config['secret'] = decryptField((string)($config['secret'] ?? ''));
+$config['test_pass'] = decryptField((string)($config['test_pass'] ?? ''));
 $testMode = post_string_or_null('test_mode') ?? 'user_auth';
 
 $hostRaw = post_string_or_null('host') ?? trim((string)($config['host'] ?? ''));
@@ -123,13 +132,14 @@ if ($userRaw === null || $passRaw === null) {
     exit;
 }
 
-$user = escapeshellarg($userRaw);
-$cmd = "echo \"User-Name=$userRaw,User-Password=$passRaw\" | radclient -x $host:$port auth $secret 2>&1";
+$payload = "User-Name = " . radius_radclient_quote($userRaw) . "\n";
+$payload .= "User-Password = " . radius_radclient_quote($passRaw) . "\n";
+$cmd = "printf %s " . escapeshellarg($payload) . " | radclient -x $host:$port auth $secret 2>&1";
 $output = shell_exec($cmd);
 
 $log  = "=== DEBUG UTILISATEUR RADIUS ===\n";
 $log .= "Serveur     : " . trim($host, "'") . ":$port\n";
-$log .= "Utilisateur : " . trim($user, "'") . "\n";
+$log .= "Utilisateur : " . $userRaw . "\n";
 $log .= "Mode        : AUTH\n\n";
 $log .= $output;
 

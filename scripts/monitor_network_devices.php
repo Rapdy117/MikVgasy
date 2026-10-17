@@ -78,11 +78,12 @@ ensureDeviceHealthMonitorTable($pdo);
 
 $store = loadDeviceStore();
 $devices = is_array($store['devices'] ?? null) ? $store['devices'] : [];
+$activeDeviceId = trim((string)($store['active_device_id'] ?? ''));
 $checkedAt = date('Y-m-d H:i:s');
 
 foreach ($devices as $device) {
     $deviceId = trim((string)($device['id'] ?? ''));
-    if ($deviceId === '') {
+    if ($deviceId === '' || $deviceId !== $activeDeviceId) {
         continue;
     }
 

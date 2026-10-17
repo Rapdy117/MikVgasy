@@ -65,12 +65,18 @@ $profileFormData = [
     'rate_upload_unit' => 'M',
     'rate_download_value' => '',
     'rate_download_unit' => 'M',
+    'degraded_upload_value' => '',
+    'degraded_upload_unit' => 'M',
+    'degraded_download_value' => '',
+    'degraded_download_unit' => 'M',
     'simultaneous_use' => '1',
     'session_timeout_value' => '',
     'session_timeout_unit' => 'hours',
     'validity_value' => '',
     'validity_unit' => 'hours',
     'data_quota_mb' => '',
+    'data_quota_value' => '',
+    'data_quota_unit' => 'GB',
     'expired_mode' => 'none',
     'grace_period_value' => '',
     'grace_period_unit' => 'minutes',
@@ -86,6 +92,9 @@ if ($deviceIdFromQuery !== '') {
 }
 if ($hasDataQuotaInQuery && $dataQuotaFromQuery >= 0) {
     $profileFormData['data_quota_mb'] = (string)$dataQuotaFromQuery;
+    $dataQuotaParts = splitMegabytesToDataUnitParts($dataQuotaFromQuery);
+    $profileFormData['data_quota_value'] = (string)($dataQuotaParts['value'] ?? '');
+    $profileFormData['data_quota_unit'] = (string)($dataQuotaParts['unit'] ?? 'GB');
 }
 if ($hasSessionTimeoutInQuery && $sessionTimeoutFromQuery >= 0) {
     $sessionTimeoutQueryParts = splitSecondsToDurationParts($sessionTimeoutFromQuery);
@@ -171,7 +180,11 @@ if ($profileId > 0 || $profileNameFromQuery !== '') {
         $profileFormData['validity_value'] = $validityParts['value'];
         $profileFormData['validity_unit'] = $validityParts['unit'];
         if (isset($profileRow['data_quota_mb']) && (int)$profileRow['data_quota_mb'] > 0) {
-            $profileFormData['data_quota_mb'] = (string)((int)$profileRow['data_quota_mb']);
+            $dataQuotaMb = (int)$profileRow['data_quota_mb'];
+            $dataQuotaParts = splitMegabytesToDataUnitParts($dataQuotaMb);
+            $profileFormData['data_quota_mb'] = (string)$dataQuotaMb;
+            $profileFormData['data_quota_value'] = (string)($dataQuotaParts['value'] ?? '');
+            $profileFormData['data_quota_unit'] = (string)($dataQuotaParts['unit'] ?? 'GB');
         }
         $profileFormData['address_pool'] = (string)($profileRow['ip_pool'] ?? '');
         $profileFormData['expired_mode'] = trim((string)($profileRow['expired_mode'] ?? '')) !== '' ? (string)$profileRow['expired_mode'] : 'none';
@@ -216,6 +229,7 @@ try {
             if (($routerProfile['lock_user'] ?? null) !== null && (string)$routerProfile['lock_user'] !== '') {
                 $profileFormData['lock_user'] = ((string)$routerProfile['lock_user'] === 'Enable' || (int)$routerProfile['lock_user'] === 1) ? '1' : '0';
             }
+            $profileFormData['simultaneous_use'] = (string)max(1, (int)($routerProfile['simultaneous_use'] ?? 1));
             $profileFormData['address_pool'] = trim((string)($routerProfile['ip_pool'] ?? ''));
             $profileFormData['parent_queue'] = trim((string)($routerProfile['parent_queue'] ?? ''));
 
@@ -224,6 +238,12 @@ try {
             $profileFormData['rate_upload_unit'] = $routerRateParts['upload_unit'];
             $profileFormData['rate_download_value'] = $routerRateParts['download_value'];
             $profileFormData['rate_download_unit'] = $routerRateParts['download_unit'];
+            $degradedMeta = parseMikrotikOnLoginMetadata((string)($routerProfile['on-login'] ?? ''));
+            $degradedParts = splitRateLimit((string)($routerProfile['degraded_rate'] ?? ''));
+            $profileFormData['degraded_upload_value'] = $degradedParts['upload_value'];
+            $profileFormData['degraded_upload_unit'] = $degradedParts['upload_unit'];
+            $profileFormData['degraded_download_value'] = $degradedParts['download_value'];
+            $profileFormData['degraded_download_unit'] = $degradedParts['download_unit'];
 
             $sessionTimeoutSeconds = (int)($routerProfile['session_timeout'] ?? 0);
             if ($sessionTimeoutSeconds > 0) {
@@ -247,9 +267,14 @@ try {
 
             $dataQuotaMb = (int)($routerProfile['data_quota_mb'] ?? 0);
             if ($dataQuotaMb > 0) {
+                $dataQuotaParts = splitMegabytesToDataUnitParts($dataQuotaMb);
                 $profileFormData['data_quota_mb'] = (string)$dataQuotaMb;
+                $profileFormData['data_quota_value'] = (string)($dataQuotaParts['value'] ?? '');
+                $profileFormData['data_quota_unit'] = (string)($dataQuotaParts['unit'] ?? 'GB');
             } else {
                 $profileFormData['data_quota_mb'] = '0';
+                $profileFormData['data_quota_value'] = '';
+                $profileFormData['data_quota_unit'] = 'GB';
             }
         }
     }
@@ -279,32 +304,13 @@ if ($activeDeviceType === 'mikrotik') {
 }
 ?>
 
-<!DOCTYPE html>
-<html lang="fr">
-<head>
-<meta charset="UTF-8">
-<title><?= htmlspecialchars($formTitle) ?></title>
-
-<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
-<link rel="stylesheet" href="../css/theme.css">
-<link rel="stylesheet" href="../css/add_profile.css">
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
-
-</head>
-
-<body
-    data-active-device-id="<?= htmlspecialchars((string)($context['app']['device']['id'] ?? ''), ENT_QUOTES) ?>"
-    data-active-device-type="<?= htmlspecialchars((string)($context['app']['device']['type'] ?? 'other'), ENT_QUOTES) ?>"
->
-
-<div class="d-flex" id="wrapper">
-
-<?php include_once '../includes/sidebar.php'; ?>
-
-<div id="page-content-wrapper">
-<div class="container-fluid py-3">
-
-<div id="messageArea" class="profile-message-flyover" role="status" aria-live="polite"></div>
+<?php
+$pageTitle = $formTitle;
+$extraCss = [
+    '../css/add_profile.css',
+];
+require_once '../includes/layout_header.php';
+?>
 
 <form id="profileForm" class="network-device-form" method="POST" action="../api/profiles/create_profile.php" autocomplete="off" data-profile-id="<?= (int)$profileFormData['profile_id'] ?>" data-initial-device-id="<?= htmlspecialchars((string)$profileFormData['device_id'], ENT_QUOTES) ?>" data-initial-address-pool="<?= htmlspecialchars((string)$profileFormData['address_pool'], ENT_QUOTES) ?>" data-initial-parent-queue="<?= htmlspecialchars((string)$profileFormData['parent_queue'], ENT_QUOTES) ?>">
 
@@ -316,7 +322,7 @@ if ($activeDeviceType === 'mikrotik') {
 <div class="row align-items-stretch">
 <div class="col-md-6 d-flex">
 <div class="card h-100 w-100">
-<div class="card-header">
+<div class="card-header standard-card-header">
     <i class="fa fa-pie-chart me-2"></i> <?= htmlspecialchars($formTitle) ?>
 </div>
 
@@ -357,6 +363,22 @@ if ($activeDeviceType === 'mikrotik') {
 </div>
 
 <div class="input-group">
+<span class="input-group-text">Débit dégradé</span>
+<span class="input-group-text rate-part-label">UPLOAD</span>
+<input type="number" class="form-control profile-number-input rate-value-input" name="degraded_upload_value" id="degradedUploadValueInput" min="0" placeholder="0" value="<?= htmlspecialchars((string)$profileFormData['degraded_upload_value']) ?>">
+<select class="form-select profile-unit-select rate-unit-select" name="degraded_upload_unit" id="degradedUploadUnitSelect">
+    <option value="K" <?= $profileFormData['degraded_upload_unit'] === 'K' ? 'selected' : '' ?>>KB</option>
+    <option value="M" <?= $profileFormData['degraded_upload_unit'] === 'M' ? 'selected' : '' ?>>MB</option>
+</select>
+<span class="input-group-text rate-part-label">DOWNLOAD</span>
+<input type="number" class="form-control profile-number-input rate-value-input" name="degraded_download_value" id="degradedDownloadValueInput" min="0" placeholder="0" value="<?= htmlspecialchars((string)$profileFormData['degraded_download_value']) ?>">
+<select class="form-select profile-unit-select rate-unit-select" name="degraded_download_unit" id="degradedDownloadUnitSelect">
+    <option value="K" <?= $profileFormData['degraded_download_unit'] === 'K' ? 'selected' : '' ?>>KB</option>
+    <option value="M" <?= $profileFormData['degraded_download_unit'] === 'M' ? 'selected' : '' ?>>MB</option>
+</select>
+</div>
+
+<div class="input-group">
 <span class="input-group-text">Partagé</span>
 <input type="number" class="form-control profile-number-input" name="simultaneous_use" min="1" placeholder="1" value="<?= htmlspecialchars((string)$profileFormData['simultaneous_use']) ?>">
 </div>
@@ -384,8 +406,13 @@ if ($activeDeviceType === 'mikrotik') {
 
 <div class="input-group">
 <span class="input-group-text">Limite de données</span>
-<input type="number" class="form-control profile-number-input" name="data_quota_mb" min="0" placeholder="0" value="<?= htmlspecialchars((string)$profileFormData['data_quota_mb']) ?>">
-<span class="input-group-text">MB</span>
+<input type="hidden" name="data_quota_mb" value="<?= htmlspecialchars((string)$profileFormData['data_quota_mb']) ?>">
+<input type="number" class="form-control profile-number-input" name="data_quota_value" min="0" step="0.01" placeholder="0" value="<?= htmlspecialchars((string)$profileFormData['data_quota_value']) ?>">
+<select class="form-select profile-unit-select" name="data_quota_unit">
+    <option value="KB" <?= $profileFormData['data_quota_unit'] === 'KB' ? 'selected' : '' ?>>KB</option>
+    <option value="MB" <?= $profileFormData['data_quota_unit'] === 'MB' ? 'selected' : '' ?>>MB</option>
+    <option value="GB" <?= $profileFormData['data_quota_unit'] === 'GB' ? 'selected' : '' ?>>GB</option>
+</select>
 </div>
 
 <div class="input-group">
@@ -420,7 +447,7 @@ if ($activeDeviceType === 'mikrotik') {
 </div>
 
 <div class="card mt-3 profile-advanced-card<?= $showMikrotikHints ? '' : ' d-none' ?>" id="profileAdvancedCard">
-<div class="card-header py-2">
+<div class="card-header standard-card-header py-2">
     <i class="fa fa-cogs me-2"></i> <span id="profileAdvancedTitle"><?= htmlspecialchars($profileAdvancedTitle) ?></span>
 </div>
 <div class="card-body py-3">
@@ -429,6 +456,7 @@ if ($activeDeviceType === 'mikrotik') {
 <span class="input-group-text">Pool d'adresses</span>
 <select class="form-select" name="address_pool" id="addressPoolSelect" <?= $mikrotikAdvancedDisabled ?>>
     <option value="">-- Choisir --</option>
+    <option value="none">AUCUN</option>
 </select>
 </div>
 
@@ -444,6 +472,7 @@ if ($activeDeviceType === 'mikrotik') {
 <span class="input-group-text">File parente</span>
 <select class="form-select" name="parent_queue" id="parentQueueSelect" <?= $mikrotikAdvancedDisabled ?>>
     <option value="">-- Choisir --</option>
+    <option value="none">AUCUN</option>
 </select>
 </div>
 </div>
@@ -455,7 +484,7 @@ if ($activeDeviceType === 'mikrotik') {
 
 <div class="col-md-6 d-flex">
 <div class="card shadow-sm border-info h-100 w-100 guide-content">
-<div class="card-header bg-info text-white py-2">
+<div class="card-header standard-card-header py-2">
     <i class="fa fa-info-circle me-2"></i> Guide de saisie
 </div>
 
@@ -472,7 +501,7 @@ if ($activeDeviceType === 'mikrotik') {
 <ul class="mb-2 ps-3">
 <li><b>Limite temps :</b> duree maximale technique d une session.</li>
 <li><b>Validité profil :</b> duree commerciale de l offre.</li>
-<li><b>Limite de données :</b> quota data de l offre en MB.</li>
+<li><b>Limite de données :</b> quota data de l offre en KB, MB ou GB.</li>
 <li><b>Mode d'expiration :</b> Action a faire quand la validite commerciale est finie.</li>
 <li><b>Période de grâce :</b> Petit delai supplementaire avant la coupure.</li>
 </ul>
@@ -508,10 +537,10 @@ if ($activeDeviceType === 'mikrotik') {
 </div>
 </div>
 
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 
-<script src="../js/sidebar.js?v=20260402a"></script>
-<script src="../js/select_nas.js"></script>
-
-</body>
-</html>
+<?php
+$extraJs = array (
+  0 => '../js/select_nas.js?v=20261006c',
+);
+require_once '../includes/layout_footer.php';
+?>

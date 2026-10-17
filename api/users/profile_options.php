@@ -31,7 +31,7 @@ try {
     }
 
     $deviceStore = loadDeviceStore();
-    $device = findDeviceById($deviceStore, $deviceId);
+    $device = requireAccessibleDevice($deviceStore, $deviceId);
     if (!$device) {
         throw new Exception('Device introuvable');
     }

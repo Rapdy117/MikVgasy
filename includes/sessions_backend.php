@@ -36,27 +36,29 @@ function loadSessionProfileMap(PDO $pdo, array $usernames): array
     return $map;
 }
 
-function loadRadiusActiveSessions(PDO $pdo, int $limit = 100): array
+function loadRadiusActiveSessions(PDO $pdo, int $limit = 100, ?array $device = null): array
 {
-    $stmt = $pdo->query("
+    $params = [];
+    $where = 'acctstoptime IS NULL';
+    $deviceAddress = is_array($device) ? trim((string)($device['ip'] ?? '')) : '';
+    if ($deviceAddress === '' && is_array($device)) {
+        $host = trim((string)($device['host'] ?? ''));
+        $deviceAddress = (string)(parse_url($host, PHP_URL_HOST) ?: preg_replace('#:\d+$#', '', $host));
+    }
+    if ($deviceAddress !== '') {
+        $where .= ' AND nasipaddress = :nasipaddress';
+        $params[':nasipaddress'] = $deviceAddress;
+    }
+    $stmt = $pdo->prepare("
         SELECT
-            radacctid,
-            acctsessionid,
-            username,
-            framedipaddress,
-            callingstationid,
-            acctsessiontime,
-            acctinputoctets,
-            acctoutputoctets,
-            nasipaddress,
-            acctstarttime
+            radacctid, acctsessionid, username, framedipaddress, callingstationid,
+            acctsessiontime, acctinputoctets, acctoutputoctets, nasipaddress, acctstarttime
         FROM radacct
-        WHERE acctstoptime IS NULL
+        WHERE {$where}
         ORDER BY acctstarttime DESC
-        LIMIT " . (int)$limit . "
-    ");
-
-    return $stmt ? ($stmt->fetchAll(PDO::FETCH_ASSOC) ?: []) : [];
+        LIMIT " . (int)$limit);
+    $stmt->execute($params);
+    return $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
 }
 
 function loadOpnsenseActiveSessions(array $activeDevice): array
@@ -85,12 +87,12 @@ function loadActiveSessionsData(PDO $pdo, ?array $activeDevice): array
 
     if ($isMikrotikSessions) {
         $sessionSourceLabel = 'MikroTik / hotspot active';
-        $sessions = getMikrotikHotspotActiveUsers(100);
+        $sessions = getMikrotikHotspotActiveUsers(100, $activeDevice);
     } elseif ($isOpnsenseSessions && is_array($activeDevice)) {
         $sessionSourceLabel = 'OPNsense / captive portal active';
         $sessions = loadOpnsenseActiveSessions($activeDevice);
     } else {
-        $sessions = loadRadiusActiveSessions($pdo, 100);
+        $sessions = loadRadiusActiveSessions($pdo, 100, $activeDevice);
     }
 
     $sessionProfileMap = loadSessionProfileMap($pdo, array_map(

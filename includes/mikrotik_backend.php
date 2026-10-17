@@ -4,6 +4,14 @@ require_once __DIR__ . '/device_manager.php';
 require_once __DIR__ . '/nas_resolver.php';
 require_once __DIR__ . '/../config/db.php';
 require_once __DIR__ . '/lib/routeros_api.class.php';
+require_once __DIR__ . '/multi_wan_config.php';
+
+/** Normalize RouterOS 6/7 boolean replies (yes/no and true/false). */
+function mikrotikApiBoolean($value): bool
+{
+    if (is_bool($value)) return $value;
+    return in_array(strtolower(trim((string)$value)), ['1', 'true', 'yes', 'on', 'enabled'], true);
+}
 
 /**
  * Entrées NAS (audit chantier) : résolution via loadNasContextByDeviceId / resolveNasContextFromInputs
@@ -13,8 +21,6 @@ require_once __DIR__ . '/lib/routeros_api.class.php';
  */
 function buildMikrotikContextFromDevice(array $device): array
 {
-    global $pdo;
-
     if (normalizeDeviceType((string)($device['type'] ?? '')) !== 'mikrotik') {
         throw new RuntimeException('Le device cible n est pas de type MikroTik.');
     }
@@ -24,11 +30,14 @@ function buildMikrotikContextFromDevice(array $device): array
         throw new RuntimeException('ID du device MikroTik manquant.');
     }
 
-    if (!($pdo instanceof PDO)) {
-        throw new RuntimeException('Connexion PDO indisponible pour resoudre le contexte MikroTik.');
-    }
-
-    return loadNasContextByDeviceId($pdo, $deviceId);
+    return [
+        'device'          => $device,
+        'device_type'     => 'mikrotik',
+        'backend_driver'  => 'mikrotik_api',
+        'business_source' => 'mikrotik_local',
+        'nas_type'        => 'mikrotik',
+        'capabilities'    => resolveNasCapabilities('mikrotik'),
+    ];
 }
 
 function requireMikrotikNasContextForActiveDevice(): array
@@ -103,6 +112,40 @@ function parseRechargeExpirationDate(?string $value): ?DateTimeImmutable
     if (preg_match('/^\d{4}-\d{2}-\d{2}/', $raw, $matches)) {
         $date = DateTimeImmutable::createFromFormat('Y-m-d', $matches[0], new DateTimeZone('UTC'));
         return $date instanceof DateTimeImmutable ? $date : null;
+    }
+
+    return null;
+}
+
+function parseMikrotikExpirationCommentDate(?string $value): ?DateTimeImmutable
+{
+    $dateTime = parseMikrotikExpirationCommentDateTime($value);
+    return $dateTime instanceof DateTimeImmutable ? $dateTime->setTime(0, 0) : null;
+}
+
+function parseMikrotikExpirationCommentDateTime(?string $value): ?DateTimeImmutable
+{
+    $raw = trim((string)$value);
+    if ($raw === '') {
+        return null;
+    }
+
+    $parts = preg_split('/\s+/', $raw, 2);
+    $datePart = $parts[0] ?? '';
+    $timePart = trim((string)($parts[1] ?? '00:00:00'));
+    if (preg_match('/^\d{2}:\d{2}$/', $timePart)) {
+        $timePart .= ':00';
+    }
+
+    $formats = ['!Y-m-d H:i:s', '!M/j/Y H:i:s', '!M/d/Y H:i:s', '!m/d/Y H:i:s'];
+
+    foreach ($formats as $format) {
+        $date = DateTimeImmutable::createFromFormat($format, trim($datePart . ' ' . $timePart), new DateTimeZone('UTC'));
+        $errors = DateTimeImmutable::getLastErrors();
+        if ($date instanceof DateTimeImmutable
+            && !(is_array($errors) && (($errors['warning_count'] ?? 0) > 0 || ($errors['error_count'] ?? 0) > 0))) {
+            return $date;
+        }
     }
 
     return null;
@@ -189,26 +232,18 @@ function connectToMikrotikApiByDevice(array $device): RouterosAPI
     $api->port = $params['port'];
     $api->ssl = $params['ssl'];
     $api->timeout = 5;
-    $api->attempts = 1;
-    $api->delay = 0;
+    $api->attempts = 2;
+    $api->delay = 1;
 
     if (!$api->connect($params['host'], $params['username'], $params['password'])) {
-        $error = trim((string)($api->error_str ?? 'Connexion MikroTik impossible'));
+        $error = trim((string)($api->error_str ?? ''));
+        if ($error === '') {
+            $error = 'aucune réponse de l API sur ' . $params['host'] . ':' . $params['port'];
+        }
         throw new RuntimeException('Connexion Mikhmon/API MikroTik impossible: ' . $error);
     }
 
     return $api;
-}
-
-/**
- * Connexion au routeur MikroTik désigné comme device actif (store).
- * À réserver aux lectures globales (listes hotspot, stats agrégées) sans cible utilisateur/NAS ;
- * pour provisioning ou sync alignée NAS, utiliser {@see connectToMikrotikApiForNasContext}.
- */
-function connectToActiveMikrotikApi(): RouterosAPI
-{
-    $device = requireActiveDeviceType('mikrotik');
-    return connectToMikrotikApiByDevice($device);
 }
 
 /**
@@ -229,7 +264,7 @@ function connectToMikrotikApiForNasContext(array $nasContext): RouterosAPI
         throw new RuntimeException('Contexte MikroTik incomplet: device requis pour ce NAS');
     }
 
-    return connectToActiveMikrotikApi();
+    throw new RuntimeException('Contexte MikroTik incomplet: device requis.');
 }
 
 function disconnectMikrotikApiIfOwned(?RouterosAPI $api, bool $ownsConnection): void
@@ -249,7 +284,7 @@ function findMikrotikProfileByName(RouterosAPI $api, string $profileName): ?arra
 {
     $result = $api->comm('/ip/hotspot/user/profile/print', [
         '?name' => $profileName,
-        '.proplist' => '.id,name,rate-limit,shared-users,limit-bytes-total,on-login,session-timeout,address-pool,parent-queue',
+        '.proplist' => '.id,name,rate-limit,shared-users,limit-bytes-total,on-login,on-logout,session-timeout,address-pool,parent-queue',
     ]);
 
     if (!(is_array($result) && isset($result[0]) && is_array($result[0]))) {
@@ -263,7 +298,7 @@ function findMikrotikProfileByName(RouterosAPI $api, string $profileName): ?arra
     }
 
     $profiles = $api->comm('/ip/hotspot/user/profile/print', [
-        '.proplist' => '.id,name,rate-limit,shared-users,limit-bytes-total,on-login,session-timeout,address-pool,parent-queue',
+        '.proplist' => '.id,name,rate-limit,shared-users,limit-bytes-total,on-login,on-logout,session-timeout,address-pool,parent-queue',
     ]);
 
     foreach (is_array($profiles) ? $profiles : [] as $profile) {
@@ -361,9 +396,8 @@ function disconnectMikrotikHotspotActiveSession(string $sessionId, ?array $nasCo
         throw new RuntimeException('ID de session MikroTik manquant.');
     }
 
-    $api = $nasContext !== null
-        ? connectToMikrotikApiForNasContext($nasContext)
-        : connectToActiveMikrotikApi();
+    $nasContext = requireExplicitMikrotikNasContext($nasContext);
+    $api = connectToMikrotikApiForNasContext($nasContext);
 
     try {
         $response = $api->comm('/ip/hotspot/active/remove', [
@@ -425,8 +459,27 @@ function parseMikrotikOnLoginMetadata(?string $onLogin): array
     $result['selling_price'] = ($sellingPrice !== '' && $sellingPrice !== '0') ? $sellingPrice : '-';
     $result['lock_user'] = $lockUser !== '' ? $lockUser : 'Disable';
     $result['data_quota_mb'] = ctype_digit($dataQuotaMb) ? (int)$dataQuotaMb : 0;
+    // Champ 9 : débit dégradé (ajouté en fin, les anciens profils n'en ont pas : '-').
+    $degradedRate = trim((string)($parts[8] ?? ''));
+    $result['degraded_rate'] = preg_match('/^\d+[KM]\/\d+[KM]$/', $degradedRate) ? $degradedRate : '-';
 
     return $result;
+}
+
+/**
+ * Débit dégradé du profil au format RouterOS « down/up » (ex. 3M/3M), ou chaîne vide si non défini.
+ * Une valeur mal formée est refusée : jamais de repli silencieux.
+ */
+function mikrotikProfileDegradedRate(array $profile): string
+{
+    $raw = trim((string)($profile['degraded_rate'] ?? ''));
+    if ($raw === '') {
+        return '';
+    }
+    if (!preg_match('/^\d+[KM]\/\d+[KM]$/', $raw)) {
+        throw new RuntimeException('Débit dégradé invalide : format attendu 3M/3M (K ou M).');
+    }
+    return $raw;
 }
 
 function mikrotikProfilePriceString(array $profile, string $key): string
@@ -488,7 +541,84 @@ function mikrotikBuildProfileRecordScript(array $profile, string $validityRouter
         . '-|-$comment" owner="$month$year" source="$date" comment="mikhmon"';
 }
 
-function mikrotikBuildProfileOnLogin(array $profile): string
+function mikrotikNwanWeightsForDevice(array $device): array
+{
+    return multiWanConfigWeights(multiWanLoadConfig($device));
+}
+
+function mikrotikBuildNwanLoginHook(array $weights): string
+{
+    // Ajout seul pour la nouvelle IP : aucune suppression. Poids et interfaces lus depuis la configuration WAN.
+    // Un WAN HS (interface inactive, désactivée par quota, ou DHCP non bound) est exclu ; sans WAN disponible, la session est retirée.
+    $w1 = (int)($weights['wan1'] ?? 0);
+    $w2 = (int)($weights['wan2'] ?? 0);
+    $eligible = static function (string $interface): string {
+        if ($interface === '') return 'false';
+        return '([:len [/interface/find where name="' . $interface . '" running=yes disabled=no]] > 0 && [:len [/ip/dhcp-client/find where interface="' . $interface . '" status="bound" disabled=no]] > 0)';
+    };
+    $ok1 = $eligible((string)($weights['wan1_interface'] ?? ''));
+    $ok2 = $eligible((string)($weights['wan2_interface'] ?? ''));
+    return ':local rmNwanLoginHook "RM-NWAN-LOGIN-HOOK"; :local ip $address; :if ([:len $ip] > 0) do={ :local has false; :foreach e in=[/ip/firewall/address-list/find where address=$ip] do={ :local l [/ip/firewall/address-list/get $e list]; :if (($l = "WAN1_CLIENTS") || ($l = "WAN2_CLIENTS")) do={ :set has true; }; }; :if ($has = false) do={ :local w1 ' . $w1 . '; :local w2 ' . $w2 . '; :local ok1 ' . $ok1 . '; :local ok2 ' . $ok2 . '; :if ($ok1 = false) do={ :set w1 0; }; :if ($ok2 = false) do={ :set w2 0; }; :local c1 [:len [/ip/firewall/address-list/find where list="WAN1_CLIENTS"]]; :local c2 [:len [/ip/firewall/address-list/find where list="WAN2_CLIENTS"]]; :local target ""; :if (($w1 > 0) && ($w2 > 0)) do={ :if ((($c1 * 1000) / $w1) <= (($c2 * 1000) / $w2)) do={ :set target "WAN1_CLIENTS"; } else={ :set target "WAN2_CLIENTS"; }; } else={ :if ($w1 > 0) do={ :set target "WAN1_CLIENTS"; }; :if ($w2 > 0) do={ :set target "WAN2_CLIENTS"; }; }; :if ([:len $target] > 0) do={ /ip/firewall/address-list/add list=$target address=$ip comment="RM-NWAN"; } else={ :log warning ("RM-NWAN: aucun WAN disponible pour " . $ip . ", session retirée"); /ip/hotspot/active/remove [/ip/hotspot/active/find where address=$ip]; }; }; };';
+}
+
+function mikrotikBuildNwanLogoutHook(): string
+{
+    return ':local rmNwanLogoutHook "RM-NWAN-LOGOUT-HOOK"; :local rmNwanLogoutAddress $address; :local rmNwanRemainingSessions [/ip/hotspot/active/find where address=$rmNwanLogoutAddress]; :if ([:len $rmNwanRemainingSessions] = 0) do={ :foreach rmNwanEntry in=[/ip/firewall/address-list/find where address=$rmNwanLogoutAddress] do={ :local rmNwanList [/ip/firewall/address-list/get $rmNwanEntry list]; :if (($rmNwanList = "WAN1_CLIENTS") || ($rmNwanList = "WAN2_CLIENTS") || ($rmNwanList = "WAN3_CLIENTS") || ($rmNwanList = "WAN4_CLIENTS")) do={ /ip/firewall/address-list/remove $rmNwanEntry; }; }; };';
+}
+
+function mikrotikEnsureNwanProfileHooks(RouterosAPI $api, array $weights): array
+{
+    $profiles = $api->comm('/ip/hotspot/user/profile/print', [
+        '.proplist' => '.id,name,on-login,on-logout',
+    ]);
+    mikrotikAssertNoTrap($profiles, 'Lecture des profils Hotspot impossible.');
+    if (!is_array($profiles) || $profiles === []) {
+        throw new RuntimeException('Aucun profil Hotspot reçu pour installer les hooks N-WAN.');
+    }
+    $updated = 0;
+
+    foreach ($profiles as $profile) {
+        $profileId = trim((string)($profile['.id'] ?? ''));
+        if ($profileId === '') continue;
+
+        $updates = ['.id' => $profileId];
+        $onLogin = (string)($profile['on-login'] ?? '');
+        $onLoginBase = trim((string)preg_replace('/^:local rmNwanLoginHook "RM-NWAN-LOGIN-HOOK";.*$/m', '', $onLogin));
+        $onLoginDesired = $onLoginBase === '' ? mikrotikBuildNwanLoginHook($weights) : $onLoginBase . "\n" . mikrotikBuildNwanLoginHook($weights);
+        if ($onLoginDesired !== $onLogin) {
+            $updates['on-login'] = $onLoginDesired;
+        }
+
+        $onLogout = (string)($profile['on-logout'] ?? '');
+        if (!str_contains($onLogout, 'RM-NWAN-LOGOUT-HOOK')) {
+            $updates['on-logout'] = trim($onLogout) === ''
+                ? mikrotikBuildNwanLogoutHook()
+                : rtrim($onLogout) . "\n" . mikrotikBuildNwanLogoutHook();
+        }
+
+        if (count($updates) === 1) continue;
+        mikrotikAssertNoTrap(
+            $api->comm('/ip/hotspot/user/profile/set', $updates),
+            'RouterOS a refusé l’installation des hooks N-WAN sur le profil ' . (string)($profile['name'] ?? $profileId) . '.'
+        );
+        $actual = $api->comm('/ip/hotspot/user/profile/print', [
+            '?.id' => $profileId,
+            '.proplist' => '.id,on-login,on-logout',
+        ]);
+        mikrotikAssertNoTrap($actual, 'Relecture des hooks N-WAN impossible.');
+        foreach (['on-login', 'on-logout'] as $field) {
+            $expected = (string)($updates[$field] ?? $profile[$field] ?? '');
+            if (!isset($actual[0][$field]) || (string)$actual[0][$field] !== $expected) {
+                throw new RuntimeException('Hook N-WAN non confirmé après écriture : ' . $profileId . ' / ' . $field);
+            }
+        }
+        $updated++;
+    }
+
+    return ['profiles_seen' => count($profiles), 'profiles_updated' => $updated];
+}
+
+function mikrotikBuildProfileOnLogin(array $profile, array $weights): string
 {
     $expiredModeCode = mikrotikProfileExpiryCode((string)($profile['expired_mode'] ?? 'none'));
     $price = mikrotikProfilePriceString($profile, 'price');
@@ -498,6 +628,7 @@ function mikrotikBuildProfileOnLogin(array $profile): string
     $lockLabel = mikrotikProfileLockLabel($lockUser);
     $lockScript = mikrotikBuildProfileLockScript($lockUser);
     $dataQuotaMb = max(0, (int)($profile['data_quota_mb'] ?? 0));
+    $degradedRate = mikrotikProfileDegradedRate($profile);
 
     if ($expiredModeCode === '0') {
         return ':put (",,'
@@ -508,7 +639,9 @@ function mikrotikBuildProfileOnLogin(array $profile): string
             . $lockLabel
             . ','
             . $dataQuotaMb
-            . '")' . $lockScript;
+            . ','
+            . $degradedRate
+            . '")' . $lockScript . "\n" . mikrotikBuildNwanLoginHook($weights);
     }
 
     if ($validityRouteros === '') {
@@ -532,11 +665,62 @@ function mikrotikBuildProfileOnLogin(array $profile): string
         . $lockLabel
         . ','
         . $dataQuotaMb
-        . '"); {:local comment [ /ip hotspot user get [/ip hotspot user find where name="$user"] comment]; :local ucode [:pic $comment 0 2]; :if ($ucode = "vc" or $ucode = "up" or $comment = "") do={ :local date [ /system clock get date ];:local year [ :pick $date 0 4 ];:local month [ :pick $date 5 7 ]; /sys sch add name="$user" disable=no start-date=$date interval="'
+        . ','
+        . $degradedRate
+        . '"); {:local comment [ /ip hotspot user get [/ip hotspot user find where name="$user"] comment]; :local ucode [:pick $comment 0 2]; :if ($ucode = "vc" or $ucode = "up" or $comment = "") do={ :local date [ /system clock get date ];:local year [ :pick $date 0 4 ];:local month [ :pick $date 5 7 ]; /sys sch add name="$user" disable=no start-date=$date interval="'
         . $validityRouteros
-        . '"; :delay 5s; :local exp [ /sys sch get [ /sys sch find where name="$user" ] next-run]; :local getxp [len $exp]; :if ($getxp = 15) do={ :local d [:pic $exp 0 6]; :local t [:pic $exp 7 16]; :local s ("/"); :local exp ("$d$s$year $t"); /ip hotspot user set comment="$exp" [find where name="$user"];}; :if ($getxp = 8) do={ /ip hotspot user set comment="$date $exp" [find where name="$user"];}; :if ($getxp > 15) do={ /ip hotspot user set comment="$exp" [find where name="$user"];};:delay 5s; /sys sch remove [find where name="$user"]';
+        . '"; :delay 5s; :local exp [ /sys sch get [ /sys sch find where name="$user" ] next-run]; :local getxp [len $exp]; :if ($getxp = 15) do={ :local d [:pick $exp 0 6]; :local t [:pick $exp 7 16]; :local s ("/"); :local exp ("$d$s$year $t"); /ip hotspot user set comment="$exp" [find where name="$user"];}; :if ($getxp = 8) do={ /ip hotspot user set comment="$date $exp" [find where name="$user"];}; :if ($getxp > 15) do={ /ip hotspot user set comment="$exp" [find where name="$user"];};:delay 5s; /sys sch remove [find where name="$user"]';
 
-    return $onLogin . $recordScript . $lockScript . '}}';
+    return $onLogin . $recordScript . $lockScript . '}}' . "\n" . mikrotikBuildNwanLoginHook($weights);
+}
+
+function mikrotikComposeProfileOnLogin(array $options, ?array $existing, array $weights): string
+{
+    $hook = mikrotikBuildNwanLoginHook($weights);
+    $newCore = rtrim(str_replace($hook, '', mikrotikBuildProfileOnLogin($options, $weights)));
+    $oldScript = (string)($existing['on-login'] ?? '');
+    $remainder = str_replace([$hook . "\n", "\n" . $hook, $hook], '', $oldScript);
+    if (str_contains($remainder, 'RM-NWAN-LOGIN-HOOK')) {
+        throw new RuntimeException('Hook N-WAN personnalisé : modification automatique du profil refusée pour préserver le script.');
+    }
+    if (trim($remainder) === '') {
+        return $hook . "\n" . $newCore;
+    }
+
+    $metadata = parseMikrotikOnLoginMetadata($oldScript);
+    $oldOptions = [
+        'name' => (string)$existing['name'],
+        'expired_mode' => normalizeMikrotikExpiredModeLabel($metadata['expired_mode']),
+        'validity_routeros' => $metadata['validity'],
+        'price_raw' => $metadata['price'] === '-' ? '0' : $metadata['price'],
+        'selling_price_raw' => $metadata['selling_price'] === '-' ? '0' : $metadata['selling_price'],
+        'lock_user' => $metadata['lock_user'] === 'Enable',
+        'data_quota_mb' => $metadata['data_quota_mb'],
+        'degraded_rate' => $metadata['degraded_rate'] === '-' ? '' : $metadata['degraded_rate'],
+    ];
+    $oldCore = rtrim(str_replace($hook, '', mikrotikBuildProfileOnLogin($oldOptions, $weights)));
+    if (substr_count($remainder, $oldCore) !== 1) {
+        throw new RuntimeException('Script Hotspot non reconnu : modification automatique refusée pour préserver son contenu.');
+    }
+    // Replace only the exact generated block; retain custom prefix/suffix verbatim.
+    return $hook . "\n" . str_replace($oldCore, $newCore, $remainder);
+}
+
+function mikrotikConfirmProfileScripts(RouterosAPI $api, string $name, array $expected): void
+{
+    $rows = $api->comm('/ip/hotspot/user/profile/print', [
+        '?name' => $name,
+        '.proplist' => '.id,on-login,on-logout',
+    ]);
+    mikrotikAssertNoTrap($rows, 'Relecture des scripts du profil impossible.');
+    if (!is_array($rows) || count($rows) !== 1 || !isset($rows[0]['.id'])) {
+        throw new RuntimeException('Profil non confirmé après écriture.');
+    }
+    foreach (['on-login', 'on-logout'] as $field) {
+        if (!isset($rows[0][$field]) || (string)$rows[0][$field] !== $expected[$field]) {
+            throw new RuntimeException('Script du profil non confirmé après écriture : ' . $field);
+        }
+    }
 }
 
 function mikrotikProfileSchedulerMode(array $profile): ?string
@@ -550,22 +734,181 @@ function mikrotikProfileSchedulerMode(array $profile): ?string
     };
 }
 
-function mikrotikBuildProfileMonitorScript(array $profile): ?string
+/** Échappement RouterOS pour une chaîne insérée littéralement dans un script `on-event`. */
+function mikrotikEscapeRouterosString(string $value): string
 {
-    $mode = mikrotikProfileSchedulerMode($profile);
-    if ($mode === null) {
-        return null;
-    }
-
-    $profileName = (string)($profile['name'] ?? '');
-
-    return ':local dateint do={:local montharray ( "01","02","03","04","05","06","07","08","09","10","11","12" );:local days [ :pick $d 8 10 ];:local month [ :pick $d 5 7 ];:local year [ :pick $d 0 4 ];:local monthint ([ :find $montharray $month]);:local month ($monthint + 1);:if ( [len $month] = 1) do={:local zero ("0");:return [:tonum ("$year$zero$month$days")];} else={:return [:tonum ("$year$month$days")];}}; :local timeint do={ :local hours [ :pick $t 0 2 ]; :local minutes [ :pick $t 3 5 ]; :return ($hours * 60 + $minutes) ; }; :local date [ /system clock get date ]; :local time [ /system clock get time ]; :local today [$dateint d=$date] ; :local curtime [$timeint t=$time] ; :foreach i in [ /ip hotspot user find where profile="'
-        . $profileName
-        . '" ] do={ :local comment [ /ip hotspot user get $i comment]; :local name [ /ip hotspot user get $i name]; :local gettime [:pic $comment 11 19]; :if ([:pic $comment 4] = "-" and [:pic $comment 7] = "-") do={:local expd [$dateint d=$comment] ; :local expt [$timeint t=$gettime] ; :if (($expd < $today and $expt < $curtime) or ($expd < $today and $expt > $curtime) or ($expd = $today and $expt < $curtime)) do={ [ /ip hotspot user '
-        . $mode
-        . ' $i ]; [ /ip hotspot active remove [find where user=$name] ];}}}';
+    return str_replace(['\\', '"'], ['\\\\', '\\"'], $value);
 }
 
+/** Prélude commun (une seule fois) : fonctions de parsing date/heure, horloge courante. */
+function mikrotikProfileMonitorPrelude(): string
+{
+    return ':local dateint do={:local v [:tostr $d];:local months ("jan","feb","mar","apr","may","jun","jul","aug","sep","oct","nov","dec");:local year "";:local month "";:local day "";:if ([:pick $v 4 5] = "-" and [:pick $v 7 8] = "-") do={:set year [:pick $v 0 4];:set month [:pick $v 5 7];:set day [:pick $v 8 10];} else={:local s1 [:find $v "/"];:if ([:typeof $s1] = "nil") do={:return 0};:local s2 [:find $v "/" ($s1 + 1)];:if ([:typeof $s2] = "nil") do={:return 0};:local mon [:tolower [:pick $v 0 $s1]];:local idx [:find $months $mon];:if ([:typeof $idx] = "nil") do={:return 0};:set month ($idx + 1);:if ([:len $month] = 1) do={:set month ("0".$month)};:set day [:pick $v ($s1 + 1) $s2];:if ([:len $day] = 1) do={:set day ("0".$day)};:set year [:pick $v ($s2 + 1) ($s2 + 5)];};:return [:tonum ($year.$month.$day)];}; :local timeint do={ :local t [:tostr $t]; :if ([:len $t] < 5) do={:return 0}; :local hours [ :pick $t 0 2 ]; :local minutes [ :pick $t 3 5 ]; :return (($hours * 60) + $minutes) ; }; :local date [ /system clock get date ]; :local time [ /system clock get time ]; :local today [$dateint d=$date] ; :local curtime [$timeint t=$time] ; ';
+}
+
+/** Bloc `foreach` de contrôle d'expiration pour un seul profil, réutilisé seul ou fusionné. */
+function mikrotikProfileMonitorBlock(string $profileName, string $mode): string
+{
+    $userAction = $mode === 'remove'
+        ? '/ip hotspot user remove $i; :log info ("profile-monitor expired " . $name)'
+        : ':if ([/ip hotspot user get $i limit-uptime] != 1s) do={ /ip hotspot user set $i limit-uptime=1s; :log info ("profile-monitor expired " . $name); }';
+    $userAction .= '; :local active [/ip hotspot active find where user=$name]; :if ([:len $active] > 0) do={ /ip hotspot active remove $active; }';
+
+    return ':foreach i in=[/ip hotspot user find where profile="'
+        . mikrotikEscapeRouterosString($profileName)
+        . '" ] do={ :local comment [/ip hotspot user get $i comment]; :local name [/ip hotspot user get $i name]; :if ([:len $comment] >= 10) do={ :local expdate $comment; :local exptime "00:00:00"; :local space [:find $comment " "]; :if ([:typeof $space] != "nil") do={ :set expdate [:pick $comment 0 $space]; :set exptime [:pick $comment ($space + 1) ($space + 9)];}; :local expd [$dateint d=$expdate]; :if ($expd > 0) do={ :local expt [$timeint t=$exptime] ; :if ($expd < $today or ($expd = $today and $expt < $curtime)) do={ '
+        . $userAction
+        . ' }}}}}';
+}
+
+/**
+ * Nom du planificateur unique partagé remplaçant un planificateur par profil.
+ * Priorité 8 (docs/PROJECT_PLAN.md) : 17 planificateurs quasi identiques fusionnés en un seul.
+ */
+function mikrotikSharedExpirySchedulerName(): string
+{
+    return 'RM-PROFILE-EXPIRY';
+}
+
+/**
+ * Le planificateur partagé garde la liste profil => mode dans son commentaire (lisible, pas de
+ * parsing fragile du script). Format : "RM profile expiry: nom1=mode1;nom2=mode2;...".
+ */
+const MIKROTIK_SHARED_EXPIRY_COMMENT_PREFIX = 'RM profile expiry: ';
+
+function mikrotikParseSharedExpiryComment(string $comment): array
+{
+    $comment = trim($comment);
+    if (!str_starts_with($comment, MIKROTIK_SHARED_EXPIRY_COMMENT_PREFIX)) {
+        return [];
+    }
+    $map = [];
+    $body = substr($comment, strlen(MIKROTIK_SHARED_EXPIRY_COMMENT_PREFIX));
+    foreach (explode(';', $body) as $pair) {
+        $pair = trim($pair);
+        if ($pair === '') continue;
+        [$name, $mode] = array_pad(explode('=', $pair, 2), 2, '');
+        $name = trim($name);
+        $mode = trim($mode);
+        if ($name !== '' && $mode !== '') {
+            $map[$name] = $mode;
+        }
+    }
+    ksort($map, SORT_NATURAL | SORT_FLAG_CASE);
+    return $map;
+}
+
+function mikrotikEncodeSharedExpiryComment(array $modeByProfile): string
+{
+    ksort($modeByProfile, SORT_NATURAL | SORT_FLAG_CASE);
+    $parts = [];
+    foreach ($modeByProfile as $name => $mode) {
+        $parts[] = $name . '=' . $mode;
+    }
+    return MIKROTIK_SHARED_EXPIRY_COMMENT_PREFIX . implode(';', $parts);
+}
+
+/** Script unique fusionnant le contrôle d'expiration de tous les profils fournis. */
+function mikrotikBuildSharedProfileMonitorScript(array $modeByProfile): string
+{
+    $blocks = '';
+    foreach ($modeByProfile as $profileName => $mode) {
+        $blocks .= mikrotikProfileMonitorBlock((string)$profileName, (string)$mode) . '; ';
+    }
+    return mikrotikProfileMonitorPrelude() . rtrim($blocks, '; ');
+}
+
+/**
+ * Lit, sans rien écrire, ce que donnerait la fusion des planificateurs individuels existants
+ * (nom "Monitor Profile X") en un planificateur unique : liste des profils détectés, leur mode
+ * déduit du script actuel, et le script fusionné correspondant. Sert de preuve avant migration
+ * réelle (docs/PROJECT_PLAN.md, Priorité 8).
+ */
+function mikrotikPreviewLegacyProfileSchedulerMigration(RouterosAPI $api): array
+{
+    $rows = $api->comm('/system/scheduler/print', [
+        '.proplist' => 'name,comment,on-event,disabled',
+    ]);
+    mikrotikAssertNoTrap($rows, 'Lecture des planificateurs refusée.');
+
+    $legacy = [];
+    $modeByProfile = [];
+    foreach ((is_array($rows) ? $rows : []) as $row) {
+        if (!is_array($row)) continue;
+        $comment = (string)($row['comment'] ?? '');
+        if (!str_starts_with($comment, 'Monitor Profile ')) continue;
+        $profileName = trim(substr($comment, strlen('Monitor Profile ')));
+        if ($profileName === '') continue;
+        $onEvent = (string)($row['on-event'] ?? '');
+        $mode = str_contains($onEvent, '/ip hotspot user remove $i') ? 'remove' : 'set limit-uptime=1s';
+        $modeByProfile[$profileName] = $mode;
+        $legacy[] = [
+            'scheduler_name' => (string)($row['name'] ?? ''),
+            'profile' => $profileName,
+            'mode' => $mode,
+            'disabled' => mikrotikApiBoolean($row['disabled'] ?? false),
+        ];
+    }
+
+    return [
+        'legacy_schedulers' => $legacy,
+        'mode_by_profile' => $modeByProfile,
+        'merged_script' => $modeByProfile === [] ? null : mikrotikBuildSharedProfileMonitorScript($modeByProfile),
+        'merged_comment' => $modeByProfile === [] ? null : mikrotikEncodeSharedExpiryComment($modeByProfile),
+    ];
+}
+
+/**
+ * Crée ou met à jour le planificateur unique partagé pour un profil donné (ajout/retrait de son
+ * entrée dans le commentaire-registre), sans toucher aux anciens planificateurs individuels.
+ * Pas encore appelée par les points d'écriture profil — migration volontairement différée tant que
+ * la preuve de non-régression n'a pas été faite sur le routeur réel (voir docs/PROJECT_PLAN.md).
+ */
+function ensureMikrotikSharedProfileExpiryScheduler(RouterosAPI $api, string $profileName, ?string $mode): void
+{
+    $profileName = trim($profileName);
+    if ($profileName === '') {
+        return;
+    }
+    $schedulerName = mikrotikSharedExpirySchedulerName();
+    $existing = $api->comm('/system/scheduler/print', ['?name' => $schedulerName]);
+    mikrotikAssertNoTrap($existing, 'Lecture du planificateur partagé refusée.');
+    $scheduler = is_array($existing) && isset($existing[0]) && is_array($existing[0]) ? $existing[0] : null;
+
+    $modeByProfile = $scheduler !== null ? mikrotikParseSharedExpiryComment((string)($scheduler['comment'] ?? '')) : [];
+    if ($mode === null) {
+        unset($modeByProfile[$profileName]);
+    } else {
+        $modeByProfile[$profileName] = $mode;
+    }
+
+    if ($modeByProfile === []) {
+        if ($scheduler !== null && isset($scheduler['.id'])) {
+            $api->comm('/system/scheduler/remove', ['.id' => (string)$scheduler['.id']]);
+        }
+        return;
+    }
+
+    $payload = [
+        'name' => $schedulerName,
+        'interval' => '00:02:30',
+        'on-event' => mikrotikBuildSharedProfileMonitorScript($modeByProfile),
+        'disabled' => 'no',
+        'comment' => mikrotikEncodeSharedExpiryComment($modeByProfile),
+    ];
+    if ($scheduler !== null && isset($scheduler['.id'])) {
+        $payload['.id'] = (string)$scheduler['.id'];
+        mikrotikAssertNoTrap($api->comm('/system/scheduler/set', $payload), 'Mise à jour du planificateur partagé refusée.');
+        return;
+    }
+    mikrotikAssertNoTrap($api->comm('/system/scheduler/add', $payload), 'Création du planificateur partagé refusée.');
+}
+
+/**
+ * Priorité 8 (docs/PROJECT_PLAN.md) : un seul planificateur partagé (`RM-PROFILE-EXPIRY`) remplace
+ * un planificateur par profil. Appelée uniquement depuis les 3 flux d'écriture volontaire (création,
+ * modification, import de profil) — jamais depuis une simple lecture.
+ */
 function ensureMikrotikProfileScheduler(RouterosAPI $api, array $profile, ?string $lookupName = null): void
 {
     $profileName = trim((string)($profile['name'] ?? ''));
@@ -573,41 +916,22 @@ function ensureMikrotikProfileScheduler(RouterosAPI $api, array $profile, ?strin
         return;
     }
 
-    $schedulerLookupName = trim((string)($lookupName ?? $profileName));
-    $existing = $api->comm('/system/scheduler/print', [
-        '?name' => $schedulerLookupName,
-    ]);
-    $scheduler = is_array($existing) && isset($existing[0]) && is_array($existing[0]) ? $existing[0] : null;
-
-    $monitorScript = mikrotikBuildProfileMonitorScript($profile);
-    if ($monitorScript === null) {
-        if ($scheduler && isset($scheduler['.id'])) {
-            $api->comm('/system/scheduler/remove', [
-                '.id' => (string)$scheduler['.id'],
-            ]);
+    // Nettoyage d'un éventuel ancien planificateur individuel (pré-fusion, ou laissé par un
+    // renommage) : il portait le nom du profil (ou l'ancien nom lors d'un renommage) sur RouterOS.
+    $legacyName = trim((string)($lookupName ?? $profileName));
+    if ($legacyName !== '' && $legacyName !== mikrotikSharedExpirySchedulerName()) {
+        $legacy = $api->comm('/system/scheduler/print', ['?name' => $legacyName]);
+        if (is_array($legacy) && isset($legacy[0]['.id'])) {
+            $api->comm('/system/scheduler/remove', ['.id' => (string)$legacy[0]['.id']]);
         }
-        return;
     }
 
-    $startTime = '0' . (string)random_int(1, 5) . ':' . str_pad((string)random_int(10, 59), 2, '0', STR_PAD_LEFT) . ':' . str_pad((string)random_int(10, 59), 2, '0', STR_PAD_LEFT);
-    $interval = '00:02:' . str_pad((string)random_int(10, 59), 2, '0', STR_PAD_LEFT);
-
-    $payload = [
-        'name' => $profileName,
-        'start-time' => $startTime,
-        'interval' => $interval,
-        'on-event' => $monitorScript,
-        'disabled' => 'no',
-        'comment' => 'Monitor Profile ' . $profileName,
-    ];
-
-    if ($scheduler && isset($scheduler['.id'])) {
-        $payload['.id'] = (string)$scheduler['.id'];
-        $api->comm('/system/scheduler/set', $payload);
-        return;
+    // Renommage : retirer l'ancienne entrée du registre partagé avant d'ajouter la nouvelle.
+    if ($legacyName !== '' && $legacyName !== $profileName) {
+        ensureMikrotikSharedProfileExpiryScheduler($api, $legacyName, null);
     }
 
-    $api->comm('/system/scheduler/add', $payload);
+    ensureMikrotikSharedProfileExpiryScheduler($api, $profileName, mikrotikProfileSchedulerMode($profile));
 }
 
 function ensureMikrotikProfile(
@@ -619,9 +943,8 @@ function ensureMikrotikProfile(
     ?string $lookupName = null
 ): array
 {
-    $api = $nasContext !== null
-        ? connectToMikrotikApiForNasContext($nasContext)
-        : connectToActiveMikrotikApi();
+    $nasContext = requireExplicitMikrotikNasContext($nasContext);
+    $api = connectToMikrotikApiForNasContext($nasContext);
 
     try {
         $existingLookupName = $lookupName !== null && trim($lookupName) !== '' ? trim($lookupName) : $profileName;
@@ -633,12 +956,18 @@ function ensureMikrotikProfile(
             'name' => $profileName,
             'shared-users' => (string)max(1, $sharedUsers),
             'status-autorefresh' => '1m',
-            'on-login' => mikrotikBuildProfileOnLogin($profileOptions ?? ['name' => $profileName]),
+            'on-login' => mikrotikComposeProfileOnLogin($profileOptions ?? ['name' => $profileName], $existing, mikrotikNwanWeightsForDevice($nasContext['device'])),
         ];
 
-        if ($rateLimit !== null && trim($rateLimit) !== '') {
-            $payload['rate-limit'] = trim($rateLimit);
+        $existingOnLogout = (string)($existing['on-logout'] ?? '');
+        $payload['on-logout'] = $existingOnLogout;
+        if (!str_contains($existingOnLogout, 'RM-NWAN-LOGOUT-HOOK')) {
+            $payload['on-logout'] = trim($existingOnLogout) === ''
+                ? mikrotikBuildNwanLogoutHook()
+                : rtrim($existingOnLogout) . "\n" . mikrotikBuildNwanLogoutHook();
         }
+
+        $payload['rate-limit'] = ($rateLimit !== null && trim($rateLimit) !== '') ? trim($rateLimit) : '';
 
         $addressPool = trim((string)($profileOptions['ip_pool'] ?? $profileOptions['address_pool'] ?? ''));
         if ($addressPool !== '') {
@@ -652,26 +981,22 @@ function ensureMikrotikProfile(
 
         if (is_array($profileOptions) && array_key_exists('session_timeout', $profileOptions)) {
             $sessionTimeoutSeconds = max(0, (int)($profileOptions['session_timeout'] ?? 0));
-            if ($sessionTimeoutSeconds > 0) {
-                $payload['session-timeout'] = mikrotikIntervalFromSeconds($sessionTimeoutSeconds);
-            }
+            $payload['session-timeout'] = mikrotikIntervalFromSeconds($sessionTimeoutSeconds);
         }
 
         if ($existing) {
             $payload['.id'] = (string)$existing['.id'];
             $response = $api->comm('/ip/hotspot/user/profile/set', $payload);
-            if (mikrotikResponseHasTrap($response)) {
-                throw new RuntimeException('Le routeur MikroTik a refuse la mise a jour du profil.');
-            }
+            mikrotikAssertNoTrap($response, 'Le routeur MikroTik a refuse la mise a jour du profil.');
+            mikrotikConfirmProfileScripts($api, $profileName, $payload);
             invalidateMikrotikHotspotProfilesCache($nasContext['device'] ?? null);
             ensureMikrotikProfileScheduler($api, $profileOptions ?? ['name' => $profileName], $lookupName);
             return confirmMikrotikProfileWrite($api, $profileName);
         }
 
         $response = $api->comm('/ip/hotspot/user/profile/add', $payload);
-        if (mikrotikResponseHasTrap($response)) {
-            throw new RuntimeException('Le routeur MikroTik a refuse la creation du profil.');
-        }
+        mikrotikAssertNoTrap($response, 'Le routeur MikroTik a refuse la creation du profil.');
+        mikrotikConfirmProfileScripts($api, $profileName, $payload);
         invalidateMikrotikHotspotProfilesCache($nasContext['device'] ?? null);
         ensureMikrotikProfileScheduler($api, $profileOptions ?? ['name' => $profileName], $lookupName);
         return confirmMikrotikProfileWrite($api, $profileName);
@@ -729,9 +1054,8 @@ function deleteProfileFromMikrotik(string $profileName, ?array $nasContext = nul
         throw new RuntimeException('Nom de profil MikroTik manquant.');
     }
 
-    $api = $nasContext !== null
-        ? connectToMikrotikApiForNasContext($nasContext)
-        : connectToActiveMikrotikApi();
+    $nasContext = requireExplicitMikrotikNasContext($nasContext);
+    $api = connectToMikrotikApiForNasContext($nasContext);
 
     try {
         $existing = null;
@@ -795,6 +1119,70 @@ function findMikrotikUserByName(RouterosAPI $api, string $username): ?array
     return is_array($result) && isset($result[0]) && is_array($result[0]) ? $result[0] : null;
 }
 
+function mikrotikAssertUserLimitsApplied(RouterosAPI $api, string $username, array $payload): array
+{
+    $user = findMikrotikUserByName($api, $username);
+    if (!$user) {
+        throw new RuntimeException('Utilisateur introuvable sur MikroTik apres verification des limites.');
+    }
+
+    if (array_key_exists('limit-uptime', $payload)) {
+        $expected = parseRouterosIntervalToSeconds((string)$payload['limit-uptime']);
+        $actual = parseRouterosIntervalToSeconds((string)($user['limit-uptime'] ?? ''));
+        if ($actual !== $expected) {
+            throw new RuntimeException('MikroTik n a pas applique la limite de temps demandee.');
+        }
+    }
+
+    if (array_key_exists('limit-bytes-total', $payload)) {
+        $expected = max(0, (int)round((float)$payload['limit-bytes-total']));
+        $actual = max(0, (int)round((float)($user['limit-bytes-total'] ?? 0)));
+        if ($actual !== $expected) {
+            throw new RuntimeException('MikroTik n a pas applique la limite de donnees demandee.');
+        }
+    }
+
+    return $user;
+}
+
+/**
+ * Lecture publique ciblee pour la page de statut : aucune mise en cache et une seule source RouterOS.
+ */
+function getMikrotikPortalUserSnapshot(array $device, string $username): ?array
+{
+    $username = trim($username);
+    if ($username === '') {
+        return null;
+    }
+
+    $api = connectToMikrotikApiByDevice($device);
+    try {
+        $rows = $api->comm('/ip/hotspot/user/print', [
+            '?name' => $username,
+            '.proplist' => '.id,name,profile,comment,limit-uptime,limit-bytes-total,bytes-in,bytes-out,uptime,disabled',
+        ]);
+        $user = is_array($rows) && isset($rows[0]) && is_array($rows[0]) ? $rows[0] : null;
+        if (!$user) {
+            return null;
+        }
+
+        $activeRows = $api->comm('/ip/hotspot/active/print', [
+            '?user' => $username,
+            '.proplist' => '.id,user,address,mac-address,uptime,bytes-in,bytes-out',
+        ]);
+
+        return [
+            'user' => $user,
+            'active_sessions' => array_values(array_filter(
+                is_array($activeRows) ? $activeRows : [],
+                static fn($row): bool => is_array($row)
+            )),
+        ];
+    } finally {
+        $api->disconnect();
+    }
+}
+
 function recordRechargeInMikrotik(
     string $username,
     string $profileName,
@@ -816,11 +1204,8 @@ function recordRechargeInMikrotik(
     }
 
     $ownsConnection = $api === null;
-    $api = $api ?? (
-        $nasContext !== null
-            ? connectToMikrotikApiForNasContext($nasContext)
-            : connectToActiveMikrotikApi()
-    );
+    $nasContext = requireExplicitMikrotikNasContext($nasContext);
+    $api = $api ?? connectToMikrotikApiForNasContext($nasContext);
 
     try {
         $timestamp = new DateTimeImmutable('now', new DateTimeZone('UTC'));
@@ -911,20 +1296,27 @@ function buildMikrotikUserPayload(array $user, string $groupname): array
     $payload = [
         'server' => 'all',
         'name' => (string)$user['username'],
-        'password' => (string)$user['password'],
         'profile' => $groupname,
         'disabled' => $status === 'disabled' ? 'yes' : 'no',
     ];
-
-    $sessionTimeout = (int)($user['session_timeout'] ?? 0);
-    if ($sessionTimeout > 0) {
-        $payload['limit-uptime'] = mikrotikIntervalFromSeconds($sessionTimeout);
+    if (($user['login_mode'] ?? 'password') === 'mac') {
+        // Login par MAC : le nom et la MAC sont identiques, aucun mot de passe.
+        $payload['mac-address'] = (string)$user['username'];
+    } else {
+        $payload['password'] = (string)$user['password'];
+        // Restriction optionnelle : le compte n'est utilisable que depuis cet appareil.
+        if (trim((string)($user['mac'] ?? '')) !== '') {
+            $payload['mac-address'] = strtoupper(trim((string)$user['mac']));
+        }
     }
 
-    $dataLimit = (int)($user['data_limit'] ?? 0);
-    if ($dataLimit > 0) {
-        $payload['limit-bytes-total'] = (string)mikrotikBytesFromMegabytes($dataLimit);
-    }
+    $sessionTimeout = max(0, (int)($user['session_timeout'] ?? 0));
+    $payload['limit-uptime'] = $sessionTimeout > 0 ? mikrotikIntervalFromSeconds($sessionTimeout) : '0';
+
+    $dataLimit = max(0, (int)($user['data_limit'] ?? 0));
+    $payload['limit-bytes-total'] = $dataLimit > 0
+        ? (string)mikrotikBytesFromMegabytes($dataLimit)
+        : '0';
 
     if (!empty($user['expiration_date'])) {
         $payload['comment'] = (string)$user['expiration_date'];
@@ -935,9 +1327,8 @@ function buildMikrotikUserPayload(array $user, string $groupname): array
 
 function syncUserToMikrotik(array $user, string $groupname, ?array $nasContext = null): void
 {
-    $api = $nasContext !== null
-        ? connectToMikrotikApiForNasContext($nasContext)
-        : connectToActiveMikrotikApi();
+    $nasContext = requireExplicitMikrotikNasContext($nasContext);
+    $api = connectToMikrotikApiForNasContext($nasContext);
 
     try {
         $existing = findMikrotikUserByName($api, (string)$user['username']);
@@ -948,10 +1339,7 @@ function syncUserToMikrotik(array $user, string $groupname, ?array $nasContext =
         $response = $api->comm('/ip/hotspot/user/add', buildMikrotikUserPayload($user, $groupname));
         mikrotikAssertNoTrap($response, 'Le routeur MikroTik a refuse la creation de l utilisateur.');
 
-        $created = findMikrotikUserByName($api, (string)$user['username']);
-        if (!$created) {
-            throw new RuntimeException('Utilisateur introuvable sur MikroTik apres creation.');
-        }
+        mikrotikAssertUserLimitsApplied($api, (string)$user['username'], buildMikrotikUserPayload($user, $groupname));
 
         invalidateMikrotikHotspotUsersCache($nasContext['device'] ?? null);
     } finally {
@@ -961,9 +1349,8 @@ function syncUserToMikrotik(array $user, string $groupname, ?array $nasContext =
 
 function updateUserInMikrotik(array $user, string $groupname, ?array $nasContext = null): void
 {
-    $api = $nasContext !== null
-        ? connectToMikrotikApiForNasContext($nasContext)
-        : connectToActiveMikrotikApi();
+    $nasContext = requireExplicitMikrotikNasContext($nasContext);
+    $api = connectToMikrotikApiForNasContext($nasContext);
 
     try {
         $existing = findMikrotikUserByName($api, (string)($user['old_username'] ?? $user['username']));
@@ -976,6 +1363,7 @@ function updateUserInMikrotik(array $user, string $groupname, ?array $nasContext
 
         $response = $api->comm('/ip/hotspot/user/set', $payload);
         mikrotikAssertNoTrap($response, 'Le routeur MikroTik a refuse la mise a jour de l utilisateur.');
+        mikrotikAssertUserLimitsApplied($api, (string)$user['username'], $payload);
         invalidateMikrotikHotspotUsersCache($nasContext['device'] ?? null);
     } finally {
         $api->disconnect();
@@ -991,9 +1379,8 @@ function updateMikrotikUserCredentials(string $oldUsername, string $newUsername,
         throw new RuntimeException('Utilisateur MikroTik manquant.');
     }
 
-    $api = $nasContext !== null
-        ? connectToMikrotikApiForNasContext($nasContext)
-        : connectToActiveMikrotikApi();
+    $nasContext = requireExplicitMikrotikNasContext($nasContext);
+    $api = connectToMikrotikApiForNasContext($nasContext);
 
     try {
         $existing = findMikrotikUserByName($api, $oldUsername);
@@ -1025,9 +1412,8 @@ function deleteUserFromMikrotik(string $username, ?array $nasContext = null): vo
         throw new RuntimeException('Utilisateur MikroTik manquant.');
     }
 
-    $api = $nasContext !== null
-        ? connectToMikrotikApiForNasContext($nasContext)
-        : connectToActiveMikrotikApi();
+    $nasContext = requireExplicitMikrotikNasContext($nasContext);
+    $api = connectToMikrotikApiForNasContext($nasContext);
 
     try {
         $existing = findMikrotikUserByName($api, $username);
@@ -1080,11 +1466,10 @@ function replaceUserOfferInMikrotik(string $username, string $profileName, ?arra
     }
 
     $ownsConnection = $api === null;
-    $api = $api ?? (
-        $nasContext !== null
-            ? connectToMikrotikApiForNasContext($nasContext)
-            : connectToActiveMikrotikApi()
-    );
+    if ($ownsConnection) {
+        $nasContext = requireExplicitMikrotikNasContext($nasContext);
+        $api = connectToMikrotikApiForNasContext($nasContext);
+    }
 
     try {
         $existingUser = findMikrotikUserByName($api, $username);
@@ -1125,8 +1510,10 @@ function replaceUserOfferInMikrotik(string $username, string $profileName, ?arra
             $response,
             'Le routeur MikroTik a refuse la reinitialisation des compteurs utilisateur.'
         );
+        mikrotikAssertUserLimitsApplied($api, $username, $payload);
 
         removeMikrotikUserScheduler($api, $username);
+        invalidateMikrotikHotspotUsersCache($nasContext['device'] ?? null);
     } finally {
         disconnectMikrotikApiIfOwned($api, $ownsConnection);
     }
@@ -1139,6 +1526,19 @@ function replaceUserOfferInMikrotik(string $username, string $profileName, ?arra
 function mikrotikProfileOfferTimeSeconds(array $profile): int
 {
     return parseRouterosIntervalToSeconds(trim((string)($profile['session-timeout'] ?? '')));
+}
+
+function mikrotikProfileValiditySeconds(array $profile): int
+{
+    $metadata = parseMikrotikOnLoginMetadata((string)($profile['on-login'] ?? ''));
+    $validityRaw = trim((string)($metadata['validity'] ?? ''));
+    $validitySeconds = parseRouterosIntervalToSeconds($validityRaw);
+
+    if ($validitySeconds <= 0 && preg_match('/^\s*(\d+)\s*s?\s*$/i', $validityRaw, $matches)) {
+        $validitySeconds = (int)$matches[1];
+    }
+
+    return max(0, $validitySeconds);
 }
 
 /**
@@ -1174,11 +1574,10 @@ function extendUserOfferInMikrotik(string $username, string $profileName, ?array
     }
 
     $ownsConnection = $api === null;
-    $api = $api ?? (
-        $nasContext !== null
-            ? connectToMikrotikApiForNasContext($nasContext)
-            : connectToActiveMikrotikApi()
-    );
+    if ($ownsConnection) {
+        $nasContext = requireExplicitMikrotikNasContext($nasContext);
+        $api = connectToMikrotikApiForNasContext($nasContext);
+    }
 
     try {
         $existingUser = findMikrotikUserByName($api, $username);
@@ -1192,40 +1591,35 @@ function extendUserOfferInMikrotik(string $username, string $profileName, ?array
         }
 
         $offerSeconds = mikrotikProfileOfferTimeSeconds($profile);
-
         $rem = mikrotikUserRemainingFromHotspotUserRow($existingUser);
-        $newTimeSeconds = $rem['time_remaining_sec'] + $offerSeconds;
 
         $payload = [
             '.id' => (string)$existingUser['.id'],
         ];
 
-        $payload['limit-uptime'] = $newTimeSeconds > 0 ? mikrotikIntervalFromSeconds($newTimeSeconds) : '0';
+        if ($offerSeconds > 0) {
+            $currentLimitSeconds = max(0, (int)($rem['limit_uptime_sec'] ?? 0));
+            $payload['limit-uptime'] = mikrotikIntervalFromSeconds($currentLimitSeconds + $offerSeconds);
+        }
 
         $profileQuotaMb = mikrotikProfileDataQuotaMb($api, $profileName);
         $offerDataBytes = $profileQuotaMb > 0 ? mikrotikBytesFromMegabytes($profileQuotaMb) : 0;
-        $dataRem = $rem['data_remaining_bytes'];
-        $newDataBytes = $rem['limit_bytes_total'] > 0 && $dataRem !== null
-            ? max(0, (int)round($dataRem + $offerDataBytes))
-            : max(0, $offerDataBytes);
-        $payload['limit-bytes-total'] = (string)$newDataBytes;
-
-        $today = new DateTimeImmutable('today', new DateTimeZone('UTC'));
-        $currentExpiration = parseRechargeExpirationDate((string)($existingUser['comment'] ?? ''));
-        $nextExpiration = null;
-        if ($offerSeconds > 0 && $currentExpiration instanceof DateTimeImmutable && $currentExpiration >= $today) {
-            $candidateExpiration = addSecondsToDate($today, $offerSeconds);
-            $nextExpiration = $currentExpiration > $candidateExpiration
-                ? $currentExpiration
-                : $candidateExpiration;
+        if ($offerDataBytes > 0) {
+            $currentLimitBytes = max(0, (int)round((float)($rem['limit_bytes_total'] ?? 0)));
+            $payload['limit-bytes-total'] = (string)($currentLimitBytes + $offerDataBytes);
         }
-        $payload['comment'] = formatRechargeExpirationDate($nextExpiration);
+
+        if (count($payload) === 1) {
+            throw new RuntimeException('Le profil choisi ne porte ni quota temps ni quota data a ajouter.');
+        }
 
         $response = $api->comm('/ip/hotspot/user/set', $payload);
         mikrotikAssertNoTrap(
             $response,
             'Le routeur MikroTik a refuse la mise a jour utilisateur lors du rechargement.'
         );
+        mikrotikAssertUserLimitsApplied($api, $username, $payload);
+        invalidateMikrotikHotspotUsersCache($nasContext['device'] ?? null);
     } finally {
         disconnectMikrotikApiIfOwned($api, $ownsConnection);
     }
@@ -1241,11 +1635,10 @@ function accumulateUserOfferInMikrotik(string $username, string $profileName, ?a
     }
 
     $ownsConnection = $api === null;
-    $api = $api ?? (
-        $nasContext !== null
-            ? connectToMikrotikApiForNasContext($nasContext)
-            : connectToActiveMikrotikApi()
-    );
+    if ($ownsConnection) {
+        $nasContext = requireExplicitMikrotikNasContext($nasContext);
+        $api = connectToMikrotikApiForNasContext($nasContext);
+    }
 
     try {
         $existingUser = findMikrotikUserByName($api, $username);
@@ -1267,6 +1660,7 @@ function accumulateUserOfferInMikrotik(string $username, string $profileName, ?a
         }
 
         $offerSeconds = mikrotikProfileOfferTimeSeconds($profile);
+        $offerValiditySeconds = mikrotikProfileValiditySeconds($profile);
 
         $rem = mikrotikUserRemainingFromHotspotUserRow($existingUser);
         $newTimeSeconds = $rem['time_remaining_sec'] + $offerSeconds;
@@ -1286,7 +1680,7 @@ function accumulateUserOfferInMikrotik(string $username, string $profileName, ?a
 
         $nextExpiration = null;
         if ($currentExpiration instanceof DateTimeImmutable && $currentExpiration >= $today) {
-            $nextExpiration = $offerSeconds > 0 ? addSecondsToDate($currentExpiration, $offerSeconds) : $currentExpiration;
+            $nextExpiration = $offerValiditySeconds > 0 ? addSecondsToDate($currentExpiration, $offerValiditySeconds) : $currentExpiration;
         }
         $payload['comment'] = formatRechargeExpirationDate($nextExpiration);
 
@@ -1295,6 +1689,16 @@ function accumulateUserOfferInMikrotik(string $username, string $profileName, ?a
             $response,
             'Le routeur MikroTik a refuse la mise a jour utilisateur lors du cumul.'
         );
+
+        $response = $api->comm('/ip/hotspot/user/reset-counters', [
+            '.id' => (string)$existingUser['.id'],
+        ]);
+        mikrotikAssertNoTrap(
+            $response,
+            'Le routeur MikroTik a refuse la reinitialisation des compteurs utilisateur.'
+        );
+        mikrotikAssertUserLimitsApplied($api, $username, $payload);
+        invalidateMikrotikHotspotUsersCache($nasContext['device'] ?? null);
     } finally {
         disconnectMikrotikApiIfOwned($api, $ownsConnection);
     }
@@ -1302,7 +1706,8 @@ function accumulateUserOfferInMikrotik(string $username, string $profileName, ?a
 
 function deleteUserFromActiveMikrotik(string $username): void
 {
-    $api = connectToActiveMikrotikApi();
+    $nasContext = requireExplicitMikrotikNasContext($nasContext);
+    $api = connectToMikrotikApiForNasContext($nasContext);
 
     try {
         $existing = findMikrotikUserByName($api, $username);
@@ -1323,9 +1728,29 @@ function mikrotikFirstRow($response): array
     return is_array($response) && isset($response[0]) && is_array($response[0]) ? $response[0] : [];
 }
 
-function getMikrotikSystemClock(): array
+function mikrotikSetInterfaceDisabledByName(RouterosAPI $api, string $interfaceName, bool $disabled): bool
 {
-    $api = connectToActiveMikrotikApi();
+    $interfaceName = trim($interfaceName);
+    if ($interfaceName === '') {
+        return false;
+    }
+    $rows = $api->comm('/interface/print', ['?name' => $interfaceName]);
+    $row = mikrotikFirstRow($rows);
+    if ($row === [] || !isset($row['.id'])) {
+        return false;
+    }
+    $currentlyDisabled = in_array(strtolower(trim((string)($row['disabled'] ?? ''))), ['true', 'yes', '1'], true);
+    if ($currentlyDisabled === $disabled) {
+        return true;
+    }
+    $api->comm($disabled ? '/interface/disable' : '/interface/enable', ['.id' => $row['.id']]);
+    return true;
+}
+
+function getMikrotikSystemClock(?array $nasContext = null): array
+{
+    $nasContext = requireExplicitMikrotikNasContext($nasContext);
+    $api = connectToMikrotikApiForNasContext($nasContext);
 
     try {
         return mikrotikFirstRow($api->comm('/system/clock/print'));
@@ -1334,9 +1759,10 @@ function getMikrotikSystemClock(): array
     }
 }
 
-function getMikrotikSystemResource(): array
+function getMikrotikSystemResource(?array $nasContext = null): array
 {
-    $api = connectToActiveMikrotikApi();
+    $nasContext = requireExplicitMikrotikNasContext($nasContext);
+    $api = connectToMikrotikApiForNasContext($nasContext);
 
     try {
         return mikrotikFirstRow($api->comm('/system/resource/print'));
@@ -1345,9 +1771,10 @@ function getMikrotikSystemResource(): array
     }
 }
 
-function getMikrotikRouterboardInfo(): array
+function getMikrotikRouterboardInfo(?array $nasContext = null): array
 {
-    $api = connectToActiveMikrotikApi();
+    $nasContext = requireExplicitMikrotikNasContext($nasContext);
+    $api = connectToMikrotikApiForNasContext($nasContext);
 
     try {
         return mikrotikFirstRow($api->comm('/system/routerboard/print'));
@@ -1356,9 +1783,10 @@ function getMikrotikRouterboardInfo(): array
     }
 }
 
-function getMikrotikSchedulers(int $limit = 200): array
+function getMikrotikSchedulers(int $limit = 200, ?array $nasContext = null): array
 {
-    $api = connectToActiveMikrotikApi();
+    $nasContext = requireExplicitMikrotikNasContext($nasContext);
+    $api = connectToMikrotikApiForNasContext($nasContext);
 
     try {
         $rows = $api->comm('/system/scheduler/print');
@@ -1375,7 +1803,7 @@ function getMikrotikSchedulers(int $limit = 200): array
                 'next_run' => (string)($row['next-run'] ?? ''),
                 'start_date' => (string)($row['start-date'] ?? ''),
                 'start_time' => (string)($row['start-time'] ?? ''),
-                'disabled' => strtolower((string)($row['disabled'] ?? 'false')) === 'true',
+                'disabled' => mikrotikApiBoolean($row['disabled'] ?? false),
                 'comment' => (string)($row['comment'] ?? ''),
             ];
         }, $rows);
@@ -1390,7 +1818,7 @@ function getMikrotikSchedulers(int $limit = 200): array
     }
 }
 
-function addMikrotikScheduler(array $data): void
+function addMikrotikScheduler(array $data, ?array $nasContext = null): void
 {
     $name = trim((string)($data['name'] ?? ''));
     $onEvent = trim((string)($data['on_event'] ?? ''));
@@ -1403,7 +1831,8 @@ function addMikrotikScheduler(array $data): void
         throw new RuntimeException('Tache obligatoire');
     }
 
-    $api = connectToActiveMikrotikApi();
+    $nasContext = requireExplicitMikrotikNasContext($nasContext);
+    $api = connectToMikrotikApiForNasContext($nasContext);
 
     try {
         $payload = [
@@ -1436,7 +1865,7 @@ function addMikrotikScheduler(array $data): void
     }
 }
 
-function updateMikrotikScheduler(string $schedulerId, array $data): void
+function updateMikrotikScheduler(string $schedulerId, array $data, ?array $nasContext = null): void
 {
     $schedulerId = trim($schedulerId);
     $name = trim((string)($data['name'] ?? ''));
@@ -1454,7 +1883,8 @@ function updateMikrotikScheduler(string $schedulerId, array $data): void
         throw new RuntimeException('Tache obligatoire');
     }
 
-    $api = connectToActiveMikrotikApi();
+    $nasContext = requireExplicitMikrotikNasContext($nasContext);
+    $api = connectToMikrotikApiForNasContext($nasContext);
 
     try {
         $payload = [
@@ -1474,14 +1904,15 @@ function updateMikrotikScheduler(string $schedulerId, array $data): void
     }
 }
 
-function removeMikrotikScheduler(string $schedulerId): void
+function removeMikrotikScheduler(string $schedulerId, ?array $nasContext = null): void
 {
     $schedulerId = trim($schedulerId);
     if ($schedulerId === '') {
         throw new RuntimeException('Scheduler invalide');
     }
 
-    $api = connectToActiveMikrotikApi();
+    $nasContext = requireExplicitMikrotikNasContext($nasContext);
+    $api = connectToMikrotikApiForNasContext($nasContext);
 
     try {
         $api->comm('/system/scheduler/remove', [
@@ -1494,7 +1925,7 @@ function removeMikrotikScheduler(string $schedulerId): void
 
 function getMikrotikHotspotUsersCount(): int
 {
-    $api = connectToActiveMikrotikApi();
+    $api = connectToMikrotikApiByDevice(requireActiveDevice());
 
     try {
         return (int)$api->comm('/ip/hotspot/user/print', [
@@ -1507,7 +1938,7 @@ function getMikrotikHotspotUsersCount(): int
 
 function getMikrotikHotspotActiveCount(): int
 {
-    $api = connectToActiveMikrotikApi();
+    $api = connectToMikrotikApiByDevice(requireActiveDevice());
 
     try {
         return (int)$api->comm('/ip/hotspot/active/print', [
@@ -1518,9 +1949,10 @@ function getMikrotikHotspotActiveCount(): int
     }
 }
 
-function getMikrotikHotspotActiveUsers(int $limit = 5): array
+function getMikrotikHotspotActiveUsers(int $limit = 5, ?array $device = null): array
 {
-    $api = connectToActiveMikrotikApi();
+    $targetDevice = is_array($device) ? $device : requireActiveDevice();
+    $api = connectToMikrotikApiByDevice($targetDevice);
 
     try {
         $rows = $api->comm('/ip/hotspot/active/print');
@@ -1547,15 +1979,41 @@ function getMikrotikHotspotActiveUsers(int $limit = 5): array
 
         $rows = array_slice($rows, 0, max(0, $limit));
 
-        return array_map(static function (array $row) use ($profilesByUser): array {
+        $wanByAddress = [];
+        $wanLists = ['WAN1_CLIENTS' => 'WAN1', 'WAN2_CLIENTS' => 'WAN2', 'WAN3_CLIENTS' => 'WAN3', 'WAN4_CLIENTS' => 'WAN4'];
+        $addressRows = $api->comm('/ip/firewall/address-list/print', [
+            '.proplist' => 'list,address,disabled',
+        ]);
+        if (is_array($addressRows)) {
+            foreach ($addressRows as $addressRow) {
+                if (!is_array($addressRow) || mikrotikApiBoolean($addressRow['disabled'] ?? false)) {
+                    continue;
+                }
+
+                $listName = (string)($addressRow['list'] ?? '');
+                $address = trim((string)($addressRow['address'] ?? ''));
+                if ($address !== '' && isset($wanLists[$listName])) {
+                    $wanByAddress[$address] = [
+                        'wan' => $wanLists[$listName],
+                        'list' => $listName,
+                    ];
+                }
+            }
+        }
+
+        return array_map(static function (array $row) use ($profilesByUser, $wanByAddress): array {
             $username = (string)($row['user'] ?? $row['name'] ?? 'Utilisateur');
+            $address = (string)($row['address'] ?? '');
+            $wan = $wanByAddress[$address] ?? ['wan' => '', 'list' => ''];
 
             return [
                 'id' => (string)($row['.id'] ?? ''),
                 'user' => $username,
                 'profile' => (string)($profilesByUser[$username] ?? ''),
-                'address' => (string)($row['address'] ?? ''),
+                'address' => $address,
                 'mac' => (string)($row['mac-address'] ?? ''),
+                'wan' => (string)($wan['wan'] ?? ''),
+                'wan_list' => (string)($wan['list'] ?? ''),
                 'uptime' => (string)($row['uptime'] ?? ''),
                 'server' => (string)($row['server'] ?? ''),
                 'login_by' => (string)($row['login-by'] ?? ''),
@@ -1575,7 +2033,7 @@ function getMikrotikHotspotUsers(int $limit = 100, ?array $deviceOverride = null
     $cacheTtlSeconds = 60;
     $activeDevice = $deviceOverride ?? (getActiveDeviceContext()['device'] ?? null);
     $cacheKey = $activeDevice['id'] ?? ($activeDevice['host'] ?? 'active');
-    $cacheFile = sys_get_temp_dir() . '/mikrotik_hotspot_users_' . md5((string)$cacheKey . '|' . (string)$limit) . '.json';
+    $cacheFile = sys_get_temp_dir() . '/mikrotik_hotspot_users_' . md5((string)$cacheKey . '|' . (string)$limit . '|expiration_routeros67_v1') . '.json';
 
     if (is_file($cacheFile) && (time() - filemtime($cacheFile) <= $cacheTtlSeconds)) {
         $cached = json_decode((string)file_get_contents($cacheFile), true);
@@ -1585,9 +2043,8 @@ function getMikrotikHotspotUsers(int $limit = 100, ?array $deviceOverride = null
     }
 
     try {
-        $api = is_array($activeDevice) && ($activeDevice['type'] ?? '') === 'mikrotik'
-            ? connectToMikrotikApiByDevice($activeDevice)
-            : connectToActiveMikrotikApi();
+        if (!is_array($activeDevice) || ($activeDevice['type'] ?? '') !== 'mikrotik') { throw new RuntimeException('Device MikroTik explicite requis.'); }
+        $api = connectToMikrotikApiByDevice($activeDevice);
     } catch (Throwable $e) {
         if (is_file($cacheFile)) {
             $cached = json_decode((string)file_get_contents($cacheFile), true);
@@ -1600,7 +2057,7 @@ function getMikrotikHotspotUsers(int $limit = 100, ?array $deviceOverride = null
 
     try {
         $profileMetaByName = [];
-        $profileCacheFile = sys_get_temp_dir() . '/mikrotik_hotspot_profiles_' . md5((string)$cacheKey) . '.json';
+        $profileCacheFile = sys_get_temp_dir() . '/mikrotik_hotspot_profiles_' . md5((string)$cacheKey . '|expiration_routeros67_v1') . '.json';
         if (is_file($profileCacheFile) && (time() - filemtime($profileCacheFile) <= $cacheTtlSeconds)) {
             $cachedProfiles = json_decode((string)file_get_contents($profileCacheFile), true);
             if (is_array($cachedProfiles)) {
@@ -1627,8 +2084,11 @@ function getMikrotikHotspotUsers(int $limit = 100, ?array $deviceOverride = null
                         'rate_limit' => trim((string)($profileRow['rate-limit'] ?? '')),
                         'shared_users' => (int)($profileRow['shared-users'] ?? 0),
                         'validity_seconds' => $validitySeconds,
+                        'expired_mode' => normalizeMikrotikExpiredModeLabel((string)($metadata['expired_mode'] ?? '')),
                         'data_limit_bytes' => (string)($profileRow['limit-bytes-total'] ?? ''),
                         'session_timeout_seconds' => $sessionTimeoutSeconds,
+                        'price' => mikrotikNumericOrNull((string)($metadata['price'] ?? '')),
+                        'selling_price' => mikrotikNumericOrNull((string)($metadata['selling_price'] ?? '')),
                     ];
                 }
                 file_put_contents($profileCacheFile, json_encode($profileMetaByName, JSON_UNESCAPED_SLASHES));
@@ -1638,6 +2098,62 @@ function getMikrotikHotspotUsers(int $limit = 100, ?array $deviceOverride = null
         $users = $api->comm('/ip/hotspot/user/print', [
             '.proplist' => '.id,name,password,profile,server,mac-address,comment,limit-uptime,limit-bytes-total,bytes-in,bytes-out,disabled,uptime',
         ]);
+
+        // RouterOS 6/7 + Mikhmon : respecter le mode d'expiration du profil.
+        // remove/remc supprime le compte ; ntf/ntfc marque limit-uptime=1s.
+        if (is_array($users)) {
+            $now = new DateTimeImmutable('now', new DateTimeZone('UTC'));
+            foreach ($users as $expiredIndex => &$expiredRow) {
+                if (!is_array($expiredRow) || mikrotikApiBoolean($expiredRow['disabled'] ?? false)) {
+                    continue;
+                }
+                $expiration = parseMikrotikExpirationCommentDateTime($expiredRow['comment'] ?? null);
+                if (!$expiration instanceof DateTimeImmutable || $expiration > $now) {
+                    continue;
+                }
+                $routerId = trim((string)($expiredRow['.id'] ?? ''));
+                if ($routerId === '') {
+                    continue;
+                }
+                $profileName = trim((string)($expiredRow['profile'] ?? ''));
+                $expiredMode = strtolower(trim((string)($profileMetaByName[$profileName]['expired_mode'] ?? 'none')));
+                if (!in_array($expiredMode, ['remove', 'remove_record', 'notice', 'notice_record'], true)) {
+                    continue;
+                }
+                try {
+                    $expiredUsername = trim((string)($expiredRow['name'] ?? ''));
+                    if ($expiredUsername !== '') {
+                        $expiredSessions = $api->comm('/ip/hotspot/active/print', [
+                            '?user' => $expiredUsername,
+                            '.proplist' => '.id',
+                        ]);
+                        foreach (is_array($expiredSessions) ? $expiredSessions : [] as $expiredSession) {
+                            if (is_array($expiredSession) && trim((string)($expiredSession['.id'] ?? '')) !== '') {
+                                $api->comm('/ip/hotspot/active/remove', [
+                                    '.id' => (string)$expiredSession['.id'],
+                                ]);
+                            }
+                        }
+                    }
+                    if (in_array($expiredMode, ['remove', 'remove_record'], true)) {
+                        $api->comm('/ip/hotspot/user/remove', ['.id' => $routerId]);
+                        unset($users[$expiredIndex]);
+                        continue;
+                    }
+
+                    $alreadyMarkedExpired = trim((string)($expiredRow['limit-uptime'] ?? '')) === '1s';
+                    if (!$alreadyMarkedExpired) {
+                        $api->comm('/ip/hotspot/user/set', ['.id' => $routerId, 'limit-uptime' => '1s']);
+                    }
+                    $expiredRow['limit-uptime'] = '1s';
+                } catch (Throwable $expiryError) {
+                    error_log('[MikroTik] Application expiration compte échouée: ' . $expiryError->getMessage());
+                }
+            }
+            unset($expiredRow);
+            $users = array_values($users);
+        }
+
         $activeRows = $api->comm('/ip/hotspot/active/print', [
             '.proplist' => '.id,user,name,address,mac-address,uptime,server,login-by,bytes-in,bytes-out',
         ]);
@@ -1732,8 +2248,11 @@ function getMikrotikHotspotUsers(int $limit = 100, ?array $deviceOverride = null
                 'profile_validity_seconds' => (int)($profileMeta['validity_seconds'] ?? 0),
                 'profile_session_timeout_seconds' => (int)($profileMeta['session_timeout_seconds'] ?? 0),
                 'rate_limit' => $profileRateLimit,
+                'expired_mode' => (string)($profileMeta['expired_mode'] ?? ''),
+                'price' => $profileMeta['price'] ?? null,
+                'selling_price' => $profileMeta['selling_price'] ?? null,
                 'shared_users' => isset($profileMeta['shared_users']) ? (int)$profileMeta['shared_users'] : null,
-                'disabled' => strtolower((string)($row['disabled'] ?? 'false')) === 'true',
+                'disabled' => mikrotikApiBoolean($row['disabled'] ?? false),
                 'active_session_id' => $active !== null ? (string)($active['id'] ?? '') : '',
                 'active_address' => $active !== null ? (string)($active['address'] ?? '') : '',
                 'active_mac' => $active !== null ? (string)($active['mac'] ?? '') : '',
@@ -1822,6 +2341,7 @@ function mapMikrotikHotspotProfileRow(array $profileRow): ?array
         'id' => (string)($profileRow['.id'] ?? $profileRow['id'] ?? ''),
         'name' => $name,
         'rate_limit' => trim((string)($profileRow['rate-limit'] ?? $profileRow['rate_limit'] ?? '')),
+        'degraded_rate' => $metadata['degraded_rate'] === '-' ? '' : (string)$metadata['degraded_rate'],
         'session_timeout' => $sessionTimeoutSeconds > 0 ? $sessionTimeoutSeconds : null,
         'validity_time' => $validitySeconds > 0 ? $validitySeconds : null,
         'validity' => $validityRaw,
@@ -1846,10 +2366,7 @@ function confirmMikrotikProfileWrite(RouterosAPI $api, string $profileName): arr
 {
     $actual = readMikrotikProfileState($api, $profileName);
     if (!is_array($actual)) {
-        return [
-            'id' => '',
-            'name' => $profileName,
-        ];
+        throw new RuntimeException('Profil introuvable lors de la confirmation après écriture.');
     }
 
     return $actual;
@@ -1884,9 +2401,9 @@ function loadMikrotikHotspotProfilesCached(?array $device = null, int $ttlSecond
         }
     }
 
-    $api = $device !== null
-        ? connectToMikrotikApiByDevice($device)
-        : connectToActiveMikrotikApi();
+    $device = $device ?? (getActiveDeviceContext()['device'] ?? null);
+    if (!is_array($device) || ($device['type'] ?? '') !== 'mikrotik') { throw new RuntimeException('Device MikroTik explicite requis.'); }
+    $api = connectToMikrotikApiByDevice($device);
 
     try {
         $profiles = $api->comm('/ip/hotspot/user/profile/print', [
@@ -1936,7 +2453,9 @@ function syncMikrotikProfilesToLocal(PDO $pdo, ?array $device = null, int $ttlSe
 
 function getMikrotikHotspotHosts(int $limit = 200): array
 {
-    $api = connectToActiveMikrotikApi();
+    $device = getActiveDeviceContext()['device'] ?? null;
+    if (!is_array($device) || ($device['type'] ?? '') !== 'mikrotik') { throw new RuntimeException('Device MikroTik explicite requis.'); }
+    $api = connectToMikrotikApiByDevice($device);
 
     try {
         $rows = $api->comm('/ip/hotspot/host/print');
@@ -1986,7 +2505,7 @@ function removeMikrotikHost(string $hostId): void
         throw new RuntimeException('Host MikroTik introuvable.');
     }
 
-    $api = connectToActiveMikrotikApi();
+    $api = connectToMikrotikApiByDevice(requireActiveDevice());
 
     try {
         $host = $api->comm('/ip/hotspot/host/print', [
@@ -2013,7 +2532,7 @@ function removeMikrotikHost(string $hostId): void
 
 function getMikrotikIpBindings(int $limit = 200): array
 {
-    $api = connectToActiveMikrotikApi();
+    $api = connectToMikrotikApiByDevice(requireActiveDevice());
 
     try {
         $rows = $api->comm('/ip/hotspot/ip-binding/print');
@@ -2030,7 +2549,7 @@ function getMikrotikIpBindings(int $limit = 200): array
                 'type' => (string)($row['type'] ?? ''),
                 'server' => (string)($row['server'] ?? ''),
                 'comment' => (string)($row['comment'] ?? ''),
-                'disabled' => strtolower((string)($row['disabled'] ?? 'false')) === 'true',
+                'disabled' => mikrotikApiBoolean($row['disabled'] ?? false),
             ];
         }, $rows);
 
@@ -2074,7 +2593,7 @@ function updateMikrotikIpBinding(string $bindingId, array $payload): void
         throw new RuntimeException('Type de binding invalide.');
     }
 
-    $api = connectToActiveMikrotikApi();
+    $api = connectToMikrotikApiByDevice(requireActiveDevice());
 
     try {
         $existing = $api->comm('/ip/hotspot/ip-binding/print', [
@@ -2089,16 +2608,35 @@ function updateMikrotikIpBinding(string $bindingId, array $payload): void
         $command = [
             '.id' => $bindingId,
             'type' => strtolower($type),
-            'disabled' => $disabled ? 'true' : 'false',
+            'disabled' => $disabled ? 'yes' : 'no',
         ];
 
-        $command['address'] = $address;
-        $command['mac-address'] = $macAddress;
-        $command['to-address'] = $toAddress;
-        $command['server'] = $server;
+        // RouterOS refuse une valeur vide sur mac-address : un champ vide n'est pas envoyé (valeur inchangée).
+        if ($address !== '') {
+            $command['address'] = $address;
+        }
+        if ($macAddress !== '') {
+            $command['mac-address'] = $macAddress;
+        }
+        if ($toAddress !== '') {
+            $command['to-address'] = $toAddress;
+        }
+        if ($server !== '') {
+            $command['server'] = $server;
+        }
         $command['comment'] = $comment;
 
-        $api->comm('/ip/hotspot/ip-binding/set', $command);
+        $setResult = $api->comm('/ip/hotspot/ip-binding/set', $command);
+        mikrotikAssertNoTrap($setResult, 'Mise à jour du binding refusée par RouterOS');
+
+        // Relecture : le succès n'est affiché que si RouterOS a réellement enregistré les valeurs.
+        $after = mikrotikFirstRow($api->comm('/ip/hotspot/ip-binding/print', ['?.id' => $bindingId]));
+        if ($after === []
+            || mikrotikApiBoolean($after['disabled'] ?? false) !== $disabled
+            || strtolower((string)($after['type'] ?? '')) !== strtolower($type)
+            || trim((string)($after['comment'] ?? '')) !== $comment) {
+            throw new RuntimeException('Mise à jour du binding non confirmée par RouterOS : relire le binding avant de réessayer.');
+        }
     } finally {
         $api->disconnect();
     }
@@ -2129,12 +2667,12 @@ function addMikrotikIpBinding(array $payload): void
         throw new RuntimeException('Type de binding invalide.');
     }
 
-    $api = connectToActiveMikrotikApi();
+    $api = connectToMikrotikApiByDevice(requireActiveDevice());
 
     try {
         $command = [
             'type' => strtolower($type),
-            'disabled' => $disabled ? 'true' : 'false',
+            'disabled' => $disabled ? 'yes' : 'no',
         ];
 
         if ($address !== '') {
@@ -2163,14 +2701,14 @@ function addMikrotikIpBinding(array $payload): void
     }
 }
 
-function removeMikrotikIpBinding(string $bindingId): void
+function removeMikrotikIpBinding(string $bindingId, bool $deleteDhcpLease = false): bool
 {
     $bindingId = trim($bindingId);
     if ($bindingId === '') {
         throw new RuntimeException('IP binding introuvable.');
     }
 
-    $api = connectToActiveMikrotikApi();
+    $api = connectToMikrotikApiByDevice(requireActiveDevice());
 
     try {
         $existing = $api->comm('/ip/hotspot/ip-binding/print', [
@@ -2182,9 +2720,20 @@ function removeMikrotikIpBinding(string $bindingId): void
             throw new RuntimeException('IP binding MikroTik introuvable.');
         }
 
-        $api->comm('/ip/hotspot/ip-binding/remove', [
+        $lease = null;
+        if ($deleteDhcpLease) {
+            $rows = $api->comm('/ip/dhcp-server/lease/print');
+            mikrotikAssertNoTrap($rows, 'Lecture des baux DHCP refusée.');
+            $lease = resolveMikrotikDhcpLease($rows, (string)($bindingRow['address'] ?? ''), (string)($bindingRow['mac-address'] ?? ''));
+        }
+        mikrotikAssertNoTrap($api->comm('/ip/hotspot/ip-binding/remove', [
             '.id' => $bindingId,
-        ]);
+        ]), 'Suppression du binding refusée.');
+        if ($lease !== null && !mikrotikApiBoolean($lease['dynamic'] ?? false)) {
+            mikrotikAssertNoTrap($api->comm('/ip/dhcp-server/lease/remove', ['.id' => (string)$lease['.id']]), 'Binding supprimé, mais suppression du bail DHCP refusée.');
+            return true;
+        }
+        return false;
     } finally {
         $api->disconnect();
     }
@@ -2192,7 +2741,7 @@ function removeMikrotikIpBinding(string $bindingId): void
 
 function getMikrotikCookies(int $limit = 200): array
 {
-    $api = connectToActiveMikrotikApi();
+    $api = connectToMikrotikApiByDevice(requireActiveDevice());
 
     try {
         $rows = $api->comm('/ip/hotspot/cookie/print');
@@ -2229,7 +2778,7 @@ function removeMikrotikCookie(string $cookieId): void
         throw new RuntimeException('Cookie MikroTik introuvable.');
     }
 
-    $api = connectToActiveMikrotikApi();
+    $api = connectToMikrotikApiByDevice(requireActiveDevice());
 
     try {
         $cookie = $api->comm('/ip/hotspot/cookie/print', [
@@ -2251,7 +2800,7 @@ function removeMikrotikCookie(string $cookieId): void
 
 function getMikrotikDhcpLeases(int $limit = 200): array
 {
-    $api = connectToActiveMikrotikApi();
+    $api = connectToMikrotikApiByDevice(requireActiveDevice());
 
     try {
         $rows = $api->comm('/ip/dhcp-server/lease/print');
@@ -2272,7 +2821,7 @@ function getMikrotikDhcpLeases(int $limit = 200): array
                 'last_seen' => (string)($row['last-seen'] ?? ''),
                 'dynamic' => strtolower((string)($row['dynamic'] ?? 'false')) === 'true',
                 'blocked' => strtolower((string)($row['blocked'] ?? 'false')) === 'true',
-                'disabled' => strtolower((string)($row['disabled'] ?? 'false')) === 'true',
+                'disabled' => mikrotikApiBoolean($row['disabled'] ?? false),
             ];
         }, $rows);
 
@@ -2293,7 +2842,7 @@ function setMikrotikDhcpLeaseDisabled(string $leaseId, bool $disabled): void
         throw new RuntimeException('Bail DHCP introuvable.');
     }
 
-    $api = connectToActiveMikrotikApi();
+    $api = connectToMikrotikApiByDevice(requireActiveDevice());
 
     try {
         $existing = $api->comm('/ip/dhcp-server/lease/print', [
@@ -2321,7 +2870,7 @@ function removeMikrotikDhcpLease(string $leaseId): void
         throw new RuntimeException('Bail DHCP introuvable.');
     }
 
-    $api = connectToActiveMikrotikApi();
+    $api = connectToMikrotikApiByDevice(requireActiveDevice());
 
     try {
         $existing = $api->comm('/ip/dhcp-server/lease/print', [
@@ -2341,6 +2890,32 @@ function removeMikrotikDhcpLease(string $leaseId): void
     }
 }
 
+/** Resolve one lease without overwriting a different IP/MAC association. */
+function resolveMikrotikDhcpLease(array $rows, string $address, string $macAddress, string $server = ''): ?array
+{
+    $address = trim($address);
+    $macAddress = strtolower(trim($macAddress));
+    $server = trim($server);
+    if ($address === '' && $macAddress === '') return null;
+    $matches = [];
+    foreach ($rows as $row) {
+        if (!is_array($row)) continue;
+        $rowServer = trim((string)($row['server'] ?? ''));
+        if ($server !== '' && $server !== 'all' && $rowServer !== 'all' && $rowServer !== $server) continue;
+        $sameAddress = $address !== '' && trim((string)($row['address'] ?? '')) === $address;
+        $sameMac = $macAddress !== '' && strtolower(trim((string)($row['mac-address'] ?? ''))) === $macAddress;
+        if (!$sameAddress && !$sameMac) continue;
+        if (($address !== '' && !$sameAddress) || ($macAddress !== '' && !$sameMac)) {
+            throw new RuntimeException('Conflit DHCP : adresse ou MAC déjà associée à un autre bail.');
+        }
+        $matches[] = $row;
+    }
+    if (count($matches) > 1) {
+        throw new RuntimeException('Bail DHCP ambigu : plusieurs correspondances, préciser le serveur et le bail.');
+    }
+    return $matches[0] ?? null;
+}
+
 function updateMikrotikDhcpLease(string $leaseId, array $payload): void
 {
     $leaseId = trim($leaseId);
@@ -2355,7 +2930,7 @@ function updateMikrotikDhcpLease(string $leaseId, array $payload): void
         throw new RuntimeException('Adresse ou MAC obligatoire.');
     }
 
-    $api = connectToActiveMikrotikApi();
+    $api = connectToMikrotikApiByDevice(requireActiveDevice());
 
     try {
         $existing = $api->comm('/ip/dhcp-server/lease/print', [
@@ -2396,7 +2971,7 @@ function addMikrotikDhcpLease(array $payload): void
         throw new RuntimeException('Adresse ou MAC obligatoire.');
     }
 
-    $api = connectToActiveMikrotikApi();
+    $api = connectToMikrotikApiByDevice(requireActiveDevice());
 
     try {
         $command = [
@@ -2429,45 +3004,62 @@ function addMikrotikDhcpLease(array $payload): void
     }
 }
 
-function ensureMikrotikHotspotLogging(RouterosAPI $api): void
+function syncMikrotikDhcpLease(array $payload): string
 {
-    $existing = $api->comm('/system/logging/print');
+    $address = trim((string)($payload['address'] ?? ''));
+    $macAddress = trim((string)($payload['mac'] ?? ''));
+    $hostName = trim((string)($payload['host_name'] ?? ''));
+    $server = trim((string)($payload['server'] ?? ''));
+    $comment = trim((string)($payload['comment'] ?? ''));
 
-    $hasHotspotDisk = false;
-    if (is_array($existing)) {
-        foreach ($existing as $row) {
-            if (!is_array($row)) {
-                continue;
-            }
-            $topics = strtolower(trim((string)($row['topics'] ?? '')));
-            $action = strtolower(trim((string)($row['action'] ?? '')));
-            $prefix = trim((string)($row['prefix'] ?? ''));
-
-            if ($prefix === '->' && $topics === 'hotspot,info,debug' && $action === 'disk') {
-                $hasHotspotDisk = true;
-                break;
-            }
-        }
+    if ($address === '' || $macAddress === '') {
+        throw new RuntimeException('Adresse et MAC obligatoires pour un lease DHCP fixe.');
     }
 
-    if ($hasHotspotDisk) {
-        return;
-    }
-
-    $api->comm('/system/logging/add', [
-        'action' => 'disk',
-        'prefix' => '->',
-        'topics' => 'hotspot,info,debug',
-    ]);
-}
-
-function getMikrotikHotspotLogs(int $limit = 20): array
-{
-    $api = connectToActiveMikrotikApi();
+    $api = connectToMikrotikApiByDevice(requireActiveDevice());
 
     try {
-        ensureMikrotikHotspotLogging($api);
+        $rows = $api->comm('/ip/dhcp-server/lease/print');
+        mikrotikAssertNoTrap($rows, 'Lecture des baux DHCP refusée.');
+        $existing = resolveMikrotikDhcpLease($rows, $address, $macAddress, $server);
 
+        $command = [
+            'address' => $address,
+            'mac-address' => $macAddress,
+            'disabled' => !empty($payload['disabled']) ? 'yes' : 'no',
+        ];
+        if ($hostName !== '') $command['host-name'] = $hostName;
+        if ($server !== '') $command['server'] = $server;
+        if ($comment !== '') $command['comment'] = $comment;
+
+        if ($existing) {
+            $command['.id'] = (string)$existing['.id'];
+            if (mikrotikApiBoolean($existing['dynamic'] ?? false)) {
+                mikrotikAssertNoTrap(
+                    $api->comm('/ip/dhcp-server/lease/make-static', ['.id' => $command['.id']]),
+                    'Conversion du bail DHCP en réservation refusée.'
+                );
+            }
+            mikrotikAssertNoTrap($api->comm('/ip/dhcp-server/lease/set', $command), 'Mise à jour du bail DHCP refusée.');
+            return 'updated';
+        }
+
+        mikrotikAssertNoTrap($api->comm('/ip/dhcp-server/lease/add', $command), 'Création du bail DHCP refusée.');
+        return 'created';
+    } finally {
+        $api->disconnect();
+    }
+}
+
+function getMikrotikHotspotLogs(int $limit = 20, ?array $deviceOverride = null): array
+{
+    $device = $deviceOverride ?? (getActiveDeviceContext()['device'] ?? null);
+    if (!is_array($device) || normalizeDeviceType((string)($device['type'] ?? '')) !== 'mikrotik') {
+        throw new RuntimeException('Device MikroTik explicite requis.');
+    }
+    $api = connectToMikrotikApiByDevice($device);
+
+    try {
         $rows = $api->comm('/log/print', [
             '.proplist' => 'time,message,topics',
         ]);
@@ -2488,16 +3080,6 @@ function getMikrotikHotspotLogs(int $limit = 20): array
                 return false;
             }
             return str_contains($topics, 'hotspot') || str_starts_with($message, '->');
-        }));
-
-        $prefixedRows = array_values(array_filter($rows, static function ($row): bool {
-            $message = trim((string)($row['message'] ?? ''));
-            return $message !== '' && str_starts_with($message, '->');
-        }));
-
-        $rows = $prefixedRows !== [] ? $prefixedRows : array_values(array_filter($rows, static function ($row): bool {
-            $topics = strtolower(trim((string)($row['topics'] ?? '')));
-            return $topics !== '' && str_contains($topics, 'hotspot');
         }));
 
         $deduped = [];
@@ -2524,9 +3106,10 @@ function getMikrotikHotspotLogs(int $limit = 20): array
     }
 }
 
-function getMikrotikSystemLogs(int $limit = 200): array
+function getMikrotikSystemLogs(int $limit = 200, ?array $nasContext = null): array
 {
-    $api = connectToActiveMikrotikApi();
+    $nasContext = requireExplicitMikrotikNasContext($nasContext);
+    $api = connectToMikrotikApiForNasContext($nasContext);
 
     try {
         $rows = $api->comm('/log/print');
@@ -2599,7 +3182,7 @@ function parseMikrotikUserLogScriptRow(array $row): ?array
 
 function getMikrotikUserLogs(?string $day = null, ?string $monthOwner = null, int $limit = 500): array
 {
-    $api = connectToActiveMikrotikApi();
+    $api = connectToMikrotikApiByDevice(requireActiveDevice());
 
     try {
         $query = '/system/script/print';
@@ -2780,9 +3363,10 @@ function parseMikrotikHotspotLogMessage(array $row): ?array
     ];
 }
 
-function disconnectMikrotikActiveSession(string $activeSessionId): void
+function disconnectMikrotikActiveSession(string $activeSessionId, ?array $nasContext = null): void
 {
-    $api = connectToActiveMikrotikApi();
+    $nasContext = requireExplicitMikrotikNasContext($nasContext);
+    $api = connectToMikrotikApiForNasContext($nasContext);
 
     try {
         $session = $api->comm('/ip/hotspot/active/print', [
@@ -2830,7 +3414,7 @@ function disconnectMikrotikActiveSession(string $activeSessionId): void
 
 function listMikrotikInterfaces(): array
 {
-    $api = connectToActiveMikrotikApi();
+    $api = connectToMikrotikApiByDevice(requireActiveDevice());
 
     try {
         $interfaces = $api->comm('/interface/print');
@@ -2889,32 +3473,65 @@ function selectMikrotikDashboardInterface(array $interfaces): ?array
     return $fallback;
 }
 
-function getMikrotikTrafficSample(?string $interfaceName = null): array
+function getMikrotikTrafficSamples(array $interfaceNames = []): array
 {
-    $api = connectToActiveMikrotikApi();
+    $api = connectToMikrotikApiByDevice(requireActiveDevice());
 
     try {
-        if ($interfaceName === null || trim($interfaceName) === '') {
+        $interfaceNames = array_values(array_unique(array_filter(array_map(
+            static fn($value): string => trim((string)$value),
+            $interfaceNames
+        ), static fn(string $value): bool => $value !== '')));
+
+        if ($interfaceNames === []) {
             $selected = selectMikrotikDashboardInterface($api->comm('/interface/print'));
-            $interfaceName = (string)($selected['name'] ?? '');
+            $selectedName = trim((string)($selected['name'] ?? ''));
+            if ($selectedName !== '') {
+                $interfaceNames = [$selectedName];
+            }
         }
 
-        if ($interfaceName === '') {
+        if ($interfaceNames === []) {
             throw new RuntimeException('Aucune interface MikroTik exploitable pour le trafic.');
         }
 
-        $response = $api->comm('/interface/monitor-traffic', [
-            'interface' => $interfaceName,
-            'once' => '',
-        ]);
-        $traffic = mikrotikFirstRow($response);
+        $samples = [];
+        foreach ($interfaceNames as $interfaceName) {
+            $response = $api->comm('/interface/monitor-traffic', [
+                'interface' => $interfaceName,
+                'once' => '',
+            ]);
+            $traffic = mikrotikFirstRow($response);
+            $counterRows = $api->comm('/interface/print', [
+                '?name' => $interfaceName,
+                '.proplist' => 'name,rx-byte,tx-byte',
+            ]);
+            $counter = mikrotikFirstRow($counterRows);
+            $resolvedInterface = trim((string)($counter['name'] ?? $interfaceName));
+            if ($resolvedInterface === '') {
+                continue;
+            }
+            $samples[$resolvedInterface] = [
+                'interface' => $resolvedInterface,
+                'rx_bps' => (float)($traffic['rx-bits-per-second'] ?? 0),
+                'tx_bps' => (float)($traffic['tx-bits-per-second'] ?? 0),
+                'rx_bytes' => (float)($counter['rx-byte'] ?? 0),
+                'tx_bytes' => (float)($counter['tx-byte'] ?? 0),
+            ];
+        }
 
-        return [
-            'interface' => $interfaceName,
-            'rx_bps' => (float)($traffic['rx-bits-per-second'] ?? 0),
-            'tx_bps' => (float)($traffic['tx-bits-per-second'] ?? 0),
-        ];
+        if ($samples === []) {
+            throw new RuntimeException('Aucune interface MikroTik exploitable pour le trafic.');
+        }
+
+        return $samples;
     } finally {
         $api->disconnect();
     }
+}
+
+function getMikrotikTrafficSample(?string $interfaceName = null): array
+{
+    $samples = getMikrotikTrafficSamples($interfaceName !== null && trim($interfaceName) !== '' ? [$interfaceName] : []);
+    return reset($samples);
 }

@@ -33,6 +33,25 @@ $counts = [
     'recharges' => 0,
 ];
 
+$serverInfo = [
+    'Système' => php_uname('s') . ' ' . php_uname('r'),
+    'PHP' => PHP_VERSION,
+    'Apache' => trim((string)@shell_exec('apache2 -v 2>/dev/null | head -1')) ?: 'Non détecté',
+    'FreeRADIUS' => trim((string)@shell_exec('freeradius -v 2>/dev/null | head -1')) ?: 'Non détecté',
+    'PDO MySQL' => extension_loaded('pdo_mysql') ? 'Disponible' : 'Manquant',
+    'ZIP PHP' => extension_loaded('zip') ? 'Disponible' : 'Manquant',
+    'Service Apache' => trim((string)@shell_exec('systemctl is-active apache2 2>/dev/null')) ?: 'inconnu',
+    'Service FreeRADIUS' => trim((string)@shell_exec('systemctl is-active freeradius 2>/dev/null')) ?: 'inconnu',
+    'État SQL' => 'À vérifier',
+];
+try {
+    $serverInfo['État SQL'] = $pdo->query("SHOW TABLES LIKE 'system_installation'")->fetchColumn() ? 'Initialisé' : 'À initialiser';
+} catch (Throwable $e) {
+    $serverInfo['État SQL'] = 'Indisponible';
+}
+
+
+
 try {
     $counts['profiles'] = (int)$pdo->query('SELECT COUNT(*) FROM profiles')->fetchColumn();
     $counts['users'] = (int)$pdo->query('SELECT COUNT(*) FROM users')->fetchColumn();
@@ -78,17 +97,12 @@ try {
 }
 ?>
 
-<!DOCTYPE html>
-<html lang="fr">
-<head>
-<meta charset="UTF-8">
-<title>À propos</title>
-
-<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
-<link rel="stylesheet" href="../css/theme.css">
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+<?php
+$pageTitle = 'À propos';
+require_once '../includes/layout_header.php';
+?>
 <style>
-    .about-card .card-header {
+.about-card .card-header {
         background-color: var(--theme-card-soft) !important;
         color: var(--theme-primary) !important;
         border-bottom: 1px solid rgba(255, 255, 255, 0.08) !important;
@@ -119,17 +133,6 @@ try {
     }
 </style>
 
-</head>
-
-<body>
-
-<div class="d-flex" id="wrapper">
-
-<?php include_once '../includes/sidebar.php'; ?>
-
-<div id="page-content-wrapper">
-<div class="container-fluid">
-
 <div class="card shadow-sm mb-3">
     <div class="card-body py-3">
         <div class="d-flex align-items-center text-white about-page-title">
@@ -137,6 +140,15 @@ try {
             <span class="small fw-semibold">À propos</span>
         </div>
     </div>
+</div>
+
+<div class="card shadow-sm mb-3 about-card">
+    <div class="card-header"><i class="fa fa-server me-2"></i>Informations du serveur et SQL</div>
+    <div class="card-body py-2"><div class="row g-2">
+        <?php foreach ($serverInfo as $label => $value): ?>
+            <div class="col-6 col-md-3"><div class="about-label"><?= htmlspecialchars($label, ENT_QUOTES) ?></div><div class="about-value small"><?= htmlspecialchars($value, ENT_QUOTES) ?></div></div>
+        <?php endforeach; ?>
+    </div></div>
 </div>
 
 <div class="row">
@@ -268,9 +280,7 @@ try {
 </div>
 </div>
 
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 
-<script src="../js/sidebar.js?v=20260402a"></script>
-
-</body>
-</html>
+<?php
+require_once '../includes/layout_footer.php';
+?>

@@ -24,10 +24,13 @@ try {
         exit();
     }
 
+    session_regenerate_id(true);
     $_SESSION['logged_in'] = true;
     $_SESSION['username'] = (string)$admin['username'];
     $_SESSION['local_admin_id'] = (int)$admin['id'];
-    $_SESSION['user_role'] = trim((string)($admin['role'] ?? 'administrator')) === 'reseller' ? 'reseller' : 'administrator';
+    $_SESSION['user_role'] = normalizeLocalAdminRole((string)($admin['role'] ?? 'admin'));
+    $_SESSION['owner_admin_id'] = (int)($admin['owner_admin_id'] ?? 0);
+    unset($_SESSION['active_device_id']);
 
     header('Location: /pages/dashboard.php');
     exit();

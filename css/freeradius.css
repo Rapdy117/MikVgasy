@@ -5,7 +5,7 @@
 }
 
 .radius-form .input-group {
-    margin-bottom: 10px;
+    margin-bottom: 6px;
 }
 
 .radius-status-box,
@@ -17,7 +17,7 @@
 
 .radius-status-box {
     padding: 12px;
-    min-height: 116px;
+    min-height: 92px;
 }
 
 .radius-status-line {
@@ -32,7 +32,7 @@
 }
 
 .radius-output-box {
-    height: 402px;
+    height: 250px;
     overflow: auto;
     white-space: pre-wrap;
     color: var(--theme-text);

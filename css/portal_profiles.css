@@ -1,0 +1,384 @@
+.portal-profiles-page .portal-upload-control {
+    display: flex;
+    align-items: center;
+    min-height: 40px;
+    border: 1px solid var(--theme-border);
+    border-radius: 6px;
+    background: rgba(255, 255, 255, 0.14);
+    overflow: hidden;
+}
+
+.portal-profiles-page .portal-upload-input {
+    position: absolute;
+    inline-size: 1px;
+    block-size: 1px;
+    opacity: 0;
+    pointer-events: none;
+}
+
+.portal-profiles-page .portal-upload-button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    align-self: stretch;
+    min-width: 9rem;
+    margin: 0;
+    padding: 0 .85rem;
+    color: var(--theme-primary);
+    font-size: .84rem;
+    font-weight: 600;
+    white-space: nowrap;
+    cursor: pointer;
+    background: var(--theme-primary-soft);
+    border-right: 1px solid var(--theme-border);
+}
+
+.portal-profiles-page .portal-upload-name {
+    min-width: 0;
+    flex: 1;
+    padding: 0 .75rem;
+    color: var(--theme-text-muted);
+    font-size: .84rem;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.portal-profiles-page .portal-summary-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: .75rem;
+}
+
+.portal-profiles-page .portal-summary-item {
+    min-width: 0;
+    padding: .75rem;
+    border: 1px solid var(--theme-border);
+    border-radius: 6px;
+    background: rgba(255, 255, 255, 0.06);
+}
+
+.portal-profiles-page .portal-summary-item span {
+    display: block;
+    margin-bottom: .25rem;
+    color: var(--theme-text-muted);
+    font-size: .78rem;
+}
+
+.portal-profiles-page .portal-summary-item strong,
+.portal-profiles-page .portal-summary-item code {
+    color: var(--theme-text);
+    font-size: .88rem;
+    overflow-wrap: anywhere;
+}
+
+.portal-profiles-page .portal-status {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: .75rem;
+    margin-top: 1rem;
+    padding: .75rem;
+    border: 1px solid var(--theme-border);
+    border-radius: 6px;
+    background: rgba(255, 255, 255, 0.06);
+}
+
+.portal-profiles-page .portal-status-label,
+.portal-profiles-page .portal-status p {
+    margin: 0;
+    color: var(--theme-text-muted);
+    font-size: .82rem;
+}
+
+.portal-profiles-page .portal-status strong,
+.portal-profiles-page .portal-template-name {
+    color: var(--theme-text);
+    font-weight: 600;
+}
+
+.portal-profiles-page .portal-count-pill,
+.portal-profiles-page .portal-active-badge,
+.portal-profiles-page .portal-status-count {
+    display: inline-flex;
+    align-items: center;
+    white-space: nowrap;
+    border-radius: 999px;
+    padding: .18rem .5rem;
+    color: var(--theme-primary);
+    background: var(--theme-primary-soft);
+    font-size: .74rem;
+    font-weight: 600;
+}
+
+.portal-profiles-page .portal-active-badge {
+    margin-left: .4rem;
+}
+
+.portal-profiles-page .portal-actions {
+    display: inline-flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: .35rem;
+}
+
+.portal-profiles-page .portal-actions form {
+    display: inline-flex;
+    margin: 0;
+}
+
+.portal-profiles-page .portal-archive-table td {
+    vertical-align: middle;
+}
+
+/* Sous-titre de page */
+.portal-profiles-page .portal-page-subtitle {
+    margin: -.25rem 0 .9rem;
+    color: var(--theme-text-muted);
+    font-size: .86rem;
+}
+
+/* Sous-groupes à l'intérieur du formulaire */
+.portal-profiles-page .portal-form-section {
+    margin-bottom: 1.1rem;
+    padding-top: .9rem;
+    border-top: 1px solid var(--theme-border);
+}
+
+.portal-profiles-page .portal-form-section:first-child {
+    padding-top: 0;
+    border-top: 0;
+}
+
+.portal-profiles-page .portal-form-section-title {
+    display: flex;
+    align-items: center;
+    gap: .4rem;
+    margin-bottom: .75rem;
+    color: var(--theme-primary);
+    font-size: .78rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: .04em;
+}
+
+/* Bannières existantes : vignette + réordonnancement */
+.portal-profiles-page .portal-banner-item {
+    position: relative;
+    display: flex;
+    align-items: center;
+    gap: .6rem;
+    margin-bottom: .5rem;
+    padding: .5rem .5rem .5rem .75rem;
+    border: 1px solid var(--theme-border);
+    border-radius: 6px;
+    background: rgba(255, 255, 255, 0.04);
+}
+
+.portal-profiles-page .portal-banner-item::before {
+    content: '';
+    position: absolute;
+    inset-block: .5rem;
+    inset-inline-start: 0;
+    inline-size: 3px;
+    border-radius: 3px;
+    background: #a78bfa;
+    opacity: .85;
+}
+
+.portal-profiles-page .portal-banner-thumb {
+    inline-size: 48px;
+    block-size: 48px;
+    flex: none;
+    border-radius: 4px;
+    object-fit: cover;
+    background: rgba(255, 255, 255, 0.08);
+}
+
+.portal-profiles-page .portal-banner-fields {
+    min-width: 0;
+    flex: 1;
+}
+
+.portal-profiles-page .portal-banner-fields .form-control {
+    margin-top: .3rem;
+}
+
+.portal-profiles-page .portal-banner-move {
+    display: flex;
+    flex-direction: column;
+    gap: .2rem;
+    flex: none;
+}
+
+.portal-profiles-page .portal-banner-move button {
+    width: 1.6rem;
+    height: 1.3rem;
+    padding: 0;
+    line-height: 1;
+    color: var(--theme-text-muted);
+    background: transparent;
+    border: 1px solid var(--theme-border);
+    border-radius: 4px;
+}
+
+.portal-profiles-page .portal-banner-move button:hover:not(:disabled) {
+    color: var(--theme-primary);
+    border-color: var(--theme-primary);
+}
+
+.portal-profiles-page .portal-banner-move button:disabled {
+    opacity: .35;
+    cursor: default;
+}
+
+.portal-profiles-page .portal-banner-move button[data-delete-advertisement] {
+    margin-top: .3rem;
+    color: var(--theme-danger, #e74c3c);
+    border-color: var(--theme-danger, #e74c3c);
+}
+
+.portal-profiles-page .portal-banner-move button[data-delete-advertisement]:hover {
+    color: #fff;
+    background: var(--theme-danger, #e74c3c);
+}
+
+/* Aperçu des nouvelles images avant envoi */
+.portal-profiles-page .portal-upload-preview {
+    display: flex;
+    flex-wrap: wrap;
+    gap: .4rem;
+    margin-top: .5rem;
+}
+
+.portal-profiles-page .portal-upload-preview img {
+    inline-size: 48px;
+    block-size: 48px;
+    border-radius: 4px;
+    object-fit: cover;
+    border: 1px solid var(--theme-border);
+}
+
+/* Statut du template : niveau visuel */
+.portal-profiles-page .portal-status {
+    border-left: 3px solid var(--theme-border);
+}
+
+.portal-profiles-page .portal-status.is-ok {
+    border-left-color: var(--theme-success, #2ecc71);
+}
+
+.portal-profiles-page .portal-status.is-warning {
+    border-left-color: var(--theme-warning, #f1c40f);
+}
+
+.portal-profiles-page .portal-status-icon {
+    margin-right: .5rem;
+}
+
+.portal-profiles-page .portal-status.is-ok .portal-status-icon {
+    color: var(--theme-success, #2ecc71);
+}
+
+.portal-profiles-page .portal-status.is-warning .portal-status-icon {
+    color: var(--theme-warning, #f1c40f);
+}
+
+/* Tableau d'archives : icône et ligne active */
+.portal-profiles-page .portal-archive-icon {
+    margin-right: .4rem;
+    color: var(--theme-text-muted);
+}
+
+.portal-profiles-page tr.portal-archive-row-active {
+    background: var(--theme-primary-soft);
+}
+
+.portal-profiles-page .portal-copy-btn {
+    padding: 0 .4rem;
+    color: var(--theme-text-muted);
+    background: transparent;
+    border: 1px solid var(--theme-border);
+    border-radius: 4px;
+}
+
+.portal-profiles-page .portal-copy-btn:hover {
+    color: var(--theme-primary);
+    border-color: var(--theme-primary);
+}
+
+/* Cartes : leger relief au survol, pour homogeneiser avec les pages recemment modernisees */
+.portal-profiles-page .card {
+    transition: box-shadow .15s ease, transform .15s ease;
+}
+
+.portal-profiles-page .card:hover {
+    box-shadow: 0 .5rem 1.25rem rgba(0, 0, 0, .28);
+    transform: translateY(-1px);
+}
+
+/* Regroupement compact des champs courts, 2 colonnes (repris du formulaire DNS de traffic_control.php) */
+.portal-profiles-page .portal-field-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: .85rem;
+    margin-bottom: 1rem;
+}
+
+/* Champ de saisie : sobre, pas de degrade ni de liseré (ça, c'est reservé aux indicateurs en lecture seule). */
+.portal-profiles-page .portal-field-grid > .portal-field-item {
+    min-width: 0;
+}
+
+.portal-profiles-page .portal-field-grid > .portal-field-item.portal-field-span2 {
+    grid-column: 1 / -1;
+}
+
+.portal-profiles-page .portal-field-item > label {
+    display: flex;
+    align-items: center;
+    gap: .35rem;
+    color: var(--theme-text-muted);
+}
+
+.portal-profiles-page .portal-field-item > label i {
+    color: var(--theme-text-muted);
+    font-size: .8em;
+}
+
+@media (max-width: 576px) {
+    .portal-profiles-page .portal-field-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+/* Vignettes de synthese (« Configuration active »), inspirees des tuiles KPI de traffic_monitoring.css */
+.portal-profiles-page .portal-summary-item {
+    --portal-accent: var(--theme-primary);
+    position: relative;
+    overflow: hidden;
+    background: radial-gradient(circle at 95% 0, color-mix(in srgb, var(--portal-accent) 16%, transparent), transparent 45%), rgba(255, 255, 255, 0.04);
+}
+
+.portal-profiles-page .portal-summary-item::after {
+    content: '';
+    position: absolute;
+    inset-inline: 0;
+    inset-block-end: 0;
+    block-size: 3px;
+    background: var(--portal-accent);
+    opacity: .85;
+}
+
+.portal-profiles-page .portal-summary-item:nth-child(1) { --portal-accent: #38bdf8; }
+.portal-profiles-page .portal-summary-item:nth-child(2) { --portal-accent: #22c55e; }
+.portal-profiles-page .portal-summary-item:nth-child(3) { --portal-accent: #a78bfa; }
+.portal-profiles-page .portal-summary-item:nth-child(4) { --portal-accent: #f59e0b; }
+.portal-profiles-page .portal-summary-item:nth-child(5) { --portal-accent: #38bdf8; }
+.portal-profiles-page .portal-summary-item:nth-child(6) { --portal-accent: #a78bfa; }
+
+@media (max-width: 768px) {
+    .portal-profiles-page .portal-summary-grid {
+        grid-template-columns: 1fr;
+    }
+}

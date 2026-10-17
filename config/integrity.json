@@ -1,0 +1,11 @@
+{
+    "generated_at": "2026-07-22 13:34:56",
+    "file_count": 5,
+    "files": {
+        "includes/nas_resolver.php": "3ab78c99d790df1a47c6c34e63897683b9763ee9076c099bb9e0ae7b2c26ecd9",
+        "includes/license.php": "d80b2f4b32672a527c28f5c7939a4f57705c0a5ad021da26abc35e25491685fe",
+        "includes/integrity_check.php": "65db959b7c759e33242b7af3e2b12efa2e7f4914a373413625cadc33b9555f7f",
+        "api/license/activate_license.php": "16b41c5bb15208b3d0cc6b33d22040891b088cb396a0feb1b6e1f92093084488",
+        "api/license/request_license.php": "d93e81d2737fbd7ec739103e6cbff81e2426640ee78adf7832421d420645d909"
+    }
+}

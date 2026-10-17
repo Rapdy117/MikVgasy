@@ -178,6 +178,37 @@ function probeDeviceConnection(array $device, bool $statusOnly = false): array
         }
 
         $resource = $api->comm('/system/resource/print');
+
+        /* Hardware fingerprint — lecture du numéro de série routerboard */
+        $hardwareInfo = [];
+        $fingerprint  = '';
+        $deviceId     = '';
+        try {
+            $rb = $api->comm('/system/routerboard/print');
+            if (is_array($rb) && !empty($rb[0])) {
+                $entry = $rb[0];
+                $serial = trim((string)($entry['serial-number'] ?? ''));
+                $board  = trim((string)($entry['board-name']   ?? $entry['model'] ?? ''));
+                if ($serial !== '') {
+                    $hardwareInfo = ['serial' => $serial, 'board' => $board];
+                }
+            }
+            /* Fallback : identity + resource */
+            if (empty($hardwareInfo)) {
+                $identity = $api->comm('/system/identity/print');
+                $idName   = is_array($identity) ? trim((string)($identity[0]['name'] ?? '')) : '';
+                $board    = is_array($resource)  ? trim((string)($resource[0]['board-name'] ?? '')) : '';
+                if ($idName !== '' || $board !== '') {
+                    $hardwareInfo = ['serial' => $idName, 'board' => $board];
+                }
+            }
+            if (!empty($hardwareInfo)) {
+                require_once __DIR__ . '/license.php';
+                $fingerprint = computeDeviceFingerprint($hardwareInfo);
+                $deviceId    = formatDeviceId($fingerprint, 'mikrotik');
+            }
+        } catch (\Throwable $ignored) {}
+
         $api->disconnect();
 
         if (!is_array($resource)) {
@@ -190,12 +221,28 @@ function probeDeviceConnection(array $device, bool $statusOnly = false): array
             );
         }
 
+        $extra = [];
+        if ($fingerprint !== '') {
+            $extra['device_fingerprint'] = $fingerprint;
+            $extra['device_id']          = $deviceId;
+            $extra['hardware_info']      = $hardwareInfo;
+        }
+
+        $hwLog = '';
+        if (!empty($hardwareInfo['serial'])) {
+            $hwLog .= "\nN° Série : " . $hardwareInfo['serial'];
+        }
+        if (!empty($hardwareInfo['board'])) {
+            $hwLog .= "\nModèle   : " . $hardwareInfo['board'];
+        }
+
         return buildDeviceProbeResult(
             true,
             $type,
-            "✔ Connexion reussie\nType: MIKROTIK\nBackend: " . resolveDeviceBackend($type) . "\nHost: {$routerHost}:{$routerPort}",
+            "✔ Connexion reussie\nType    : MikroTik\nHost    : {$routerHost}:{$routerPort}" . $hwLog,
             0,
-            $statusOnly
+            $statusOnly,
+            $extra
         );
     }
 
@@ -279,12 +326,50 @@ function probeDeviceConnection(array $device, bool $statusOnly = false): array
             $message .= "\n⚠ Le host semble utiliser un autre schema.\nURL valide detectee: {$okUrl}";
         }
 
+        /* Hardware fingerprint OPNsense */
+        $opnExtra    = [];
+        $opnResponse = json_decode((string)($successfulAttempt['response'] ?? ''), true);
+        if (is_array($opnResponse)) {
+            $product  = trim((string)($opnResponse['product_id']     ?? $opnResponse['product_series'] ?? 'OPNsense'));
+            $hostname = trim((string)($opnResponse['hostname']        ?? ''));
+            $version  = trim((string)($opnResponse['product_version'] ?? ''));
+            /* Pour OPNsense : hostname = identifiant unique (pas de SN physique) */
+            if ($hostname !== '' || $product !== '') {
+                $hwInfo = [
+                    'serial'   => $hostname,   /* hostname utilisé comme SN */
+                    'hostname' => $hostname,
+                    'product'  => $product,
+                    'board'    => $version,
+                ];
+                try {
+                    require_once __DIR__ . '/license.php';
+                    $fp       = computeDeviceFingerprint(['serial' => $hostname, 'board' => $product]);
+                    $devId    = formatDeviceId($fp, 'opnsense');
+                    $opnExtra = [
+                        'device_fingerprint' => $fp,
+                        'device_id'          => $devId,
+                        'hardware_info'      => $hwInfo,
+                    ];
+                } catch (\Throwable $ignored) {}
+            }
+        }
+
+        /* Enrichit le log avec les infos hardware OPNsense */
+        $opnHwLog = '';
+        if (!empty($opnExtra['hardware_info'])) {
+            $hi = $opnExtra['hardware_info'];
+            if (!empty($hi['hostname'])) $opnHwLog .= "\nHostname : " . $hi['hostname'];
+            if (!empty($hi['product']))  $opnHwLog .= "\nProduit  : " . $hi['product'];
+            if (!empty($hi['board']))    $opnHwLog .= "\nVersion  : " . $hi['board'];
+        }
+
         $payload = buildDeviceProbeResult(
             true,
             $type,
-            $message,
+            "✔ Connexion reussie\nType    : OPNsense" . $opnHwLog,
             (int)($successfulAttempt['http_code'] ?? 200),
-            $statusOnly
+            $statusOnly,
+            $opnExtra
         );
         if ($suggestedHost !== null) {
             $payload['suggested_host'] = $suggestedHost;

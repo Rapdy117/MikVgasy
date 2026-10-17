@@ -1,0 +1,15 @@
+{
+    "email": {
+        "enabled": false,
+        "smtp_host": "",
+        "smtp_port": 587,
+        "smtp_user": "",
+        "smtp_pass": "",
+        "from_name": "Radius Manager",
+        "from_email": "",
+        "to_email": ""
+    },
+    "whatsapp": {
+        "admin_phone": ""
+    }
+}

@@ -1,14 +1,32 @@
 <?php
+require_once __DIR__ . '/hotspot_mac_labels.php';
 /**
  * Corps du tbody pour la liste des sessions (page complète et partial ?_partial=sessions).
  * Variables attendues : $sessions, $isMikrotikSessions, $isOpnsenseSessions,
  * $canDisconnectRemotely, $sessionProfileMap (comme sessions_list.php).
  */
 ?>
+                                <?php
+                                $sessionUserLink = static function (string $username, string $deviceId, string $nasId = '', string $label = ''): string {
+                                    $username = trim($username);
+                                    if ($username === '' || $username === '-') return htmlspecialchars($username !== '' ? $username : '-', ENT_QUOTES);
+                                    $query = ['username' => $username];
+                                    if ($deviceId !== '') $query['device_id'] = $deviceId;
+                                    if ($nasId !== '') $query['nas_id'] = $nasId;
+                                    $href = 'users_list.php?' . http_build_query($query, '', '&', PHP_QUERY_RFC3986);
+                                    $text = $label !== '' ? $label : $username;
+                                    $title = $label !== '' ? ' title="' . htmlspecialchars($username, ENT_QUOTES) . '"' : '';
+                                    return '<a class="session-user-link" href="' . htmlspecialchars($href, ENT_QUOTES) . '"' . $title . '>' . htmlspecialchars($text, ENT_QUOTES) . '</a>';
+                                };
+                                $sessionDeviceId = trim((string)($sessionDeviceId ?? $activeDeviceId ?? ''));
+                                $sessionWanOverrides = is_array($sessionWanOverrides ?? null) ? $sessionWanOverrides : [];
+                                ?>
                                 <?php if (!$sessions): ?>
                                 <tr data-sort-disabled="1">
                                     <?php if ($isOpnsenseSessions): ?>
                                     <td colspan="11" class="text-center">Aucune session active</td>
+                                    <?php elseif ($isMikrotikSessions): ?>
+                                    <td colspan="14" class="text-center">Aucune session active</td>
                                     <?php else: ?>
                                     <td colspan="13" class="text-center">Aucune session active</td>
                                     <?php endif; ?>
@@ -23,36 +41,62 @@
                                 $durationSeconds = parseMikrotikDurationSeconds((string)($session['uptime'] ?? ''));
                                 $txBitsPerSecond = $durationSeconds > 0 ? ($downloadBytes * 8) / $durationSeconds : 0.0;
                                 $rxBitsPerSecond = $durationSeconds > 0 ? ($uploadBytes * 8) / $durationSeconds : 0.0;
+                                $sessionWan = strtoupper(trim((string)($session['wan'] ?? '')));
+                                $sessionWanList = trim((string)($session['wan_list'] ?? ''));
+                                $sessionWanLabel = $sessionWan !== '' ? $sessionWan : 'Non affecté';
+                                $sessionUsername = trim((string)($session['user'] ?: '-'));
+                                $sessionWanOverride = isset($sessionWanOverrides[$sessionUsername]) ? strtoupper((string)$sessionWanOverrides[$sessionUsername]['wan_id']) : '';
+                                // Libellé d'un compte en login par MAC : affiché à la place du nom (la MAC reste en infobulle), et cherchable.
+                                $macKey = strtoupper((string)($session['mac'] ?? ''));
+                                $labelKey = strtoupper($sessionUsername);
+                                $macLabel = '';
+                                if (isset($pdo) && $sessionDeviceId !== '') {
+                                    $labelMap = getHotspotMacLabels($pdo, (string)$sessionDeviceId);
+                                    $macLabel = $labelMap[$macKey] ?? $labelMap[$labelKey] ?? '';
+                                }
                                 ?>
                                 <tr
                                     id="session-row-<?= htmlspecialchars($sessionId !== '' ? $sessionId : ('mik_' . $index)) ?>"
                                     data-id="<?= htmlspecialchars($sessionId !== '' ? $sessionId : ('mik_' . $index), ENT_QUOTES) ?>"
+                                    data-device-id="<?= htmlspecialchars($sessionDeviceId, ENT_QUOTES) ?>"
                                     data-session="<?= htmlspecialchars((string)($session['server'] ?: '-'), ENT_QUOTES) ?>"
-                                    data-username="<?= htmlspecialchars((string)($session['user'] ?: '-'), ENT_QUOTES) ?>"
+                                    data-username="<?= htmlspecialchars($sessionUsername, ENT_QUOTES) ?>"
+                                    data-label="<?= htmlspecialchars($macLabel, ENT_QUOTES) ?>"
                                     data-profile="<?= htmlspecialchars((string)($session['profile'] ?: '-'), ENT_QUOTES) ?>"
                                     data-address="<?= htmlspecialchars((string)($session['address'] ?: '-'), ENT_QUOTES) ?>"
                                     data-mac="<?= htmlspecialchars((string)($session['mac'] ?: '-'), ENT_QUOTES) ?>"
+                                    data-wan="<?= htmlspecialchars($sessionWanLabel, ENT_QUOTES) ?>"
+                                    data-wan-override="<?= htmlspecialchars($sessionWanOverride, ENT_QUOTES) ?>"
                                     data-duration="<?= htmlspecialchars((string)$durationSeconds, ENT_QUOTES) ?>"
                                     data-rx_speed="<?= htmlspecialchars((string)$rxBitsPerSecond, ENT_QUOTES) ?>"
                                     data-tx_speed="<?= htmlspecialchars((string)$txBitsPerSecond, ENT_QUOTES) ?>"
-                                    data-upload="<?= htmlspecialchars((string)$uploadBytes, ENT_QUOTES) ?>"
-                                    data-download="<?= htmlspecialchars((string)$downloadBytes, ENT_QUOTES) ?>"
+                                    data-upload="<?= htmlspecialchars((string)$downloadBytes, ENT_QUOTES) ?>"
+                                    data-download="<?= htmlspecialchars((string)$uploadBytes, ENT_QUOTES) ?>"
                                     data-login="<?= htmlspecialchars((string)($session['login_by'] ?: ($session['session_time_left'] ?: '-')), ENT_QUOTES) ?>"
                                     data-search="<?= htmlspecialchars(mb_strtolower(implode(' ', [
                                         (string)($session['server'] ?: '-'),
-                                        (string)($session['user'] ?: '-'),
+                                        $sessionUsername,
                                         (string)($session['profile'] ?: '-'),
                                         (string)($session['address'] ?: '-'),
                                         (string)($session['mac'] ?: '-'),
+                                        $sessionWanLabel,
                                         (string)($session['login_by'] ?: ($session['session_time_left'] ?: '-')),
+                                        $macLabel,
                                     ])), ENT_QUOTES) ?>"
                                 >
                                     <td><?= htmlspecialchars($sessionId !== '' ? $sessionId : ('mik_' . $index)) ?></td>
                                     <td><?= htmlspecialchars($session['server'] ?: '-') ?></td>
-                                    <td><?= htmlspecialchars($session['user'] ?: '-') ?></td>
+                                    <td><?php
+                                        echo $sessionUserLink($sessionUsername, $sessionDeviceId, '', $macLabel);
+                                    ?></td>
                                     <td><?= htmlspecialchars($session['profile'] ?: '-') ?></td>
                                     <td><?= htmlspecialchars($session['address'] ?: '-') ?></td>
                                     <td><?= htmlspecialchars($session['mac'] ?: '-') ?></td>
+                                    <td>
+                                        <span class="session-wan-badge session-wan-badge--<?= htmlspecialchars(strtolower($sessionWan !== '' ? $sessionWan : 'none'), ENT_QUOTES) ?>" title="<?= htmlspecialchars($sessionWanList !== '' ? $sessionWanList : 'Aucune liste WAN active pour cette IP', ENT_QUOTES) ?>">
+                                            <?= htmlspecialchars($sessionWanLabel) ?>
+                                        </span>
+                                    </td>
                                     <td class="text-end"><?= htmlspecialchars(formatMikrotikDuration((string)($session['uptime'] ?? ''))) ?></td>
                                     <td class="text-end"><?= htmlspecialchars(formatSpeed($txBitsPerSecond)) ?></td>
                                     <td class="text-end"><?= htmlspecialchars(formatSpeed($rxBitsPerSecond)) ?></td>
@@ -60,6 +104,14 @@
                                     <td class="text-end"><?= htmlspecialchars(formatDataVolume($uploadBytes)) ?></td>
                                     <td><?= htmlspecialchars($session['login_by'] ?: ($session['session_time_left'] ?: '-')) ?></td>
                                     <td class="action-cell">
+                                        <button
+                                            type="button"
+                                            class="btn btn-test btn-sm session-wan-override-btn"
+                                            <?= ($sessionUsername !== '' && $sessionUsername !== '-' && trim((string)($session['address'] ?: '')) !== '') ? '' : 'disabled title="Utilisateur ou IP manquant"' ?>
+                                            title="Exception WAN"
+                                            aria-label="Modifier l exception WAN">
+                                            <i class="fas fa-route"></i>
+                                        </button>
                                         <button
                                             type="button"
                                             class="btn btn-delete btn-sm session-action-btn"
@@ -88,6 +140,7 @@
                                 <tr
                                     id="session-row-<?= htmlspecialchars($rowId) ?>"
                                     data-id="<?= htmlspecialchars($rowId, ENT_QUOTES) ?>"
+                                    data-device-id="<?= htmlspecialchars($sessionDeviceId, ENT_QUOTES) ?>"
                                     data-session="<?= htmlspecialchars($sessionId !== '' ? $sessionId : '-', ENT_QUOTES) ?>"
                                     data-username="<?= htmlspecialchars($displayUsername, ENT_QUOTES) ?>"
                                     data-profile="<?= htmlspecialchars($profileName, ENT_QUOTES) ?>"
@@ -96,8 +149,8 @@
                                     data-duration="<?= htmlspecialchars((string)$durationSeconds, ENT_QUOTES) ?>"
                                     data-rx_speed="<?= htmlspecialchars((string)$rxBitsPerSecond, ENT_QUOTES) ?>"
                                     data-tx_speed="<?= htmlspecialchars((string)$txBitsPerSecond, ENT_QUOTES) ?>"
-                                    data-upload="<?= htmlspecialchars((string)$uploadBytes, ENT_QUOTES) ?>"
-                                    data-download="<?= htmlspecialchars((string)$downloadBytes, ENT_QUOTES) ?>"
+                                    data-upload="<?= htmlspecialchars((string)$downloadBytes, ENT_QUOTES) ?>"
+                                    data-download="<?= htmlspecialchars((string)$uploadBytes, ENT_QUOTES) ?>"
                                     data-login="<?= htmlspecialchars((string)($session['authenticated_via'] ?? '-'), ENT_QUOTES) ?>"
                                     data-search="<?= htmlspecialchars(mb_strtolower(implode(' ', [
                                         $displayUsername,
@@ -107,7 +160,7 @@
                                         (string)($session['authenticated_via'] ?? '-'),
                                     ])), ENT_QUOTES) ?>"
                                 >
-                                    <td><?= htmlspecialchars($displayUsername) ?></td>
+                                    <td><?= $sessionUserLink($displayUsername, $sessionDeviceId) ?></td>
                                     <td><?= htmlspecialchars($profileName) ?></td>
                                     <td><?= htmlspecialchars((string)($session['ipAddress'] ?? '-')) ?></td>
                                     <td><?= htmlspecialchars((string)($session['macAddress'] ?? '-')) ?></td>
@@ -142,6 +195,7 @@
                                 <tr
                                     id="session-row-<?= (int)$session['radacctid'] ?>"
                                     data-id="<?= (int)$session['radacctid'] ?>"
+                                    data-device-id="<?= htmlspecialchars($sessionDeviceId, ENT_QUOTES) ?>"
                                     data-session="<?= htmlspecialchars((string)($session['acctsessionid'] ?: '-'), ENT_QUOTES) ?>"
                                     data-username="<?= htmlspecialchars($username, ENT_QUOTES) ?>"
                                     data-profile="<?= htmlspecialchars($profileName, ENT_QUOTES) ?>"
@@ -150,8 +204,8 @@
                                     data-duration="<?= (int)$sessionTime ?>"
                                     data-rx_speed="<?= htmlspecialchars((string)$rxBitsPerSecond, ENT_QUOTES) ?>"
                                     data-tx_speed="<?= htmlspecialchars((string)$txBitsPerSecond, ENT_QUOTES) ?>"
-                                    data-upload="<?= htmlspecialchars((string)$uploadBytes, ENT_QUOTES) ?>"
-                                    data-download="<?= htmlspecialchars((string)$downloadBytes, ENT_QUOTES) ?>"
+                                    data-upload="<?= htmlspecialchars((string)$downloadBytes, ENT_QUOTES) ?>"
+                                    data-download="<?= htmlspecialchars((string)$uploadBytes, ENT_QUOTES) ?>"
                                     data-login="<?= htmlspecialchars((string)($session['nasipaddress'] ?: '-'), ENT_QUOTES) ?>"
                                     data-search="<?= htmlspecialchars(mb_strtolower(implode(' ', [
                                         $username,
@@ -163,7 +217,7 @@
                                 >
                                     <td><?= (int)$session['radacctid'] ?></td>
                                     <td><?= htmlspecialchars($session['acctsessionid'] ?: '-') ?></td>
-                                    <td><?= htmlspecialchars($username) ?></td>
+                                    <td><?= $sessionUserLink($username, $sessionDeviceId, (string)($session['nasipaddress'] ?? '')) ?></td>
                                     <td><?= htmlspecialchars($profileName) ?></td>
                                     <td><?= htmlspecialchars($session['framedipaddress'] ?: '-') ?></td>
                                     <td><?= htmlspecialchars($session['callingstationid'] ?: '-') ?></td>

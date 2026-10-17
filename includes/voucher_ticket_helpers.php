@@ -17,11 +17,16 @@ function formatVoucherDataLimitLabel(?int $dataQuotaMb): string
         return '';
     }
 
-    if ($value >= 1024) {
-        return formatVoucherNumber($value / 1024, 2) . ' GB';
+    $kilobytes = $value * 1024;
+    if ($kilobytes < 1000) {
+        return formatVoucherNumber($kilobytes, 2) . ' KB';
     }
 
-    return formatVoucherNumber($value, 0) . ' MB';
+    if ($value < 1000) {
+        return formatVoucherNumber($value, 2) . ' MB';
+    }
+
+    return formatVoucherNumber($value / 1024, 2) . ' GB';
 }
 
 function formatVoucherTimeLimitLabel(?int $seconds): string
@@ -197,9 +202,7 @@ function renderVoucherTicketCard(array $item, int $index, string $hotspotName, a
     $sellingPriceLabel = formatVoucherPriceLabel($item['selling_price'] ?? '');
     $priceLabel = $sellingPriceLabel !== '' ? $sellingPriceLabel : formatVoucherPriceLabel($item['price'] ?? '');
     $dataQuota = isset($item['data_quota_mb']) ? (int)$item['data_quota_mb'] : 0;
-    $dataLabel = $dataQuota > 0
-        ? str_replace('GB', 'GO', formatVoucherDataLimitLabel($dataQuota))
-        : '';
+    $dataLabel = $dataQuota > 0 ? formatVoucherDataLimitLabel($dataQuota) : '';
     $validityLabel = formatVoucherTimeLimitLabel(isset($item['validity_time']) ? (int)$item['validity_time'] : 0);
     $sessionLimitLabel = formatVoucherTimeLimitLabel(isset($item['session_timeout']) ? (int)$item['session_timeout'] : 0);
     $metaPartsWide = [];
@@ -229,6 +232,15 @@ function renderVoucherTicketCard(array $item, int $index, string $hotspotName, a
     $brandFallback = $logoText !== '' ? $logoText : strtoupper(substr($titleLabel !== '' ? $titleLabel : 'H', 0, 1));
     $wideColspan = 1 + ($showQr ? 1 : 0);
     $safeTitleLabel = $titleLabel !== '' ? $titleLabel : 'Hotspot';
+    $printedBy = trim((string)($item['printed_by'] ?? ''));
+    $printedAtValue = trim((string)($item['printed_at'] ?? ''));
+    $printedAtTimestamp = $printedAtValue !== '' ? strtotime($printedAtValue) : false;
+    $printLabel = $printedAtTimestamp !== false && $printedBy !== ''
+        ? date('d/m/Y', $printedAtTimestamp) . ' par ' . $printedBy
+        : '';
+    $printLineClass = $isWide && $loginHost !== ''
+        ? 'mkh-login-line'
+        : 'mkh-meta-line' . ($isWide ? '' : ' mkh-small-meta-line');
 
     ob_start();
     ?>
@@ -303,6 +315,13 @@ function renderVoucherTicketCard(array $item, int $index, string $hotspotName, a
                                             </td>
                                         </tr>
                                     <?php endif; ?>
+                                    <?php if ($printLabel !== ''): ?>
+                                        <tr>
+                                            <td colspan="<?= (int)$wideColspan ?>" class="<?= htmlspecialchars($printLineClass) ?>">
+                                                <?= htmlspecialchars($printLabel) ?>
+                                            </td>
+                                        </tr>
+                                    <?php endif; ?>
                                 <?php else: ?>
                                     <?php if ($loginHost !== ''): ?>
                                         <tr>
@@ -324,6 +343,13 @@ function renderVoucherTicketCard(array $item, int $index, string $hotspotName, a
                                             <?= htmlspecialchars($smallMetaLabel) ?>
                                         </td>
                                     </tr>
+                                    <?php if ($printLabel !== ''): ?>
+                                        <tr>
+                                            <td colspan="2" class="<?= htmlspecialchars($printLineClass) ?>">
+                                                <?= htmlspecialchars($printLabel) ?>
+                                            </td>
+                                        </tr>
+                                    <?php endif; ?>
                                 <?php endif; ?>
                             </tbody>
                         </table>

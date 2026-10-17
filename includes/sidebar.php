@@ -6,7 +6,8 @@ require_once __DIR__ . '/admin_notifications.php';
 require_once __DIR__ . '/../config/db.php';
 
 $current = basename($_SERVER['PHP_SELF']);
-$appContext = buildAppContext();
+$isSystemToolsPage = str_contains((string)($_SERVER['REQUEST_URI'] ?? ''), '/tools/install.php');
+$appContext = is_array($appContext ?? null) ? $appContext : buildAppContext();
 $navbarDevice = $appContext['device'] ?? [
     'id' => null,
     'name' => 'Aucun device',
@@ -45,7 +46,13 @@ $navbarSearchIndex = array_values(array_filter(
     }
 ));
 $isAdminUser = isAdministrator();
-$navbarUnreadNotifications = $isAdminUser ? countUnreadAdminNotifications($pdo) : 0;
+$notifStartTime = microtime(true);
+$navbarUnreadNotifications = $isAdminUser ? countUnreadAdminNotificationsCached($pdo, 60) : 0;
+$notifDuration = microtime(true) - $notifStartTime;
+$isSuperAdminUser = isSuperAdministrator();
+if ($isAdminUser) {
+    error_log(sprintf('[PERF] countUnreadAdminNotificationsCached: %.3f sec', $notifDuration));
+}
 ?>
 
 <nav class="navbar navbar-expand-lg navbar-dark fixed-top" id="main-navbar">
@@ -297,10 +304,25 @@ $navbarUnreadNotifications = $isAdminUser ? countUnreadAdminNotifications($pdo) 
 </a>
 
 <!-- TRAFFIC -->
-<a href="traffic_monitoring.php"
-   class="list-group-item level-0 <?= ($current=='traffic_monitoring.php')?'active':'' ?>">
-    <i class="fa fa-area-chart"></i> Traffic Monitor
-</a>
+<div class="menu-item">
+    <div class="list-group-item dropdown-btn level-0">
+        <span><i class="fa fa-chart-line"></i> Gestion du trafic</span>
+        <i class="fa fa-caret-down"></i>
+    </div>
+
+    <div class="submenu-group">
+        <a href="traffic_monitoring.php"
+           class="list-group-item level-1 <?= ($current === 'traffic_monitoring.php') ? 'active' : '' ?>">
+            <i class="fa fa-area-chart"></i> Traffic Monitor
+        </a>
+        <?php if ($isAdminUser): ?>
+        <a href="traffic_control.php"
+           class="list-group-item level-1 <?= ($current === 'traffic_control.php') ? 'active' : '' ?>">
+            <i class="fa fa-network-wired"></i> DNS et réseau
+        </a>
+        <?php endif; ?>
+    </div>
+</div>
 
 <!-- FINANCES -->
 <div class="menu-item">
@@ -322,7 +344,7 @@ $navbarUnreadNotifications = $isAdminUser ? countUnreadAdminNotifications($pdo) 
         <?php if ($isAdminUser): ?>
         <a href="recouvrement.php"
            class="list-group-item level-1 <?= ($current=='recouvrement.php')?'active':'' ?>">
-            <i class="fa fa-hand-holding-dollar"></i> Rouvrement
+            <i class="fa fa-hand-holding-dollar"></i> Recouvrement
         </a>
         <a href="recouvrement_invoices.php"
            class="list-group-item level-1 <?= ($current=='recouvrement_invoices.php')?'active':'' ?>">
@@ -355,12 +377,20 @@ $navbarUnreadNotifications = $isAdminUser ? countUnreadAdminNotifications($pdo) 
        class="list-group-item level-1 <?= ($current=='network_devices.php')?'active':'' ?>">
         <i class="fa fa-network-wired"></i> Network Devices
     </a>
+    <?php if ($isSuperAdminUser): ?>
+    <a href="/tools/install.php" class="list-group-item level-1 <?= $isSystemToolsPage ? 'active' : '' ?>">
+        <i class="fa fa-screwdriver-wrench"></i> Outils système
+    </a>
+    <?php endif; ?>
+
 
     <!-- MIKHMON -->
+    <?php if ($isSuperAdminUser): ?>
     <a href="freeradius.php"
        class="list-group-item level-1 <?= ($current=='freeradius.php')?'active':'' ?>">
         <i class="fa fa-server"></i> FreeRADIUS
     </a>
+    <?php endif; ?>
 
     <a href="portal_profiles.php"
        class="list-group-item level-1 <?= ($current=='portal_profiles.php')?'active':'' ?>">

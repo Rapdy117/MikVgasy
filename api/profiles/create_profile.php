@@ -29,6 +29,20 @@ function post_int_or_default(string $key, int $default = 0): ?int
     return (int)$value;
 }
 
+function post_float_or_default(string $key, float $default = 0.0): ?float
+{
+    $value = trim((string)($_POST[$key] ?? ''));
+    if ($value === '') {
+        return $default;
+    }
+
+    if (!is_numeric($value)) {
+        return null;
+    }
+
+    return (float)$value;
+}
+
 function convertDurationToSeconds(int $value, string $unit): int
 {
     if ($value <= 0) {
@@ -82,6 +96,19 @@ function buildRouterOsDurationFromSeconds(int $seconds): ?string
     return implode('', $parts);
 }
 
+function convertDataValueToMegabytes(float $value, string $unit): int
+{
+    if ($value <= 0) {
+        return 0;
+    }
+
+    return match (strtoupper(trim($unit))) {
+        'KB' => (int)round($value / 1024),
+        'GB' => (int)round($value * 1024),
+        default => (int)round($value),
+    };
+}
+
 function buildRateLimitFromParts(?string $uploadValue, ?string $uploadUnit, ?string $downloadValue, ?string $downloadUnit): ?string
 {
     $up = trim((string)$uploadValue);
@@ -132,7 +159,7 @@ function require_valid_csrf(): void
 function buildProfileTargetContext(PDO $pdo, string $deviceId, ?int $nasId = null): array
 {
     $deviceStore = loadDeviceStore();
-    $device = findDeviceById($deviceStore, $deviceId);
+    $device = requireAccessibleDevice($deviceStore, $deviceId);
     if (!is_array($device)) {
         throw new Exception('Device introuvable');
     }
@@ -193,7 +220,17 @@ try {
     $idle = post_int_or_default('idle_timeout', 0);
     $data = post_int_or_default('data_limit', 0);
     $dataQuota = post_int_or_default('data_quota_mb', 0);
-    if ($dataQuota !== null && $dataQuota > 0) {
+    $dataQuotaValue = post_float_or_default('data_quota_value', 0.0);
+    $dataQuotaUnit = strtoupper(post_string_or_null('data_quota_unit') ?? 'GB');
+    if (!in_array($dataQuotaUnit, ['KB', 'MB', 'GB'], true)) {
+        throw new Exception("Unite de quota invalide");
+    }
+    if ($dataQuotaValue === null) {
+        throw new Exception("Valeur de quota invalide");
+    }
+    if (array_key_exists('data_quota_value', $_POST)) {
+        $data = $dataQuotaValue > 0 ? convertDataValueToMegabytes($dataQuotaValue, $dataQuotaUnit) : 0;
+    } elseif ($dataQuota !== null && $dataQuota > 0) {
         $data = $dataQuota;
     }
     $simu = post_int_or_default('simultaneous_use', 1);
@@ -263,6 +300,25 @@ try {
     }
 
     if ($businessSource === 'mikrotik_local') {
+        $degradedParts = [
+            post_string_or_null('degraded_upload_value'),
+            post_string_or_null('degraded_upload_unit'),
+            post_string_or_null('degraded_download_value'),
+            post_string_or_null('degraded_download_unit'),
+        ];
+        $degradedFilled = count(array_filter($degradedParts, static fn($part) => $part !== null));
+        if ($degradedFilled !== 0 && $degradedFilled !== 4) {
+            echo json_encode(['success' => false, 'message' => 'Débit dégradé incomplet : renseigner UPLOAD et DOWNLOAD.']);
+            exit;
+        }
+        $degradedRate = $degradedFilled === 4
+            ? buildRateLimitFromParts($degradedParts[0], $degradedParts[1], $degradedParts[2], $degradedParts[3])
+            : null;
+        if ($degradedFilled === 4 && $degradedRate === null) {
+            echo json_encode(['success' => false, 'message' => 'Débit dégradé invalide : valeurs positives requises.']);
+            exit;
+        }
+
         $payload = [
             'name' => $name,
             'old_name' => $hasOldName ? $oldProfileName : $name,
@@ -280,6 +336,7 @@ try {
             'ip_pool' => $addressPool,
             'parent_queue' => $parentQueue,
             'validity_routeros' => $validityRouteros,
+            'degraded_rate' => $degradedRate,
         ];
 
         $confirmedProfile = $isUpdate

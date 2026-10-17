@@ -1,6 +1,7 @@
 <?php
 
 require_once __DIR__ . '/device_manager.php';
+require_once __DIR__ . '/license.php';
 
 function normalizeNasType(string $nasType): string
 {
@@ -188,6 +189,9 @@ function resolveNasContextFromInputs(PDO $pdo, ?int $nasId = null, ?string $devi
         if (!$device) {
             throw new RuntimeException('Device introuvable');
         }
+
+        /* ── Vérification licence ── */
+        requireDeviceLicensed($device);
 
         if ($explicitNas) {
             $context = loadNasContext($pdo, (int)$nasId);

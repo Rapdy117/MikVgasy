@@ -37,7 +37,7 @@ if (!isset($_SESSION['logged_in']) || $_SESSION['logged_in'] !== true) {
     exit;
 }
 
-if (!isAdministrator()) {
+if (!isSuperAdministrator()) {
     http_response_code(403);
     echo json_encode([
         'success' => false,

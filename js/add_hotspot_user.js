@@ -347,7 +347,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
             const rawValue = Number.parseFloat(rawInput.replace(',', '.'));
             const value = Number.isFinite(rawValue) ? Math.max(0, rawValue) : 0;
-            const unit = String(dataLimitUnitSelect?.value || 'MB').toUpperCase();
+            const unit = String(dataLimitUnitSelect?.value || 'GB').toUpperCase();
 
             let valueInMb = value;
             if (unit === 'GB') {
@@ -411,13 +411,53 @@ document.addEventListener('DOMContentLoaded', () => {
         });
 
     if (form) {
+    // Type de compte : seuls les champs utiles au type choisi sont affichés (les autres sont masqués et non envoyés).
+    const loginModeSelect = document.getElementById('loginModeSelect');
+    const accountFields = {
+        nameRow: document.getElementById('nameRow'),
+        nameInput: document.getElementById('usernameInput'),
+        passwordRow: document.getElementById('passwordRow'),
+        passwordInput: document.getElementById('passwordInput'),
+        macRow: document.getElementById('macRow'),
+        macInput: document.getElementById('macInput'),
+        macLabel: document.getElementById('macLabel'),
+        labelRow: document.getElementById('labelRow'),
+        labelInput: document.getElementById('labelInput'),
+    };
+    function applyLoginMode() {
+        const isMac = loginModeSelect?.value === 'mac';
+        const f = accountFields;
+        f.nameRow.hidden = isMac;
+        f.nameInput.disabled = isMac;
+        f.nameInput.required = !isMac;
+        f.passwordRow.hidden = isMac;
+        f.passwordInput.disabled = isMac;
+        f.passwordInput.required = !isMac;
+        f.macRow.hidden = false;
+        f.macLabel.textContent = isMac ? 'MAC' : 'MAC (restriction, facultatif)';
+        f.macInput.required = isMac;
+        f.macInput.pattern = '([0-9A-Fa-f]{2}:){5}[0-9A-Fa-f]{2}';
+        f.macInput.placeholder = 'AA:BB:CC:DD:EE:FF';
+        f.labelRow.hidden = !isMac;
+        f.labelInput.required = isMac;
+        f.labelInput.disabled = !isMac;
+    }
+    loginModeSelect?.addEventListener('change', applyLoginMode);
+    applyLoginMode();
+
         form.addEventListener('submit', async (event) => {
             event.preventDefault();
             const resolvedDeviceId = syncSelectedNasHiddenFields();
             syncSelectedProfileHiddenFields();
             syncComputedLimits();
 
+
             const formData = new FormData(form);
+            if (loginModeSelect?.value === 'mac') {
+                // Compte MAC : le nom RouterOS est la MAC, sans mot de passe.
+                formData.set('username', (document.getElementById('macInput')?.value || '').trim().toUpperCase());
+                formData.delete('password');
+            }
             if (resolvedDeviceId) {
                 formData.set('device_id', resolvedDeviceId);
             }
@@ -431,17 +471,17 @@ document.addEventListener('DOMContentLoaded', () => {
                 const data = await response.json();
 
                 if (!data.success) {
-                    alert(data.message || 'Creation impossible');
+                    AppToast.flash(data.message || 'Creation impossible', 'danger');
                     return;
                 }
 
-                alert('Utilisateur cree avec succes');
+                AppToast.flash('Utilisateur créé avec succès', 'success');
                 form.reset();
                 await loadNasOptions();
                 syncComputedLimits();
             } catch (error) {
                 console.error(error);
-                alert('Erreur serveur');
+                AppToast.flash('Erreur serveur', 'danger');
             }
         });
     }

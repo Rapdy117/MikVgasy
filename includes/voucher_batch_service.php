@@ -6,7 +6,7 @@ require_once __DIR__ . '/profile_catalog.php';
 
 function generateVoucherBatchCode(string $prefix, int $length): string
 {
-    $chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+    $chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ';
     $token = '';
     $max = strlen($chars) - 1;
 
@@ -16,12 +16,12 @@ function generateVoucherBatchCode(string $prefix, int $length): string
 
     $prefix = strtoupper(trim($prefix));
 
-    return $prefix !== '' ? $prefix . '-' . $token : $token;
+    return $prefix !== '' ? $prefix . $token : $token;
 }
 
 function generateVoucherBatchSecret(int $length): string
 {
-    $chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789abcdefghijkmnpqrstuvwxyz';
+    $chars = '0123456789';
     $token = '';
     $max = strlen($chars) - 1;
 
@@ -74,12 +74,12 @@ function findVoucherProfileByName(PDO $pdo, string $profileName): ?array
 function resolveVoucherBatchProfile(PDO $pdo, array $deviceStore, int $profileId, string $profileName, string $deviceId): ?array
 {
     $profileName = trim($profileName);
-    $device = null;
-    if (trim($deviceId) !== '') {
-        $device = findDeviceById($deviceStore, $deviceId);
-    } else {
-        $device = getActiveDeviceRecord($deviceStore);
+    $deviceId = trim($deviceId);
+    if ($deviceId === '') {
+        throw new RuntimeException('Device selectionne requis pour le lot de vouchers.');
     }
+
+    $device = requireAccessibleDevice($deviceStore, $deviceId);
 
     if (!is_array($device) || trim((string)($device['type'] ?? '')) === '') {
         throw new RuntimeException('Device requis pour le lot de vouchers.');
@@ -156,7 +156,7 @@ function buildPendingVoucherBatch(array $profile, string $deviceId, int $quantit
         $generatedEntries[] = [
             'code' => $username,
             'username' => $username,
-            'password' => generateVoucherBatchSecret($length),
+            'password' => generateVoucherBatchSecret(4),
         ];
     }
 

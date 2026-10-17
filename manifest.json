@@ -1,0 +1,26 @@
+{
+  "name": "Radius Manager",
+  "short_name": "Radius Mgr",
+  "description": "Administration Hotspot / MikroTik / RADIUS",
+  "start_url": "/index.php",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#030820",
+  "theme_color": "#030820",
+  "lang": "fr",
+  "icons": [
+    {
+      "src": "assets/icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "assets/icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    }
+  ]
+}

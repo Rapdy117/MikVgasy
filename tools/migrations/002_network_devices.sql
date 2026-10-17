@@ -1,0 +1,6 @@
+CREATE TABLE IF NOT EXISTS network_devices (
+ id VARCHAR(191) NOT NULL PRIMARY KEY, name VARCHAR(191) NOT NULL, type ENUM('mikrotik','opnsense','radius') NOT NULL, host VARCHAR(255) NOT NULL DEFAULT '', backend_driver VARCHAR(64) NOT NULL, api_key TEXT NULL, api_secret TEXT NULL, secret TEXT NULL, verify_ssl TINYINT(1) NOT NULL DEFAULT 0, port INT NULL, vendor VARCHAR(100) NULL, device_fingerprint VARCHAR(128) NULL, hardware_info JSON NULL, license_key TEXT NULL, license_status VARCHAR(32) NULL, license_expiry VARCHAR(64) NULL, license_issued VARCHAR(32) NULL, created_at DATETIME NULL, updated_at DATETIME NULL, is_active TINYINT(1) NOT NULL DEFAULT 1, INDEX idx_network_devices_type (type), INDEX idx_network_devices_active (is_active)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+CREATE TABLE IF NOT EXISTS admin_device_assignments (
+ admin_id BIGINT UNSIGNED NOT NULL, device_id VARCHAR(191) NOT NULL, created_by_user_id BIGINT UNSIGNED NULL, created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP, PRIMARY KEY (admin_id, device_id), INDEX idx_assignment_device (device_id), CONSTRAINT fk_assignment_device FOREIGN KEY (device_id) REFERENCES network_devices(id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;

@@ -15,7 +15,7 @@ if (!isset($_SESSION['logged_in']) || $_SESSION['logged_in'] !== true) {
 }
 
 try {
-    requireAdministratorAccess('La creation de facture est reservee a l administrateur.');
+    requireRecouvrementAccess('La creation de facture est reservee a l administrateur.');
 
     $csrf = trim((string)($_POST['csrf_token'] ?? ''));
     if ($csrf === '' || !hash_equals($_SESSION['csrf_token'] ?? '', $csrf)) {

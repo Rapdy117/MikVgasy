@@ -82,18 +82,12 @@ require_once __DIR__ . '/../includes/layout_header.php';
 </div>
 
 <div class="row">
-<div class="col-lg-6 mb-3">
+<div class="col-lg-8 order-lg-1 mb-3">
 <div class="card shadow-sm h-100">
 <div class="card-header standard-card-header">
     <i class="fa fa-list me-2"></i> Bindings existants
 </div>
 <div class="card-body">
-
-<div class="d-flex justify-content-end mb-3">
-    <a href="ip_bindings.php" class="btn btn-test">
-        <i class="fa fa-arrow-left me-1"></i> Retour
-    </a>
-</div>
 
 <?php if (!$isMikrotik && !$isOpnsense): ?>
     <div class="p-5 text-center text-white-50 opacity-50">
@@ -125,7 +119,16 @@ require_once __DIR__ . '/../includes/layout_header.php';
         </tr>
         <?php else: ?>
         <?php foreach ($bindings as $binding): ?>
-        <tr>
+        <?php
+        if ($isMikrotik) {
+            $editHref = 'add_ip_binding.php?binding_id=' . urlencode((string)($binding['id'] ?? ''));
+        } else {
+            $editHref = 'add_ip_binding.php?zone_uuid=' . urlencode((string)($binding['zone_uuid'] ?? ''))
+                . '&binding_value=' . urlencode((string)($binding['binding_value'] ?? ''))
+                . '&binding_kind=' . urlencode((string)($binding['binding_kind'] ?? ''));
+        }
+        ?>
+        <tr style="cursor:pointer" onclick="window.location.href='<?= htmlspecialchars($editHref, ENT_QUOTES) ?>'">
             <td><?= htmlspecialchars((string)(($binding['address'] ?? '') !== '' ? $binding['address'] : '-')) ?></td>
             <td><?= htmlspecialchars((string)(($binding['mac'] ?? '') !== '' ? $binding['mac'] : '-')) ?></td>
             <td><?= htmlspecialchars((string)(($binding['type'] ?? '') !== '' ? $binding['type'] : '-')) ?></td>
@@ -144,7 +147,7 @@ require_once __DIR__ . '/../includes/layout_header.php';
 </div>
 </div>
 
-<div class="col-lg-6 mb-3">
+<div class="col-lg-4 order-lg-2 mb-3">
 <div class="card shadow-sm h-100">
 <div class="card-header standard-card-header">
     <i class="fa fa-plus-circle me-2"></i> <?= $selectedBinding ? 'Édition du binding' : 'Nouveau binding' ?>
@@ -167,12 +170,11 @@ require_once __DIR__ . '/../includes/layout_header.php';
 <input type="hidden" name="original_kind" value="<?= htmlspecialchars((string)($selectedBinding['binding_kind'] ?? ''), ENT_QUOTES) ?>">
 <?php endif; ?>
 
-<div class="d-flex justify-content-between align-items-center mb-4">
-    <h6 class="text-white small mb-0">
-        <i class="fa fa-info-circle me-2"></i> Paramètres
-    </h6>
-
+<div class="d-flex justify-content-end align-items-center mb-4">
     <div class="d-flex gap-2">
+        <a href="add_ip_binding.php" class="btn btn-test" id="newBindingBtn">
+            <i class="fa fa-plus me-1"></i> Nouveau
+        </a>
         <button type="submit" class="btn btn-save" id="saveBtn">
             <i class="fa fa-save me-1"></i> Enregistrer
         </button>
@@ -183,9 +185,6 @@ require_once __DIR__ . '/../includes/layout_header.php';
         </button>
         <?php endif; ?>
 
-        <a href="ip_bindings.php" class="btn btn-test" id="cancelBtn">
-            <i class="fa fa-times me-1"></i> Annuler
-        </a>
     </div>
 </div>
 
@@ -265,6 +264,67 @@ require_once __DIR__ . '/../includes/layout_header.php';
 </div>
 <?php endif; ?>
 </form>
+
+<?php if ($isMikrotik): ?>
+<?php if ($selectedBinding): ?>
+<div class="modal fade" id="deleteBindingModal" tabindex="-1" aria-labelledby="deleteBindingModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content text-white" style="background:#0b0f1a;border:1px solid #1e2a3a">
+            <div class="modal-header border-0">
+                <h5 class="modal-title text-danger" id="deleteBindingModalLabel"><i class="fa fa-trash me-2"></i>Confirmer la suppression</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Fermer"></button>
+            </div>
+            <div class="modal-body">
+                <p>Voulez-vous supprimer cet IP binding ?</p>
+                <dl class="row small mb-3">
+                    <dt class="col-4">Adresse</dt><dd class="col-8" id="deleteBindingAddress">-</dd>
+                    <dt class="col-4">MAC</dt><dd class="col-8" id="deleteBindingMac">-</dd>
+                    <dt class="col-4">Commentaire</dt><dd class="col-8" id="deleteBindingComment">-</dd>
+                </dl>
+                <div class="form-check form-switch">
+                    <input class="form-check-input" type="checkbox" role="switch" id="deleteMatchingDhcpLease" name="delete_dhcp_lease" value="1">
+                    <label class="form-check-label" for="deleteMatchingDhcpLease">Supprimer aussi le lease DHCP fixe correspondant</label>
+                </div>
+                <div id="deleteBindingMessage" class="small mt-3" role="status"></div>
+            </div>
+            <div class="modal-footer border-0">
+                <button type="button" class="btn btn-test" data-bs-dismiss="modal">Annuler</button>
+                <button type="button" class="btn btn-delete" id="confirmDeleteBindingBtn">Supprimer</button>
+            </div>
+        </div>
+    </div>
+</div>
+<?php endif; ?>
+<div class="modal fade" id="dhcpLeaseSyncModal" tabindex="-1" aria-labelledby="dhcpLeaseSyncModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content text-white" style="background:#0b0f1a;border:1px solid #1e2a3a">
+            <div class="modal-header border-0">
+                <h5 class="modal-title" id="dhcpLeaseSyncModalLabel"><i class="fa fa-network-wired me-2"></i>Synchroniser le matériel</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Fermer"></button>
+            </div>
+            <form id="dhcpLeaseSyncForm" class="network-device-form">
+                <div class="modal-body">
+                    <p class="text-white-50 small">Créer ou mettre à jour un lease DHCP fixe pour ce matériel MikroTik ?</p>
+                    <div class="input-group mb-2"><span class="input-group-text">Adresse</span><input class="form-control" id="dhcpSyncAddress" name="address" required></div>
+                    <div class="input-group mb-2"><span class="input-group-text">MAC</span><input class="form-control" id="dhcpSyncMac" name="mac" required></div>
+                    <div class="input-group mb-2"><span class="input-group-text">Nom</span><input class="form-control" name="host_name"></div>
+                    <div class="input-group mb-2"><span class="input-group-text">Serveur</span><input class="form-control" name="server"></div>
+                    <div class="input-group"><span class="input-group-text">Commentaire</span><input class="form-control" name="comment"></div>
+                    <div class="form-check form-switch text-white mt-3">
+                        <input class="form-check-input" type="checkbox" role="switch" id="dhcpSyncDisabled" name="disabled" value="1">
+                        <label class="form-check-label" for="dhcpSyncDisabled">Lease DHCP désactivé</label>
+                    </div>
+                    <div id="dhcpLeaseSyncMessage" class="small mt-3" role="status"></div>
+                </div>
+                <div class="modal-footer border-0">
+                    <button type="button" class="btn btn-test" id="skipDhcpSyncBtn" data-bs-dismiss="modal">Ignorer</button>
+                    <button type="submit" class="btn btn-save" id="syncDhcpLeaseBtn"><i class="fa fa-arrows-rotate me-1"></i>Synchroniser</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+<?php endif; ?>
 
 <?php endif; ?>
 

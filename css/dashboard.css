@@ -1,0 +1,266 @@
+/* Tableau de bord : mise a niveau visuelle (2026-10-11), alignee sur traffic_monitoring.css /
+   traffic_control.css / portal_profiles.css. Fichier dedie, rien dans css/theme.css n'est modifie :
+   toutes les regles ci-dessous sont scopees a .dashboard-page pour ne jamais deborder sur d'autres
+   pages qui partagent certaines classes (ex. .dashboard-summary-item, utilisee aussi par les pages
+   OPNsense via .opnsense-card-grid).
+*/
+
+/* Tuiles indicateur : meme recette que .traffic-source-kpi / .portal-summary-item (degrade radial
+   discret + liseré bas colore + libelle en majuscules). Reserve a l'affichage en lecture seule. */
+.dashboard-page .dashboard-summary-item {
+    --dash-accent: var(--theme-primary, #17a2b8);
+    position: relative;
+    overflow: hidden;
+    border-radius: .5rem;
+    background: radial-gradient(circle at 95% 0, color-mix(in srgb, var(--dash-accent) 16%, transparent), transparent 45%), rgba(255, 255, 255, 0.04);
+}
+
+.dashboard-page .dashboard-summary-item::after {
+    content: '';
+    position: absolute;
+    inset-inline: 0;
+    inset-block-end: 0;
+    block-size: 3px;
+    background: var(--dash-accent);
+    opacity: .85;
+}
+
+.dashboard-page .dashboard-summary-item .dashboard-summary-label {
+    color: rgba(226, 232, 240, .68);
+    font-size: .72rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: .04em;
+}
+
+.dashboard-page .device-card-grid .dashboard-summary-item:nth-child(1) { --dash-accent: #38bdf8; }
+.dashboard-page .device-card-grid .dashboard-summary-item:nth-child(2) { --dash-accent: #a78bfa; }
+.dashboard-page .device-card-grid .dashboard-summary-item:nth-child(3) { --dash-accent: #22c55e; }
+.dashboard-page .device-card-grid .dashboard-summary-item:nth-child(4) { --dash-accent: #f59e0b; }
+
+/* theme.css definit .dashboard-right-column en grid 2 lignes (auto + 1fr), pense pour 2 blocs.
+   Cette page a 3 lignes (etat reseau, device actif, evenements) : avec le grid d'origine, les
+   lignes "auto" s'etirent aussi (align-content:stretch) et laissent des vides dans toutes les
+   cartes au lieu du seul bloc "Derniers evenements". On repasse en flex column ici : seule la
+   ligne evenements absorbe l'espace restant, les autres gardent leur hauteur de contenu. */
+.dashboard-page .dashboard-right-column {
+    display: flex;
+    flex-direction: column;
+    min-height: 100%;
+}
+
+.dashboard-page .dashboard-right-column > .row {
+    flex: 0 0 auto;
+}
+
+.dashboard-page .dashboard-right-column > .dashboard-events-row {
+    flex: 1 1 auto;
+    min-height: 0;
+    max-height: 320px;
+}
+
+.dashboard-page .dashboard-events-row .card {
+    max-height: 320px;
+}
+
+/* Carte "Etat reseau & serveur" : reutilise .traffic-overview-check / .traffic-card-* de
+   traffic_control.css (chargee sur cette page), pas de classes dupliquees ici. */
+
+/* Carte "Consommation par Kit (WAN)" : barre globale empilee (part de chaque Kit dans le total,
+   pas de quota) + mini-barre identique dans chaque tuile .traffic-overview-check. */
+/* Bande Passante Live : meme gabarit que .traffic-history-card (traffic_control.css), mais la
+   canvas doit rester plus grande ici car c'est le graphe principal de la page, pas une mini-carte
+   d'historique. */
+.dashboard-page .dashboard-bandwidth-canvas,
+.dashboard-page .dashboard-bandwidth-canvas canvas {
+    height: 13rem !important;
+    max-height: 13rem !important;
+}
+
+/* Bilan : compacte verticalement maintenant que la carte est pleine largeur - les 3 blocs
+   (montants, mini-stats, tendance) passent de empiles a cote a cote. */
+.dashboard-page .dashboard-sales-row .sales-inline-card-standalone {
+    display: grid;
+    grid-template-columns: minmax(0, 1.1fr) minmax(0, .85fr) minmax(0, 1.4fr);
+    gap: .6rem;
+    align-items: stretch;
+}
+
+.dashboard-page .dashboard-sales-row .sales-inline-card-standalone > .mt-2 {
+    margin-top: 0 !important;
+}
+
+.dashboard-page .dashboard-sales-row .dashboard-summary-list {
+    gap: 6px;
+}
+
+.dashboard-page .dashboard-sales-row .dashboard-summary-item {
+    padding: 6px 8px;
+}
+
+.dashboard-page .dashboard-sales-row .sales-mini-stats {
+    grid-template-columns: 1fr;
+    gap: 6px;
+}
+
+.dashboard-page .dashboard-sales-row .sales-mini-stat {
+    position: relative;
+    overflow: hidden;
+    padding: 6px 8px;
+}
+
+.dashboard-page .dashboard-sales-row .sales-mini-stat::after {
+    content: '';
+    position: absolute;
+    inset-inline: 0;
+    inset-block-end: 0;
+    block-size: 2px;
+    background: var(--theme-primary, #17a2b8);
+    opacity: .75;
+}
+
+.dashboard-page .dashboard-sales-row .sales-trend-card {
+    padding: 8px 10px;
+}
+
+.dashboard-page .dashboard-sales-row .sales-trend-bars {
+    height: 54px;
+}
+
+.dashboard-page .dashboard-sales-row .sales-trend-header {
+    margin-bottom: 4px;
+}
+
+.dashboard-page .dashboard-sales-row .sales-trend-footer {
+    margin-top: 4px;
+}
+
+@media (max-width: 768px) {
+    .dashboard-page .dashboard-sales-row .sales-inline-card-standalone {
+        grid-template-columns: 1fr;
+    }
+}
+
+.dashboard-page .dashboard-kit-separator {
+    margin: .4rem 0;
+    border: none;
+    border-top: 1px solid rgba(148, 163, 184, .16);
+}
+
+.dashboard-page #bandwidthAdditionalInfo:empty {
+    display: none;
+}
+
+.dashboard-page .dashboard-bandwidth-card {
+    position: relative;
+    overflow: hidden;
+}
+
+/* Meme logique de reveal progressif que les tuiles : le degrade bleu->vert->orange->rouge est fixe
+   sur toute la largeur, un cache (span) recouvre la portion non atteinte depuis la droite. */
+.dashboard-page .dashboard-kit-global-bar {
+    position: absolute;
+    inset: auto 0 0 0;
+    width: 100%;
+    height: 3px;
+    margin: 0;
+    overflow: hidden;
+    background: linear-gradient(90deg, #3b82f6, #22c55e, #f59e0b, #ef4444);
+    opacity: .85;
+}
+
+.dashboard-page .dashboard-kit-global-bar span {
+    display: block;
+    position: absolute;
+    inset-block: 0;
+    inset-inline-end: 0;
+    height: 100%;
+    background: #0f172a;
+    transition: width .2s ease;
+}
+
+/* Part de chaque Kit : plus de mini-barre a part, fusionnee dans la bordure basse de la tuile
+   (le ::after de .traffic-overview-check devient la barre de progression elle-meme). */
+/* --card-accent = couleur d'identite du Kit (bordure/icone, fixe par WAN). La ligne de progression
+   du bas n'a plus besoin de couleur calculee : c'est un degrade fixe revele progressivement
+   (::before/::after plus bas), donc decouple de --card-accent. */
+.dashboard-page #dashboardKitTiles .traffic-overview-check {
+    --kit-ratio: 0;
+}
+
+.dashboard-page #dashboardKitTiles .traffic-overview-check.is-kit-disabled {
+    --card-accent: #475569;
+    opacity: .45;
+    filter: grayscale(.6);
+}
+
+/* Fusionnee au bord bas reel de la tuile (edge-to-edge, pas de marge), comme la barre globale de
+   la carte - "merge au bordure bas", pas une ligne flottante au-dessus du bord.
+   Degrade progressif : ::before porte le degrade fixe bleu->vert->orange->rouge sur toute la
+   largeur (l'echelle complete) ; ::after est un cache qui recouvre la portion non atteinte, pour
+   reveler progressivement la couleur correspondant au niveau reel (et non une seule teinte unie). */
+.dashboard-page #dashboardKitTiles .traffic-overview-check::before {
+    content: '';
+    position: absolute;
+    inset: auto 0 0 0;
+    height: 3px;
+    background: linear-gradient(90deg, #3b82f6, #22c55e, #f59e0b, #ef4444);
+}
+
+.dashboard-page #dashboardKitTiles .traffic-overview-check::after {
+    inset: auto 0 0 auto;
+    width: calc(100% * (100 - var(--kit-ratio)) / 100);
+    height: 3px;
+    background: #0f172a;
+    opacity: 1;
+    transition: width .2s ease;
+}
+
+/* Tuiles Hotspot (raccourcis cliquables) : meme gabarit .traffic-overview-check, mais ce ne sont
+   pas de simples indicateurs en lecture seule donc on garde un effet de survol/focus visible. */
+.dashboard-page .dashboard-hotspot-tiles .traffic-overview-check.card-shortcut {
+    cursor: pointer;
+    transition: transform .12s ease, box-shadow .12s ease;
+}
+
+.dashboard-page .dashboard-hotspot-tiles .traffic-overview-check.card-shortcut:hover,
+.dashboard-page .dashboard-hotspot-tiles .traffic-overview-check.card-shortcut:focus-visible {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 16px rgba(0, 0, 0, .28);
+    outline: none;
+}
+
+/* traffic_control.css applique une marge au-dessus de chaque tuile suivante (pense pour une liste
+   empilee verticalement). Ici les tuiles sont cote a cote sur une meme ligne de grille : cette marge
+   decale les tuiles 2+ vers le bas et fait paraitre la 1ere plus haute. On la neutralise ici. */
+.dashboard-page .dashboard-hotspot-tiles .traffic-overview-check + .traffic-overview-check,
+.dashboard-page .dashboard-health-row .traffic-overview-check + .traffic-overview-check,
+#dashboardKitTiles .traffic-overview-check + .traffic-overview-check {
+    margin-top: 0;
+}
+
+/* Raccourcis Hotspot (anciens card-shortcut en dehors des tuiles .traffic-overview-check) : liseré
+   discret au survol. Exclu des tuiles .traffic-overview-check, qui ont deja leur propre liseré
+   permanent (::after de traffic_control.css) - les deux regles sur le meme pseudo-element se
+   marchaient dessus et cachaient la ligne des tuiles Hotspot tant qu'on ne survolait pas. */
+.dashboard-page .card-shortcut:not(.traffic-overview-check) {
+    position: relative;
+    overflow: hidden;
+}
+
+.dashboard-page .card-shortcut:not(.traffic-overview-check)::after {
+    content: '';
+    position: absolute;
+    inset-inline: 0;
+    inset-block-end: 0;
+    block-size: 2px;
+    background: var(--theme-primary, #17a2b8);
+    opacity: 0;
+    transition: opacity .15s ease;
+}
+
+.dashboard-page .card-shortcut:not(.traffic-overview-check):hover::after,
+.dashboard-page .card-shortcut:not(.traffic-overview-check):focus-visible::after {
+    opacity: .85;
+}
+

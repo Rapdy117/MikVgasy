@@ -2,9 +2,11 @@ const DASHBOARD_REFRESH_MS = 45000;
 const OPN_LIVE_REFRESH_MS = 2000;
 const TRAFFIC_DURATION_MS = 20000;
 const TRAFFIC_DELAY_MS = 2000;
+const RECENT_EVENTS_LIMIT = 20;
 const CPU_TYPE_PATH = `../api/get_cpu_type.php`;
 const DEVICE_STREAM_PATH = `../api/device_stream.php`;
 const WAN_INTERFACE_KEY = 'wan';
+const TRAFFIC_INTERFACE_COLORS = ['#38BDF8', '#F59E0B', '#22C55E', '#A78BFA'];
 const TRAFFIC_SERIES = {
     upload: [
         { key: 'outbytes', label: 'Upload', color: '#36A2EB', formatter: 'bits' },
@@ -30,7 +32,9 @@ document.addEventListener('DOMContentLoaded', () => {
     const cpuGaugeRamLabel = document.getElementById('cpuGaugeRamLabel');
     const connectedUsersCount = document.getElementById('connectedUsersCount');
     const summarySalesToday = document.getElementById('summarySalesToday');
+    const summarySalesTodayMeta = document.getElementById('summarySalesTodayMeta');
     const summarySalesMonthly = document.getElementById('summarySalesMonthly');
+    const summarySalesMonthlyMeta = document.getElementById('summarySalesMonthlyMeta');
     const salesTrendBars = document.getElementById('salesTrendBars');
     const salesTrendMonthLabel = document.getElementById('salesTrendMonthLabel');
     const salesActiveDays = document.getElementById('salesActiveDays');
@@ -49,11 +53,21 @@ document.addEventListener('DOMContentLoaded', () => {
     let dashboardStatsTimer = null;
     let opnsenseLiveTimer = null;
     let liveStreamsStarted = false;
-    let trafficCharts = {
-        trafficIn: null,
-        trafficOut: null,
-    };
+    let trafficChart = null;
+    const dashboardDownloadStat = document.getElementById('dashboardDownloadStat');
+    const dashboardUploadStat = document.getElementById('dashboardUploadStat');
     let trafficInitialized = false;
+    let hotspotQueueLimitsBps = { download: null, upload: null };
+
+    function applyHotspotQueueLimits(limits) {
+        if (!limits) {
+            return;
+        }
+        hotspotQueueLimitsBps = {
+            download: Number(limits.download_mbps) > 0 ? Number(limits.download_mbps) * 1e6 : null,
+            upload: Number(limits.upload_mbps) > 0 ? Number(limits.upload_mbps) * 1e6 : null,
+        };
+    }
     let latestMemoryPercent = 0;
     let lastRecentEvents = [];
 
@@ -76,6 +90,11 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         return 'Inconnu';
+    }
+
+    function formatTransactionCount(count) {
+        const total = Math.max(0, Number(count || 0));
+        return `${total} transaction${total > 1 ? 's' : ''}`;
     }
 
     function setGaugeCircleProgress(circle, percent, color) {
@@ -105,6 +124,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function showError(message) {
+        AppToast.flash(message, 'danger');
         if (!messageArea) {
             return;
         }
@@ -170,12 +190,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 datasets,
             },
             options: {
-                bezierCurve: false,
                 maintainAspectRatio: false,
-                scaleShowLabels: false,
-                tooltipEvents: [],
-                pointDot: true,
-                scaleShowGridLines: true,
                 responsive: true,
                 normalized: true,
                 animation: false,
@@ -226,14 +241,6 @@ document.addEventListener('DOMContentLoaded', () => {
                         },
                     },
                 },
-                hover: {
-                    mode: 'nearest',
-                    intersect: false,
-                },
-                interaction: {
-                    mode: 'nearest',
-                    intersect: false,
-                },
                 plugins: {
                     legend: {
                         display: false,
@@ -258,37 +265,11 @@ document.addEventListener('DOMContentLoaded', () => {
         };
     }
 
-    function forceTrafficChartPalette(chart, seriesConfig) {
-        if (!chart) {
-            return;
-        }
-
-        chart.data.datasets.forEach((dataset, index) => {
-            const series = seriesConfig[index];
-            if (!series) {
-                return;
-            }
-
-            dataset.borderColor = series.color;
-            dataset.backgroundColor = setAlpha(series.color, 0.22);
-            dataset.pointHoverBackgroundColor = series.color;
-            dataset.pointHoverBorderColor = series.color;
-            dataset.pointBackgroundColor = series.color;
-            dataset.pointBorderColor = series.color;
-        });
-    }
-
     function destroyTrafficCharts() {
-        if (trafficCharts.trafficIn) {
-            trafficCharts.trafficIn.destroy();
+        if (trafficChart) {
+            trafficChart.destroy();
         }
-        if (trafficCharts.trafficOut) {
-            trafficCharts.trafficOut.destroy();
-        }
-        trafficCharts = {
-            trafficIn: null,
-            trafficOut: null,
-        };
+        trafficChart = null;
     }
 
     function stopLiveStreams(reason) {
@@ -312,6 +293,12 @@ document.addEventListener('DOMContentLoaded', () => {
         }
         if (uploadRateLive) {
             uploadRateLive.innerText = '--';
+        }
+        if (dashboardDownloadStat) {
+            dashboardDownloadStat.style.setProperty('--stat-ratio', '0%');
+        }
+        if (dashboardUploadStat) {
+            dashboardUploadStat.style.setProperty('--stat-ratio', '0%');
         }
         if (bandwidthAdditionalInfo) {
             bandwidthAdditionalInfo.innerText = reason || 'Telemetrie live indisponible pour le device actif';
@@ -340,14 +327,13 @@ document.addEventListener('DOMContentLoaded', () => {
             throw new Error('Chart.js indisponible');
         }
 
-        const interfaces = data.interfaces ?? {};
-        const wanStats = interfaces[WAN_INTERFACE_KEY];
-        if (!wanStats) {
-            throw new Error('Interface WAN introuvable pour le widget trafic');
+        const entries = Object.entries(data.interfaces ?? {}).filter(([, stats]) => stats && typeof stats === 'object');
+        if (entries.length === 0) {
+            throw new Error('Interfaces WAN introuvables pour le widget trafic');
         }
 
-        const uploadDatasets = TRAFFIC_SERIES.upload.map(series => ({
-            label: series.label,
+        const uploadDatasets = entries.flatMap(([key, stats], index) => TRAFFIC_SERIES.upload.map(series => ({
+            label: `${String(stats.label || stats.name || key).toUpperCase()} · Upload`,
             hidden: false,
             borderColor: series.color,
             backgroundColor: setAlpha(series.color, 0.22),
@@ -357,14 +343,15 @@ document.addEventListener('DOMContentLoaded', () => {
             pointBorderColor: series.color,
             pointRadius: 0,
             borderWidth: 2,
-            intf: WAN_INTERFACE_KEY,
+            intf: key,
+            kind: 'upload',
             last_time: Number(data.time ?? 0),
             src_field: series.key,
             formatter: series.formatter,
             data: [],
-        }));
-        const downloadDatasets = TRAFFIC_SERIES.download.map(series => ({
-            label: series.label,
+        })));
+        const downloadDatasets = entries.flatMap(([key, stats], index) => TRAFFIC_SERIES.download.map(series => ({
+            label: `${String(stats.label || stats.name || key).toUpperCase()} · Download`,
             hidden: false,
             borderColor: series.color,
             backgroundColor: setAlpha(series.color, 0.22),
@@ -374,56 +361,62 @@ document.addEventListener('DOMContentLoaded', () => {
             pointBorderColor: series.color,
             pointRadius: 0,
             borderWidth: 2,
-            intf: WAN_INTERFACE_KEY,
+            intf: key,
+            kind: 'download',
             last_time: Number(data.time ?? 0),
             src_field: series.key,
             formatter: series.formatter,
             data: [],
-        }));
+        })));
 
         destroyTrafficCharts();
-        trafficCharts.trafficIn = new Chart(
-            document.getElementById('downloadTrafficChart').getContext('2d'),
-            buildTrafficChartConfig(downloadDatasets, formatBits)
+        trafficChart = new Chart(
+            document.getElementById('bandwidthTrafficChart').getContext('2d'),
+            buildTrafficChartConfig(downloadDatasets.concat(uploadDatasets), formatBits)
         );
-        trafficCharts.trafficOut = new Chart(
-            document.getElementById('uploadTrafficChart').getContext('2d'),
-            buildTrafficChartConfig(uploadDatasets, formatBits)
-        );
-        forceTrafficChartPalette(trafficCharts.trafficIn, TRAFFIC_SERIES.download);
-        forceTrafficChartPalette(trafficCharts.trafficOut, TRAFFIC_SERIES.upload);
 
         renderTrafficLegend(trafficInterfacesInfo, []);
         if (bandwidthAdditionalInfo) {
-            bandwidthAdditionalInfo.innerText = `Interface: WAN | Fenetre affichee: ${Math.round(TRAFFIC_DURATION_MS / 1000)} s | Retard d'affichage: ${Math.round(TRAFFIC_DELAY_MS / 1000)} s`;
+            bandwidthAdditionalInfo.innerText = '';
         }
         trafficInitialized = true;
     }
 
-    function formatSeriesValue(pointY, formatter) {
-        return formatter === 'bits' ? (formatBits(pointY) || '0 b') : '0';
-    }
-
-    function buildTrafficHeaderValue(chart) {
-        if (!chart) {
-            return '--';
+    function trafficKindTotal(kind) {
+        if (!trafficChart) {
+            return 0;
         }
-
-        const dataset = chart.data.datasets[0];
-        if (!dataset || dataset.data.length === 0) {
-            return '--';
-        }
-
-        const point = dataset.data[dataset.data.length - 1];
-        return `<span class="traffic-header-series" style="--traffic-series:${dataset.borderColor}; color:${dataset.borderColor};"><span class="traffic-header-metric">${escapeHtml(formatSeriesValue(point?.y ?? 0, dataset.formatter))}</span></span>`;
+        return trafficChart.data.datasets
+            .filter(dataset => dataset.kind === kind)
+            .reduce((sum, dataset) => {
+                const point = dataset.data[dataset.data.length - 1];
+                return sum + Number(point?.y ?? 0);
+            }, 0);
     }
 
     function updateTrafficHeaderValues() {
+        const downloadTotal = trafficKindTotal('download');
+        const uploadTotal = trafficKindTotal('upload');
+        /* Chaque barre = debit actuel / limite PCC reelle configuree sur la file du bridge Hotspot
+           (controle du bridge Hotspot, cote download/upload separes), pas une part l'une de l'autre. */
+        const downloadRatio = hotspotQueueLimitsBps.download
+            ? Math.min(100, (downloadTotal / hotspotQueueLimitsBps.download) * 100)
+            : 0;
+        const uploadRatio = hotspotQueueLimitsBps.upload
+            ? Math.min(100, (uploadTotal / hotspotQueueLimitsBps.upload) * 100)
+            : 0;
+
         if (downloadRateLive) {
-            downloadRateLive.innerHTML = buildTrafficHeaderValue(trafficCharts.trafficIn);
+            downloadRateLive.textContent = formatBits(downloadTotal) || '0 b';
         }
         if (uploadRateLive) {
-            uploadRateLive.innerHTML = buildTrafficHeaderValue(trafficCharts.trafficOut);
+            uploadRateLive.textContent = formatBits(uploadTotal) || '0 b';
+        }
+        if (dashboardDownloadStat) {
+            dashboardDownloadStat.style.setProperty('--stat-ratio', `${downloadRatio.toFixed(1)}%`);
+        }
+        if (dashboardUploadStat) {
+            dashboardUploadStat.style.setProperty('--stat-ratio', `${uploadRatio.toFixed(1)}%`);
         }
     }
 
@@ -441,18 +434,18 @@ document.addEventListener('DOMContentLoaded', () => {
             initializeTraffic(data);
         }
 
-        const wanStats = data.interfaces?.[WAN_INTERFACE_KEY];
-        if (!wanStats) {
+        const interfaces = data.interfaces ?? {};
+        if (Object.keys(interfaces).length === 0) {
             return;
         }
 
         const isRate = String(data.metric_mode || '').toLowerCase() === 'rate';
 
-        Object.values(trafficCharts).forEach(chart => {
-            chart.config.data.datasets.forEach(dataset => {
+        if (trafficChart) {
+            trafficChart.config.data.datasets.forEach(dataset => {
                 const elapsedTime = Number(data.time ?? 0) - Number(dataset.last_time ?? 0);
                 if (elapsedTime > 0) {
-                    const rawValue = Number(wanStats[dataset.src_field] ?? 0);
+                    const rawValue = Number(interfaces?.[dataset.intf]?.[dataset.src_field] ?? 0);
                     const yValue = isRate
                         ? Math.round(rawValue)
                         : (dataset.formatter === 'packets'
@@ -467,8 +460,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
                 dataset.last_time = Number(data.time ?? 0);
             });
-            chart.update('quiet');
-        });
+            trafficChart.update('quiet');
+        }
 
         updateTrafficHeaderValues();
     }
@@ -484,14 +477,14 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         if (cpuTotalLive) {
-            cpuTotalLive.innerText = `${total.toFixed(2)}%`;
+            cpuTotalLive.innerText = `${Math.round(total)}%`;
         }
         if (cpuGauge) {
             setGaugeCircleProgress(cpuGaugeOuterValue, total, cpuGaugeColor);
             setGaugeCircleProgress(cpuGaugeInnerValue, latestMemoryPercent, '#38bdf8');
             cpuGauge.style.setProperty('--cpu-gauge-color', cpuGaugeColor);
             if (cpuGaugeCpuLabel) {
-                cpuGaugeCpuLabel.innerText = `${total.toFixed(1)}%`;
+                cpuGaugeCpuLabel.innerText = `${Math.round(total)}%`;
             }
         }
     }
@@ -621,6 +614,64 @@ document.addEventListener('DOMContentLoaded', () => {
         })
         .catch(() => {});
 
+    function normalizeRecentEvent(item) {
+        if (!item || typeof item !== 'object') {
+            return null;
+        }
+
+        const event = {
+            time: String(item.time ?? '').trim(),
+            user: String(item.user ?? '').trim(),
+            action: String(item.action ?? '').trim(),
+        };
+
+        if (event.time === '' && event.user === '' && event.action === '') {
+            return null;
+        }
+
+        if (event.action === '') {
+            return null;
+        }
+
+        return event;
+    }
+
+    function recentEventKey(item) {
+        return [
+            String(item.time ?? '').trim().toLowerCase(),
+            String(item.user ?? '').trim().toLowerCase(),
+            String(item.action ?? '').trim().toLowerCase(),
+        ].join('|');
+    }
+
+    function mergeRecentEvents(events) {
+        const merged = [];
+        const seen = new Set();
+
+        const addEvent = (item) => {
+            const event = normalizeRecentEvent(item);
+            if (!event) {
+                return;
+            }
+
+            const key = recentEventKey(event);
+            if (seen.has(key)) {
+                return;
+            }
+
+            seen.add(key);
+            merged.push(event);
+        };
+
+        if (Array.isArray(events)) {
+            events.forEach(addEvent);
+        }
+
+        lastRecentEvents.forEach(addEvent);
+
+        return merged.slice(0, RECENT_EVENTS_LIMIT);
+    }
+
     function renderRecentEvents(events) {
         if (!recentEventsTableBody) {
             return;
@@ -656,8 +707,12 @@ document.addEventListener('DOMContentLoaded', () => {
             return `<span class="recent-user-name">${userName || '-'}</span><span class="recent-user-ip">${userIp || '-'}</span>`;
         };
 
-        if (Array.isArray(events) && events.length > 0) {
-            recentEventsTableBody.innerHTML = events.slice(0, 20).map(item => `
+        const safeEvents = Array.isArray(events)
+            ? events.map(normalizeRecentEvent).filter(Boolean).slice(0, RECENT_EVENTS_LIMIT)
+            : [];
+
+        if (safeEvents.length > 0) {
+            recentEventsTableBody.innerHTML = safeEvents.map(item => `
                 <tr>
                     <td class="recent-time-cell">${formatTimeCell(item.time)}</td>
                     <td class="recent-user-cell">${formatUserCell(item.user)}</td>
@@ -698,7 +753,9 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         }
         if (summarySalesToday) summarySalesToday.innerText = data.sales_today || '0';
+        if (summarySalesTodayMeta) summarySalesTodayMeta.innerText = formatTransactionCount(data.sales_today_count);
         if (summarySalesMonthly) summarySalesMonthly.innerText = data.sales_monthly || '0';
+        if (summarySalesMonthlyMeta) summarySalesMonthlyMeta.innerText = formatTransactionCount(data.sales_monthly_count);
         if (salesTrendMonthLabel) {
             salesTrendMonthLabel.innerText = new Date().toLocaleDateString('fr-FR', { month: 'long', year: 'numeric' });
         }
@@ -717,9 +774,16 @@ document.addEventListener('DOMContentLoaded', () => {
         const events = Array.isArray(recentEventsOverride)
             ? recentEventsOverride
             : (Array.isArray(data.recent_events) ? data.recent_events : null);
-        if (Array.isArray(events) && events.length > 0) {
-            lastRecentEvents = events;
-            renderRecentEvents(events);
+        if (Array.isArray(events)) {
+            const mergedEvents = mergeRecentEvents(events);
+            if (mergedEvents.length > 0) {
+                lastRecentEvents = mergedEvents;
+                renderRecentEvents(lastRecentEvents);
+            } else if (lastRecentEvents.length > 0) {
+                renderRecentEvents(lastRecentEvents);
+            } else {
+                renderRecentEvents([]);
+            }
         }
         renderSalesTrend(data.sales_daily_trend);
     }
@@ -728,10 +792,22 @@ document.addEventListener('DOMContentLoaded', () => {
         if (!payload) {
             return;
         }
+        if (payload.supported === false) {
+            stopLiveStreams(payload.message || 'Trafic multi-WAN indisponible.');
+            return;
+        }
+        const interfaces = payload.interfaces && typeof payload.interfaces === 'object' ? payload.interfaces : {};
+        if (Object.keys(interfaces).length === 0) {
+            if (bandwidthAdditionalInfo) bandwidthAdditionalInfo.innerText = 'Aucune source multi-WAN active configurée.';
+            return;
+        }
         applyTrafficEvent({ data: JSON.stringify(payload) });
     }
 
     function applyDashboardGenericPayload(payload) {
+        if (payload?.hotspot_queue_limits) {
+            applyHotspotQueueLimits(payload.hotspot_queue_limits);
+        }
         const device = payload?.device || {};
         const hotspot = payload?.hotspot || {};
         const commercialSummary = payload?.commercial_summary || {};
@@ -802,9 +878,12 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
                 if (payload.stats) {
                     applyDashboardStats(payload.stats, Array.isArray(payload.recent_events) ? payload.recent_events : undefined);
-                } else if (Array.isArray(payload.recent_events) && payload.recent_events.length > 0) {
-                    lastRecentEvents = payload.recent_events;
-                    renderRecentEvents(payload.recent_events);
+                } else if (Array.isArray(payload.recent_events)) {
+                    const mergedEvents = mergeRecentEvents(payload.recent_events);
+                    if (mergedEvents.length > 0) {
+                        lastRecentEvents = mergedEvents;
+                        renderRecentEvents(lastRecentEvents);
+                    }
                 }
             } catch (error) {
                 console.error('Erreur flux dashboard:', error);

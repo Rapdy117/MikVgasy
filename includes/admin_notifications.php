@@ -11,6 +11,7 @@ function ensureAdminNotificationsTable(PDO $pdo): void
     $pdo->exec(
         "CREATE TABLE IF NOT EXISTS admin_notifications (
             id INT(11) NOT NULL AUTO_INCREMENT,
+            owner_admin_id INT(11) DEFAULT NULL,
             severity VARCHAR(20) NOT NULL DEFAULT 'info',
             category VARCHAR(40) NOT NULL DEFAULT 'system',
             source_type VARCHAR(50) DEFAULT NULL,
@@ -22,6 +23,7 @@ function ensureAdminNotificationsTable(PDO $pdo): void
             created_at TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP,
             read_at TIMESTAMP NULL DEFAULT NULL,
             PRIMARY KEY (id),
+            KEY idx_admin_notifications_owner (owner_admin_id),
             KEY idx_admin_notifications_read (is_read),
             KEY idx_admin_notifications_severity (severity),
             KEY idx_admin_notifications_category (category),
@@ -30,6 +32,109 @@ function ensureAdminNotificationsTable(PDO $pdo): void
     );
 
     $done = true;
+}
+
+function ensureDeviceHealthMonitorTable(PDO $pdo): void
+{
+    static $done = false;
+
+    if ($done) {
+        return;
+    }
+
+    $pdo->exec(
+        "CREATE TABLE IF NOT EXISTS device_health_monitor (
+            device_id VARCHAR(120) NOT NULL,
+            device_name VARCHAR(180) DEFAULT NULL,
+            device_type VARCHAR(20) DEFAULT NULL,
+            host VARCHAR(255) DEFAULT NULL,
+            last_state VARCHAR(20) NOT NULL DEFAULT 'unknown',
+            last_error_message TEXT DEFAULT NULL,
+            last_checked_at DATETIME DEFAULT NULL,
+            last_success_at DATETIME DEFAULT NULL,
+            consecutive_failures INT(11) NOT NULL DEFAULT 0,
+            PRIMARY KEY (device_id),
+            KEY idx_device_health_monitor_state (last_state),
+            KEY idx_device_health_monitor_checked (last_checked_at)
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci"
+    );
+
+    $done = true;
+}
+
+function getDeviceHealthMonitorState(PDO $pdo, string $deviceId): ?array
+{
+    ensureDeviceHealthMonitorTable($pdo);
+
+    $stmt = $pdo->prepare("
+        SELECT
+            device_id,
+            device_name,
+            device_type,
+            host,
+            last_state,
+            last_error_message,
+            last_checked_at,
+            last_success_at,
+            consecutive_failures
+        FROM device_health_monitor
+        WHERE device_id = ?
+        LIMIT 1
+    ");
+    $stmt->execute([$deviceId]);
+    $row = $stmt->fetch(PDO::FETCH_ASSOC);
+
+    return is_array($row) ? $row : null;
+}
+
+function saveDeviceHealthMonitorState(PDO $pdo, array $payload): void
+{
+    ensureDeviceHealthMonitorTable($pdo);
+
+    $stmt = $pdo->prepare("
+        INSERT INTO device_health_monitor (
+            device_id,
+            device_name,
+            device_type,
+            host,
+            last_state,
+            last_error_message,
+            last_checked_at,
+            last_success_at,
+            consecutive_failures
+        ) VALUES (
+            :device_id,
+            :device_name,
+            :device_type,
+            :host,
+            :last_state,
+            :last_error_message,
+            :last_checked_at,
+            :last_success_at,
+            :consecutive_failures
+        )
+        ON DUPLICATE KEY UPDATE
+            device_name = VALUES(device_name),
+            device_type = VALUES(device_type),
+            host = VALUES(host),
+            last_state = VALUES(last_state),
+            last_error_message = VALUES(last_error_message),
+            last_checked_at = VALUES(last_checked_at),
+            last_success_at = VALUES(last_success_at),
+            consecutive_failures = VALUES(consecutive_failures)
+    ");
+
+    $stmt->execute([
+        ':device_id' => trim((string)($payload['device_id'] ?? '')),
+        ':device_name' => trim((string)($payload['device_name'] ?? '')) ?: null,
+        ':device_type' => trim((string)($payload['device_type'] ?? '')) ?: null,
+        ':host' => trim((string)($payload['host'] ?? '')) ?: null,
+        ':last_state' => trim((string)($payload['last_state'] ?? 'unknown')) ?: 'unknown',
+        ':last_error_message' => trim((string)($payload['last_error_message'] ?? '')) ?: null,
+        ':last_checked_at' => trim((string)($payload['last_checked_at'] ?? '')) ?: null,
+        ':last_success_at' => trim((string)($payload['last_success_at'] ?? '')) ?: null,
+        ':consecutive_failures' => max(0, (int)($payload['consecutive_failures'] ?? 0)),
+    ]);
 }
 
 function createAdminNotification(PDO $pdo, array $payload): int
@@ -43,6 +148,7 @@ function createAdminNotification(PDO $pdo, array $payload): int
 
     $stmt = $pdo->prepare("
         INSERT INTO admin_notifications (
+            owner_admin_id,
             severity,
             category,
             source_type,
@@ -51,6 +157,7 @@ function createAdminNotification(PDO $pdo, array $payload): int
             message,
             details_json
         ) VALUES (
+            :owner_admin_id,
             :severity,
             :category,
             :source_type,
@@ -61,7 +168,13 @@ function createAdminNotification(PDO $pdo, array $payload): int
         )
     ");
 
+    $ownerAdminId = isset($payload['owner_admin_id']) ? max(0, (int)$payload['owner_admin_id']) : max(0, (int)($_SESSION['owner_admin_id'] ?? $_SESSION['local_admin_id'] ?? 0));
+    if (strtolower((string)($_SESSION['user_role'] ?? '')) === 'reseller') {
+        $ownerAdminId = max(0, (int)($_SESSION['owner_admin_id'] ?? $ownerAdminId));
+    }
+
     $stmt->execute([
+        ':owner_admin_id' => $ownerAdminId > 0 ? $ownerAdminId : null,
         ':severity' => trim((string)($payload['severity'] ?? 'info')) ?: 'info',
         ':category' => trim((string)($payload['category'] ?? 'system')) ?: 'system',
         ':source_type' => trim((string)($payload['source_type'] ?? '')) ?: null,
@@ -71,32 +184,43 @@ function createAdminNotification(PDO $pdo, array $payload): int
         ':details_json' => trim((string)($details ?? '')) ?: null,
     ]);
 
+    clearAdminNotificationsUnreadCache();
+
     return (int)$pdo->lastInsertId();
+}
+
+function adminNotificationScope(array &$params): string
+{
+    $role = strtolower(trim((string)($_SESSION['user_role'] ?? '')));
+    if ($role === 'superadmin') {
+        return '1=1';
+    }
+    $ownerAdminId = $role === 'reseller'
+        ? (int)($_SESSION['owner_admin_id'] ?? 0)
+        : (int)($_SESSION['local_admin_id'] ?? 0);
+    if ($ownerAdminId <= 0) {
+        return '1=0';
+    }
+    $params[] = $ownerAdminId;
+    return 'owner_admin_id = ?';
 }
 
 function listAdminNotifications(PDO $pdo, int $limit = 100): array
 {
     ensureAdminNotificationsTable($pdo);
 
+    $params = [];
+    $scope = adminNotificationScope($params);
     $stmt = $pdo->prepare("
         SELECT
-            id,
-            severity,
-            category,
-            source_type,
-            source_ref,
-            title,
-            message,
-            details_json,
-            is_read,
-            created_at,
-            read_at
+            id, owner_admin_id, severity, category, source_type, source_ref,
+            title, message, details_json, is_read, created_at, read_at
         FROM admin_notifications
+        WHERE $scope
         ORDER BY is_read ASC, id DESC
-        LIMIT :limit
+        LIMIT " . (int)max(1, $limit) . "
     ");
-    $stmt->bindValue(':limit', max(1, $limit), PDO::PARAM_INT);
-    $stmt->execute();
+    $stmt->execute($params);
 
     return $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
 }
@@ -152,7 +276,7 @@ function syncInvalidPasswordNotifications(PDO $pdo, int $minFailures = 3, int $r
             'source_type' => 'portal_invalid_password',
             'source_ref' => $sourceRef,
             'title' => 'Mot de passe invalide',
-            'message' => sprintf('Echecs de connexion repetes pour %s: %d en %d min.', $username, (int)($row['fail_count'] ?? 0), $repeatWindowMinutes),
+            'message' => sprintf('Échecs de connexion répétés pour « %s » : %d en %d min.', $username, (int)($row['fail_count'] ?? 0), $repeatWindowMinutes),
             'details_json' => [
                 'username' => $username,
                 'fail_count' => (int)($row['fail_count'] ?? 0),
@@ -195,7 +319,7 @@ function syncInvalidPasswordNotifications(PDO $pdo, int $minFailures = 3, int $r
             'source_type' => 'portal_invalid_password',
             'source_ref' => $sourceRef,
             'title' => 'Mot de passe invalide',
-            'message' => sprintf('Tentatives de connexion pour un utilisateur inconnu: %s (%d essai%s).', $username, (int)($row['fail_count'] ?? 0), ((int)($row['fail_count'] ?? 0) > 1 ? 's' : '')),
+            'message' => sprintf('Tentatives de connexion pour un utilisateur inconnu : « %s » (%d essai%s).', $username, (int)($row['fail_count'] ?? 0), ((int)($row['fail_count'] ?? 0) > 1 ? 's' : '')),
             'details_json' => [
                 'username' => $username,
                 'fail_count' => (int)($row['fail_count'] ?? 0),
@@ -208,32 +332,64 @@ function syncInvalidPasswordNotifications(PDO $pdo, int $minFailures = 3, int $r
 function countUnreadAdminNotifications(PDO $pdo): int
 {
     ensureAdminNotificationsTable($pdo);
-    $count = $pdo->query("SELECT COUNT(*) FROM admin_notifications WHERE is_read = 0")->fetchColumn();
+    $params = [];
+    $scope = adminNotificationScope($params);
+    $stmt = $pdo->prepare("SELECT COUNT(*) FROM admin_notifications WHERE is_read = 0 AND $scope");
+    $stmt->execute($params);
+    $count = $stmt->fetchColumn();
 
     return (int)($count ?: 0);
+}
+
+function clearAdminNotificationsUnreadCache(): void
+{
+    if (session_status() !== PHP_SESSION_ACTIVE) {
+        return;
+    }
+
+    unset($_SESSION['admin_notifications_unread_cache']);
+}
+
+function countUnreadAdminNotificationsCached(PDO $pdo, int $ttlSeconds = 60): int
+{
+    if (session_status() !== PHP_SESSION_ACTIVE) {
+        return countUnreadAdminNotifications($pdo);
+    }
+
+    $cache = $_SESSION['admin_notifications_unread_cache'] ?? null;
+    if (is_array($cache) && isset($cache['expires_at'], $cache['count'])) {
+        if ((int)$cache['expires_at'] >= time()) {
+            return max(0, (int)$cache['count']);
+        }
+    }
+
+    $count = countUnreadAdminNotifications($pdo);
+    $_SESSION['admin_notifications_unread_cache'] = [
+        'count' => $count,
+        'expires_at' => time() + max(1, $ttlSeconds),
+    ];
+
+    return $count;
 }
 
 function markAdminNotificationRead(PDO $pdo, int $notificationId): void
 {
     ensureAdminNotificationsTable($pdo);
-    $stmt = $pdo->prepare("
-        UPDATE admin_notifications
-        SET is_read = 1,
-            read_at = CURRENT_TIMESTAMP
-        WHERE id = ?
-    ");
-    $stmt->execute([$notificationId]);
+    $params = [$notificationId];
+    $scope = adminNotificationScope($params);
+    $stmt = $pdo->prepare("UPDATE admin_notifications SET is_read = 1, read_at = CURRENT_TIMESTAMP WHERE id = ? AND $scope");
+    $stmt->execute($params);
+    clearAdminNotificationsUnreadCache();
 }
 
 function markAllAdminNotificationsRead(PDO $pdo): void
 {
     ensureAdminNotificationsTable($pdo);
-    $pdo->exec("
-        UPDATE admin_notifications
-        SET is_read = 1,
-            read_at = CURRENT_TIMESTAMP
-        WHERE is_read = 0
-    ");
+    $params = [];
+    $scope = adminNotificationScope($params);
+    $stmt = $pdo->prepare("UPDATE admin_notifications SET is_read = 1, read_at = CURRENT_TIMESTAMP WHERE is_read = 0 AND $scope");
+    $stmt->execute($params);
+    clearAdminNotificationsUnreadCache();
 }
 
 function adminNotificationSeverityLabel(string $severity): string
@@ -259,6 +415,7 @@ function adminNotificationSeverityBadgeClass(string $severity): string
 function adminNotificationCategoryLabel(string $category): string
 {
     return match (strtolower(trim($category))) {
+        'device' => 'Équipement',
         'user' => 'Utilisateur',
         'commercial' => 'Commercial',
         'portal' => 'Portail',

@@ -4,33 +4,17 @@
     const config = window.SESSIONS_LIST_CONFIG || {};
     const csrfToken = String(config.csrfToken || '');
     const isOpnsenseSessions = Boolean(config.isOpnsenseSessions);
+    const isMikrotikSessions = Boolean(config.isMikrotikSessions);
+    const configuredDeviceId = String(config.deviceId || document.body?.dataset?.deviceId || '').trim();
+    const wanOverrideOptions = Array.isArray(config.wanOverrideOptions) ? config.wanOverrideOptions : [];
 
     let sessionsRefreshInFlight = false;
     let sessionsColumnsState = {};
+    let wanOverrideModalInstance = null;
+    let wanOverrideContext = null;
 
     function showToast(message, type = 'info', duration = 3000) {
-        let container = document.getElementById('sessions-toast-container');
-        if (!container) {
-            container = document.createElement('div');
-            container.id = 'sessions-toast-container';
-            container.style.position = 'fixed';
-            container.style.top = '20px';
-            container.style.right = '20px';
-            container.style.zIndex = '9999';
-            document.body.appendChild(container);
-        }
-
-        const toast = document.createElement('div');
-        toast.className = `alert alert-${type}`;
-        toast.style.marginBottom = '10px';
-        toast.style.minWidth = '220px';
-        toast.textContent = message;
-
-        container.appendChild(toast);
-
-        setTimeout(() => {
-            toast.remove();
-        }, duration);
+        AppToast.flash(message, type, duration);
     }
 
     function showConfirm(message) {
@@ -127,8 +111,43 @@
     }
 
     function buildEmptyFilterRowHtml() {
-        const colspan = isOpnsenseSessions ? 11 : 13;
-        return `<td colspan="${colspan}" class="text-center">Aucune session ne correspond aux filtres</td>`;
+        const table = document.querySelector('.sessions-table');
+        const columnCount = table ? table.querySelectorAll('thead th').length : (isOpnsenseSessions ? 11 : (isMikrotikSessions ? 14 : 13));
+        return `<td colspan="${columnCount}" class="text-center">Aucune session ne correspond aux filtres</td>`;
+    }
+
+    function escapeHtml(value) {
+        return String(value ?? '')
+            .replaceAll('&', '&amp;')
+            .replaceAll('<', '&lt;')
+            .replaceAll('>', '&gt;')
+            .replaceAll('"', '&quot;')
+            .replaceAll("'", '&#039;');
+    }
+
+    function updateSessionsListCount() {
+        const counter = document.getElementById('sessionsListCount');
+        const tbody = document.getElementById('sessionsTableBody');
+
+        if (!counter || !tbody) {
+            return;
+        }
+
+        const rows = Array.from(tbody.querySelectorAll('tr:not([data-sort-disabled="1"])'));
+        counter.textContent = String(rows.length);
+
+        const wan1Counter = document.getElementById('sessionsWan1Count');
+        const wan2Counter = document.getElementById('sessionsWan2Count');
+        if (wan1Counter || wan2Counter) {
+            const counts = rows.reduce((acc, row) => {
+                const wan = String(row.dataset.wan || '').trim().toUpperCase();
+                if (wan === 'WAN1') acc.WAN1 += 1;
+                if (wan === 'WAN2') acc.WAN2 += 1;
+                return acc;
+            }, { WAN1: 0, WAN2: 0 });
+            if (wan1Counter) wan1Counter.textContent = String(counts.WAN1);
+            if (wan2Counter) wan2Counter.textContent = String(counts.WAN2);
+        }
     }
 
     function applySessionsFilters() {
@@ -203,6 +222,8 @@
                 }
 
                 applySessionsColumnsFromState();
+                window.TableSort?.refresh?.();
+                updateSessionsListCount();
                 applySessionsFilters();
             })
             .catch(error => {
@@ -231,7 +252,13 @@
             address: row.dataset.address || '',
             source: row.dataset.login || '',
             profile: row.dataset.profile || '',
+            deviceId: row.dataset.deviceId || configuredDeviceId,
         } : {};
+
+        if (!rowContext.deviceId) {
+            showToast('Device manquant pour cette session. Actualisez la page puis réessayez.', 'danger');
+            return;
+        }
 
         if (actionButton) {
             actionButton.disabled = true;
@@ -251,6 +278,7 @@
                 address: rowContext.address,
                 source: rowContext.source,
                 profile: rowContext.profile,
+                device_id: rowContext.deviceId,
                 csrf_token: csrfToken
             })
         })
@@ -289,6 +317,161 @@
         });
     }
 
+    function getWanOverrideModal() {
+        const modalElement = document.getElementById('sessionWanOverrideModal');
+        if (!modalElement || !window.bootstrap?.Modal) {
+            return null;
+        }
+        if (!wanOverrideModalInstance) {
+            wanOverrideModalInstance = new window.bootstrap.Modal(modalElement);
+        }
+        return wanOverrideModalInstance;
+    }
+
+    function buildWanOverrideChoices(currentValue) {
+        const choices = document.getElementById('sessionWanOverrideChoices');
+        if (!choices) {
+            return;
+        }
+
+        const current = String(currentValue || 'AUTO').toUpperCase();
+        const rows = [{
+            wan_id: 'AUTO',
+            label: 'Automatique',
+            interface: '',
+            weight: '',
+            selectable: true,
+            reason: 'supprimer exception',
+        }].concat(wanOverrideOptions);
+
+        choices.innerHTML = rows.map((option) => {
+            const wanId = String(option.wan_id || '').toUpperCase();
+            const selectable = option.selectable !== false;
+            const checked = current === wanId;
+            const meta = wanId === 'AUTO'
+                ? 'supprimer exception'
+                : [option.interface || '', option.weight !== '' && option.weight !== undefined ? `${option.weight}%` : '', selectable ? '' : (option.reason || 'inactive')]
+                    .filter(Boolean)
+                    .join(' · ');
+            return `
+                <label class="session-wan-choice ${selectable ? '' : 'is-disabled'}">
+                    <input
+                        type="radio"
+                        name="session_wan_override"
+                        value="${escapeHtml(wanId)}"
+                        ${checked ? 'checked' : ''}
+                        ${selectable ? '' : 'disabled'}
+                    >
+                    <span class="session-wan-choice__main">
+                        <span class="session-wan-choice__title">${escapeHtml(wanId === 'AUTO' ? option.label : `${wanId} · ${option.label || wanId}`)}</span>
+                        <span class="session-wan-choice__meta">${escapeHtml(meta)}</span>
+                    </span>
+                </label>
+            `;
+        }).join('');
+    }
+
+    function openWanOverrideModal(row) {
+        const modal = getWanOverrideModal();
+        if (!modal || !row) {
+            showToast('Popup WAN indisponible.', 'danger');
+            return;
+        }
+        const username = String(row.dataset.username || '').trim();
+        const address = String(row.dataset.address || '').trim();
+        const deviceId = String(row.dataset.deviceId || configuredDeviceId).trim();
+        if (!username || username === '-' || !address || address === '-' || !deviceId) {
+            showToast('Session incomplète pour créer une exception WAN.', 'danger');
+            return;
+        }
+
+        wanOverrideContext = {
+            username,
+            address,
+            deviceId,
+            currentWan: String(row.dataset.wanOverride || 'AUTO').trim().toUpperCase() || 'AUTO',
+        };
+
+        const target = document.getElementById('sessionWanOverrideTarget');
+        if (target) {
+            target.textContent = `${username} · ${address}`;
+        }
+        const feedback = document.getElementById('sessionWanOverrideFeedback');
+        if (feedback) {
+            feedback.textContent = '';
+            feedback.className = 'session-wan-modal-feedback';
+        }
+        buildWanOverrideChoices(wanOverrideContext.currentWan);
+        modal.show();
+    }
+
+    function setWanOverrideBusy(busy) {
+        const saveButton = document.getElementById('sessionWanOverrideSaveBtn');
+        if (saveButton) {
+            saveButton.disabled = busy;
+            saveButton.classList.toggle('is-loading', busy);
+        }
+    }
+
+    function saveWanOverride() {
+        if (!wanOverrideContext) {
+            return;
+        }
+        const selected = document.querySelector('input[name="session_wan_override"]:checked');
+        const wan = String(selected?.value || '').trim().toUpperCase();
+        const feedback = document.getElementById('sessionWanOverrideFeedback');
+        if (!wan) {
+            if (feedback) {
+                feedback.textContent = 'Choisissez une option.';
+                feedback.classList.add('is-error');
+            }
+            return;
+        }
+
+        setWanOverrideBusy(true);
+        if (feedback) {
+            feedback.textContent = 'Application en cours...';
+            feedback.className = 'session-wan-modal-feedback is-info';
+        }
+
+        fetch('../api/session_wan_override.php', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            credentials: 'same-origin',
+            body: JSON.stringify({
+                csrf_token: csrfToken,
+                device_id: wanOverrideContext.deviceId,
+                username: wanOverrideContext.username,
+                address: wanOverrideContext.address,
+                wan
+            })
+        })
+            .then(async (response) => {
+                const data = await response.json().catch(() => ({ status: 'error', message: 'Réponse serveur invalide.' }));
+                return { ok: response.ok, data };
+            })
+            .then(({ ok, data }) => {
+                if (!ok || data.status !== 'success') {
+                    throw new Error(data.message || 'Application impossible.');
+                }
+                showToast(data.message || 'Exception WAN appliquée.', 'success');
+                getWanOverrideModal()?.hide();
+                refreshSessions();
+            })
+            .catch((error) => {
+                if (feedback) {
+                    feedback.textContent = error.message || 'Application impossible.';
+                    feedback.className = 'session-wan-modal-feedback is-error';
+                }
+                showToast(error.message || 'Application impossible.', 'danger');
+            })
+            .finally(() => {
+                setWanOverrideBusy(false);
+            });
+    }
+
     const SessionsCommands = {
         refresh: refreshSessions,
         disconnect: disconnectSession,
@@ -300,6 +483,7 @@
         sessionsColumnsState = loadSessionsColumnsState();
         buildSessionsColumnsSelector();
         applySessionsColumnsFromState();
+        updateSessionsListCount();
 
         searchFilter?.addEventListener('input', SessionsCommands.filter);
         SessionsCommands.filter();
@@ -307,6 +491,17 @@
         document.getElementById('sessionsManualRefreshBtn')?.addEventListener('click', () => {
             SessionsCommands.refresh();
         });
+
+        document.getElementById('sessionsTableBody')?.addEventListener('click', (event) => {
+            const button = event.target.closest('.session-wan-override-btn');
+            if (!button) {
+                return;
+            }
+            const row = button.closest('tr');
+            openWanOverrideModal(row);
+        });
+
+        document.getElementById('sessionWanOverrideSaveBtn')?.addEventListener('click', saveWanOverride);
     });
 
     window.disconnectSession = SessionsCommands.disconnect;

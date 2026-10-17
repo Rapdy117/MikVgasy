@@ -38,12 +38,15 @@ header('Connection: keep-alive');
 header('X-Accel-Buffering: no');
 
 $device = requireActiveDevice();
-$requestedInterface = trim((string)($_GET['interface'] ?? ''));
+$requestedInterfaces = array_values(array_unique(array_filter(array_map(
+    static fn($value): string => trim((string)$value),
+    explode(',', (string)($_GET['interfaces'] ?? $_GET['interface'] ?? ''))
+), static fn(string $value): bool => $value !== '')));
 
 if (($device['type'] ?? '') === 'mikrotik') {
     while (!connection_aborted()) {
         try {
-            $cacheKey = trim((string)($device['id'] ?? $device['host'] ?? 'active'));
+            $cacheKey = trim((string)($device['id'] ?? $device['host'] ?? 'active')) . '|' . implode(',', $requestedInterfaces);
             $cacheFile = sys_get_temp_dir() . '/mikrotik_traffic_stream_' . md5($cacheKey) . '.json';
             $cacheTtl = 2;
             $sample = null;
@@ -57,7 +60,16 @@ if (($device['type'] ?? '') === 'mikrotik') {
             }
 
             if (!is_array($sample)) {
-                $sample = getMikrotikTrafficSample($requestedInterface !== '' ? $requestedInterface : null);
+                $sample = [];
+                foreach (getMikrotikTrafficSamples($requestedInterfaces) as $item) {
+                    $sample[$item['interface']] = [
+                        'name' => $item['interface'],
+                        'inbytes' => $item['rx_bps'],
+                        'outbytes' => $item['tx_bps'],
+                        'rx_bytes' => $item['rx_bytes'],
+                        'tx_bytes' => $item['tx_bytes'],
+                    ];
+                }
                 file_put_contents($cacheFile, json_encode([
                     'time' => time(),
                     'sample' => $sample,
@@ -67,15 +79,10 @@ if (($device['type'] ?? '') === 'mikrotik') {
             emitSse([
                 'time' => microtime(true),
                 'metric_mode' => 'rate',
-                'interfaces' => [
-                    'wan' => [
-                        'name' => $sample['interface'],
-                        'inbytes' => $sample['rx_bps'],
-                        'outbytes' => $sample['tx_bps'],
-                    ],
-                ],
-                'interface_label' => $sample['interface'],
-                'selected_interface' => $sample['interface'],
+                'interfaces' => $sample,
+                'interface_label' => implode(', ', array_keys($sample)),
+                'selected_interface' => (string)array_key_first($sample),
+                'selected_interfaces' => array_keys($sample),
                 'last_update' => date('H:i:s'),
             ]);
         } catch (Throwable $e) {

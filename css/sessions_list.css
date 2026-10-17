@@ -1,5 +1,5 @@
 .sessions-list-page #page-content-wrapper {
-    min-height: 100vh;
+    min-height: calc(100vh - var(--navbar-height) - var(--page-content-offset-y));
     display: flex;
     flex-direction: column;
 }
@@ -52,6 +52,23 @@
 
 .sessions-list-page .users-list-card-title span {
     font-size: calc(0.8rem + 3px);
+}
+
+.sessions-list-page .users-list-card-title .sessions-list-count {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 1.65rem;
+    height: 1.25rem;
+    padding: 0 0.45rem;
+    border: 1px solid rgba(23, 162, 184, 0.45);
+    border-radius: 999px;
+    background: var(--theme-primary-soft);
+    color: var(--theme-primary);
+    font-size: calc(0.8rem - 1px);
+    font-weight: 700;
+    line-height: 1;
+    box-shadow: inset 0 0 8px rgba(23, 162, 184, 0.12);
 }
 
 .sessions-list-page .card.shadow-sm.mb-4 {
@@ -193,18 +210,22 @@ html.sessions-list-page .sessions-table-scroll thead th[data-sort-key].sort-desc
     padding: 5px 8px;
 }
 
-.sessions-list-page .sessions-table .session-action-btn {
-    background-color: rgba(23, 162, 184, 0.2);
-    border: 1px solid var(--theme-primary);
-    color: var(--theme-primary);
+.sessions-list-page .sessions-table .session-action-btn,
+.sessions-list-page .users-table .session-action-btn {
+    min-width: calc(100px - 15px);
+    background-color: rgba(220, 53, 69, 0.15);
+    border: 1px solid #dc3545;
+    color: #dc3545;
 }
 
 .sessions-list-page .sessions-table .session-action-btn:hover,
-.sessions-list-page .sessions-table .session-action-btn:focus {
-    background-color: var(--theme-primary);
-    border-color: var(--theme-primary);
+.sessions-list-page .sessions-table .session-action-btn:focus,
+.sessions-list-page .users-table .session-action-btn:hover,
+.sessions-list-page .users-table .session-action-btn:focus {
+    background-color: #dc3545;
+    border-color: #dc3545;
     color: #fff;
-    box-shadow: 0 0 8px rgba(23, 162, 184, 0.6);
+    box-shadow: 0 0 8px rgba(220, 53, 69, 0.6);
 }
 
 .sessions-list-page .sessions-table .action-header,
@@ -234,6 +255,23 @@ html.sessions-list-page .sessions-table-scroll thead th[data-sort-key].sort-desc
     min-height: 32px;
 }
 
+.sessions-list-page #sessionsManualRefreshBtn,
+.sessions-list-page #sessionsColumnsToggle {
+    background-color: rgba(23, 162, 184, 0.2);
+    border-color: var(--theme-primary);
+    color: var(--theme-primary);
+}
+
+.sessions-list-page #sessionsManualRefreshBtn:hover,
+.sessions-list-page #sessionsManualRefreshBtn:focus,
+.sessions-list-page #sessionsColumnsToggle:hover,
+.sessions-list-page #sessionsColumnsToggle:focus {
+    background-color: var(--theme-primary);
+    border-color: var(--theme-primary);
+    color: #fff;
+    box-shadow: 0 0 8px rgba(23, 162, 184, 0.6);
+}
+
 .sessions-list-page .sessions-table-actions .dropdown-toggle {
     min-width: 112px;
 }
@@ -242,4 +280,273 @@ html.sessions-list-page .sessions-table-scroll thead th[data-sort-key].sort-desc
     min-width: 220px;
     max-width: 420px;
     flex: 0 1 320px;
+}
+
+.sessions-table .session-user-link {
+    color: var(--theme-primary);
+    text-decoration: none;
+    font-weight: 600;
+}
+
+.sessions-table .session-user-link:hover,
+.sessions-table .session-user-link:focus-visible {
+    color: #d9fbff;
+    text-decoration: underline;
+}
+
+
+.sessions-table .session-wan-badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 64px;
+    padding: 0.18rem 0.5rem;
+    border-radius: 999px;
+    border: 1px solid rgba(148, 163, 184, 0.28);
+    background: rgba(15, 23, 42, 0.72);
+    color: rgba(226, 232, 240, 0.86);
+    font-size: 0.72rem;
+    font-weight: 800;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+}
+
+.sessions-table .session-wan-badge--wan1 {
+    border-color: rgba(34, 211, 238, 0.62);
+    background: rgba(8, 145, 178, 0.18);
+    color: #67e8f9;
+    box-shadow: inset 0 0 10px rgba(34, 211, 238, 0.08);
+}
+
+.sessions-table .session-wan-badge--wan2 {
+    border-color: rgba(245, 158, 11, 0.65);
+    background: rgba(180, 83, 9, 0.18);
+    color: #fbbf24;
+    box-shadow: inset 0 0 10px rgba(245, 158, 11, 0.08);
+}
+
+.sessions-table .session-wan-badge--wan3 {
+    border-color: rgba(34, 197, 94, 0.62);
+    background: rgba(22, 101, 52, 0.18);
+    color: #86efac;
+}
+
+.sessions-table .session-wan-badge--wan4 {
+    border-color: rgba(168, 85, 247, 0.62);
+    background: rgba(107, 33, 168, 0.18);
+    color: #d8b4fe;
+}
+
+.sessions-table .session-wan-badge--none {
+    border-color: rgba(148, 163, 184, 0.32);
+    background: rgba(51, 65, 85, 0.24);
+    color: rgba(203, 213, 225, 0.8);
+}
+
+
+
+.sessions-list-page .sessions-wan-summary {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3rem;
+    margin-left: 0.45rem;
+    padding-left: 0.45rem;
+    border-left: 1px solid rgba(23, 162, 184, 0.22);
+    flex-wrap: wrap;
+    line-height: 1;
+}
+
+.sessions-list-page .sessions-wan-count {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    height: 1.25rem;
+    min-height: 1.25rem;
+    vertical-align: middle;
+    overflow: hidden;
+    border: 1px solid rgba(23, 162, 184, 0.36);
+    border-radius: 999px;
+    background: rgba(23, 162, 184, 0.09);
+    color: rgba(226, 232, 240, 0.86);
+    font-size: calc(0.8rem - 4px);
+    font-weight: 700;
+    line-height: 1;
+    box-shadow: inset 0 0 8px rgba(23, 162, 184, 0.08);
+}
+
+.sessions-list-page .users-list-card-title .sessions-wan-count__label {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    align-self: stretch;
+    height: 100%;
+    min-height: 0;
+    padding: 0 0.4rem 0 0.5rem;
+    color: rgba(226, 232, 240, 0.72);
+    font-size: calc(0.8rem - 3px);
+    line-height: 1;
+    letter-spacing: 0.02em;
+    transform: translateY(1px);
+}
+
+.sessions-list-page .sessions-wan-count strong {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    align-self: stretch;
+    height: 100%;
+    min-height: 0;
+    min-width: 1.35rem;
+    padding: 0 0.42rem;
+    border-left: 1px solid rgba(148, 163, 184, 0.18);
+    background: rgba(8, 16, 30, 0.36);
+    color: var(--theme-primary);
+    font-size: calc(0.8rem - 2px);
+    font-weight: 800;
+    line-height: 1;
+}
+
+.sessions-list-page .sessions-wan-count--wan1 {
+    border-color: rgba(23, 162, 184, 0.44);
+}
+
+.sessions-list-page .sessions-wan-count--wan1 strong {
+    color: var(--theme-primary);
+}
+
+.sessions-list-page .sessions-wan-count--wan2 {
+    border-color: rgba(96, 165, 250, 0.38);
+    background: rgba(59, 130, 246, 0.08);
+}
+
+.sessions-list-page .sessions-wan-count--wan2 strong {
+    color: #93c5fd;
+}
+
+.sessions-list-page .session-wan-override-btn {
+    min-width: 34px;
+    margin-right: 0.35rem;
+    background-color: rgba(23, 162, 184, 0.16);
+    border: 1px solid rgba(23, 162, 184, 0.55);
+    color: var(--theme-primary);
+}
+
+.sessions-list-page .session-wan-override-btn:hover,
+.sessions-list-page .session-wan-override-btn:focus-visible {
+    background-color: rgba(23, 162, 184, 0.32);
+    border-color: var(--theme-primary);
+    color: #e0fdff;
+    box-shadow: 0 0 0 0.16rem rgba(23, 162, 184, 0.18), 0 0 10px rgba(23, 162, 184, 0.34);
+}
+
+.sessions-list-page .session-wan-modal .modal-content {
+    border: 1px solid rgba(23, 162, 184, 0.32);
+    border-radius: 0.85rem;
+    background:
+        radial-gradient(circle at 15% 0%, rgba(23, 162, 184, 0.2), transparent 32%),
+        linear-gradient(145deg, rgba(8, 16, 30, 0.98), rgba(15, 23, 42, 0.96));
+    color: var(--theme-text);
+    box-shadow: 0 22px 70px rgba(0, 0, 0, 0.48), inset 0 0 0 1px rgba(148, 163, 184, 0.08);
+}
+
+.sessions-list-page .session-wan-modal .modal-header,
+.sessions-list-page .session-wan-modal .modal-footer {
+    border-color: rgba(148, 163, 184, 0.14);
+}
+
+.sessions-list-page .session-wan-modal .modal-title {
+    color: #eafcff;
+    font-size: 1rem;
+    font-weight: 800;
+    letter-spacing: 0.02em;
+}
+
+.sessions-list-page .session-wan-modal .modal-subtitle,
+.sessions-list-page .session-wan-modal-help {
+    color: rgba(226, 232, 240, 0.7);
+    font-size: 0.78rem;
+}
+
+.sessions-list-page .session-wan-choice-list {
+    display: grid;
+    gap: 0.55rem;
+    margin: 0.85rem 0 0;
+    padding: 0;
+    border: 0;
+}
+
+.sessions-list-page .session-wan-choice {
+    display: flex;
+    align-items: center;
+    gap: 0.65rem;
+    padding: 0.65rem 0.75rem;
+    border: 1px solid rgba(148, 163, 184, 0.18);
+    border-radius: 0.65rem;
+    background: rgba(15, 23, 42, 0.58);
+    cursor: pointer;
+    transition: border-color 0.16s ease, background-color 0.16s ease, opacity 0.16s ease;
+}
+
+.sessions-list-page .session-wan-choice:hover,
+.sessions-list-page .session-wan-choice:focus-within {
+    border-color: rgba(23, 162, 184, 0.62);
+    background: rgba(23, 162, 184, 0.11);
+}
+
+.sessions-list-page .session-wan-choice input {
+    accent-color: var(--theme-primary);
+}
+
+.sessions-list-page .session-wan-choice input:focus-visible {
+    outline: 2px solid var(--theme-primary);
+    outline-offset: 3px;
+}
+
+.sessions-list-page .session-wan-choice.is-disabled {
+    opacity: 0.45;
+    cursor: not-allowed;
+}
+
+.sessions-list-page .session-wan-choice.is-disabled:hover {
+    border-color: rgba(148, 163, 184, 0.18);
+    background: rgba(15, 23, 42, 0.58);
+}
+
+.sessions-list-page .session-wan-choice__main {
+    display: grid;
+    gap: 0.12rem;
+    min-width: 0;
+}
+
+.sessions-list-page .session-wan-choice__title {
+    color: rgba(248, 250, 252, 0.94);
+    font-size: 0.82rem;
+    font-weight: 800;
+}
+
+.sessions-list-page .session-wan-choice__meta {
+    color: rgba(203, 213, 225, 0.66);
+    font-size: 0.72rem;
+    font-weight: 600;
+}
+
+.sessions-list-page .session-wan-modal-feedback {
+    min-height: 1.15rem;
+    margin-top: 0.75rem;
+    font-size: 0.78rem;
+    font-weight: 700;
+    color: rgba(226, 232, 240, 0.72);
+}
+
+.sessions-list-page .session-wan-modal-feedback.is-info {
+    color: var(--theme-primary);
+}
+
+.sessions-list-page .session-wan-modal-feedback.is-error {
+    color: #fca5a5;
+}
+
+.sessions-list-page #sessionWanOverrideSaveBtn.is-loading {
+    opacity: 0.7;
+    cursor: wait;
 }

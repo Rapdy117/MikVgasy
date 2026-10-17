@@ -7,6 +7,8 @@ function ensureRechargeHistoryTable(PDO $pdo): void
             id INT(11) NOT NULL AUTO_INCREMENT,
             device_id VARCHAR(100) DEFAULT NULL,
             device_type VARCHAR(30) DEFAULT NULL,
+            owner_admin_id INT(11) DEFAULT NULL,
+            created_by_user_id INT(11) DEFAULT NULL,
             username VARCHAR(100) NOT NULL,
             profile_name VARCHAR(100) NOT NULL,
             mode VARCHAR(30) NOT NULL,
@@ -26,6 +28,8 @@ function ensureRechargeHistoryTable(PDO $pdo): void
             PRIMARY KEY (id),
             KEY idx_recharge_history_username (username),
             KEY idx_recharge_history_device (device_id),
+            KEY idx_recharge_history_owner (owner_admin_id),
+            KEY idx_recharge_history_created_by (created_by_user_id),
             KEY idx_recharge_history_created_at (created_at)
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci"
     );
@@ -43,6 +47,15 @@ function ensureRechargeHistoryTable(PDO $pdo): void
     if (!in_array('amount_label', $columns, true)) {
         $pdo->exec('ALTER TABLE recharge_history ADD COLUMN amount_label VARCHAR(50) DEFAULT NULL AFTER amount_value');
     }
+    if (!in_array('owner_admin_id', $columns, true)) {
+        $pdo->exec('ALTER TABLE recharge_history ADD COLUMN owner_admin_id INT(11) DEFAULT NULL AFTER device_type');
+    }
+    if (!in_array('created_by_user_id', $columns, true)) {
+        $pdo->exec('ALTER TABLE recharge_history ADD COLUMN created_by_user_id INT(11) DEFAULT NULL AFTER owner_admin_id');
+    }
+    try {
+        $pdo->exec("UPDATE recharge_history h JOIN network_devices d ON d.id=h.device_id SET h.owner_admin_id=d.owner_admin_id WHERE h.owner_admin_id IS NULL AND d.owner_admin_id IS NOT NULL");
+    } catch (Throwable $e) { }
 }
 
 function effect_summary_from_mode(string $mode): string
@@ -71,6 +84,8 @@ function saveRechargeHistory(
         'INSERT INTO recharge_history (
             device_id,
             device_type,
+            owner_admin_id,
+            created_by_user_id,
             username,
             profile_name,
             mode,
@@ -89,6 +104,8 @@ function saveRechargeHistory(
         ) VALUES (
             :device_id,
             :device_type,
+            :owner_admin_id,
+            :created_by_user_id,
             :username,
             :profile_name,
             :mode,
@@ -110,6 +127,8 @@ function saveRechargeHistory(
     $stmt->execute([
         ':device_id' => (string)($device['id'] ?? ''),
         ':device_type' => (string)($device['type'] ?? ''),
+        ':owner_admin_id' => max(0, (int)($_SESSION['owner_admin_id'] ?? $_SESSION['local_admin_id'] ?? 0)) ?: null,
+        ':created_by_user_id' => max(0, (int)($_SESSION['local_admin_id'] ?? 0)) ?: null,
         ':username' => $username,
         ':profile_name' => $profileName,
         ':mode' => $mode,
