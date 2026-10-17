@@ -520,10 +520,10 @@ Restent gelés jusqu'à validation des priorités 1 à 3 :
 5. Comptes MAC : libellé « Gaga » à ajouter en table ; enregistrement réel d'une modification de compte MAC et d'une restriction MAC (écriture sur le routeur, accord requis).
 6. Validité expirée : aucun message d'origine ; à vérifier sur un compte réellement expiré.
 7. Restriction MAC : vider une valeur MAC n'est pas encore géré (RouterOS refuse une valeur vide).
-8. Code mort : suppression de `includes/multi_wan_allocator.php` (8 fonctions) : accord requis (le classifieur bloque la suppression).
+8. ~~Code mort : suppression de `includes/multi_wan_allocator.php`~~ — **annulé (2026-10-17), note obsolète.** Vérifié avant suppression : le fichier est activement utilisé (`multiWanLoadUserOverrides`, `multiWanSaveUserOverride`, `multiWanRows`, etc. appelés depuis `api/mikrotik_traffic_control.php`, `api/session_wan_override.php`, `pages/sessions_list.php`) — fait partie du moteur N-WAN (dérogations WAN par session utilisateur). Cette note datait d'un état antérieur du code, jamais mise à jour. Rien à supprimer.
 9. Sécurité : Winbox, SSH et API accessibles depuis tout le LAN ; binding `10.10.10.15` désactivé ; mot de passe root Proxmox trop faible à changer.
 10. OPNsense : reste en pause (décision du 2026-10-06).
-11. Dépôt git : nombreux changements non commités, à regrouper avant un commit.
+11. ~~Dépôt git : nombreux changements non commités, à regrouper avant un commit.~~ — **fait (2026-10-17)** : commit `76dc749` (290 fichiers) + README mis à jour, poussés sur `master` et `main` (voir `docs/DECISIONS.md`).
 
 Le plan est mis à jour dans `docs/PROJECT_PLAN.md`.
 
