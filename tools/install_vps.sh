@@ -33,6 +33,22 @@ cat > /etc/cron.d/radius-manager-sensitive-backup <<EOF
 EOF
 chmod 0644 /etc/cron.d/radius-manager-sensitive-backup
 
+# Collecteurs MikroTik (trafic, WAN, qualité réseau, logs hotspot) : décalés pour éviter les
+# chevauchements. Ecrit ici (root, via install_vps.sh) car la page web d'installation tourne en
+# www-data et ne peut pas écrire dans /etc/cron.d/.
+cat > /etc/cron.d/radius-manager-network-quality <<EOF
+# Radius Manager - collectes MikroTik décalées pour éviter les chevauchements
+# :00 LAN/Hotspot/traffic monitor lourd
+# :20 compteurs WAN dédiés
+# :30 qualité réseau
+* * * * * root /usr/bin/php ${APP_ROOT}/scripts/monitor_mikrotik_traffic.php >/dev/null 2>&1
+* * * * * root /bin/sleep 20 && /usr/bin/php ${APP_ROOT}/scripts/monitor_mikrotik_wan_usage.php >/dev/null 2>&1
+* * * * * root /bin/sleep 30 && /usr/bin/php ${APP_ROOT}/scripts/monitor_network_quality.php >/dev/null 2>&1
+# Archive des logs Hotspot MikroTik (buffer /log volatile) - toutes les 2h, retention 48h
+0 */2 * * * root /usr/bin/php ${APP_ROOT}/scripts/monitor_mikrotik_hotspot_logs.php >/dev/null 2>&1
+EOF
+chmod 0644 /etc/cron.d/radius-manager-network-quality
+
 echo "Installation système terminée."
 php -v | head -1
 apache2 -v | head -1

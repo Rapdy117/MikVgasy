@@ -71,5 +71,5 @@ try {
     set_message($e->getMessage(), 'danger');
 }
 
-header('Location: /tools/install.php');
+header('Location: /tools/migration_setup.php');
 exit();

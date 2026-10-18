@@ -6,7 +6,7 @@ require_once __DIR__ . '/admin_notifications.php';
 require_once __DIR__ . '/../config/db.php';
 
 $current = basename($_SERVER['PHP_SELF']);
-$isSystemToolsPage = str_contains((string)($_SERVER['REQUEST_URI'] ?? ''), '/tools/install.php');
+$isSystemToolsPage = str_contains((string)($_SERVER['REQUEST_URI'] ?? ''), '/tools/migration_setup.php');
 $appContext = is_array($appContext ?? null) ? $appContext : buildAppContext();
 $navbarDevice = $appContext['device'] ?? [
     'id' => null,
@@ -378,7 +378,7 @@ if ($isAdminUser) {
         <i class="fa fa-network-wired"></i> Network Devices
     </a>
     <?php if ($isSuperAdminUser): ?>
-    <a href="/tools/install.php" class="list-group-item level-1 <?= $isSystemToolsPage ? 'active' : '' ?>">
+    <a href="/tools/migration_setup.php" class="list-group-item level-1 <?= $isSystemToolsPage ? 'active' : '' ?>">
         <i class="fa fa-screwdriver-wrench"></i> Outils système
     </a>
     <?php endif; ?>

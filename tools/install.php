@@ -1,7 +1,10 @@
 <?php
 
+/* install.php reste le moteur CLI (appele via proc_open par migration_setup.php) ; toute requete
+   web est redirigee vers le vrai point d'entree, qui porte un nom reflete son role reel (collecte
+   des donnees de configuration pour construire la migration/installation). */
 if (PHP_SAPI !== 'cli') {
-    require __DIR__ . '/install_web.php';
+    header('Location: /tools/migration_setup.php');
     exit;
 }
 
